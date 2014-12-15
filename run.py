@@ -79,7 +79,7 @@ def index():
         return 'Logged in as %s' % escape(session['username'])
     return 'You are not logged in'
 
-@app.route('/login_email', methods=['POST'])
+@app.route('/login_email', methods=['POST', 'GET'])
 @exception_detector
 def login_email():
     if request.method == "POST":
@@ -109,7 +109,16 @@ def login_email():
 	    return make_response('Please check the password', 406)
 	return
     else:
-	return make_response('POST method only!', 405)
+        return '''
+        <!doctype html>
+        <title>LogIn test</title>
+        <h1>Login</h1>
+        <form action="" method="post">
+	  <p>ID: <input type=text name="username"></p>
+	  <p>Password: <input type=password name="password"></p>
+          <p><input type=submit value=login></p>
+        </form>
+        '''
 
 @app.route('/logout')
 @exception_detector
@@ -129,7 +138,7 @@ def logout():
                ), 406)
         
 
-@app.route('/signUp_email', methods=['POST'])
+@app.route('/signUp_email', methods=['POST', 'GET'])
 @exception_detector
 def sign_up_email():
     # Request method: POST
@@ -138,22 +147,36 @@ def sign_up_email():
     #     password: String, password
     #     nickname: String, this name will be used and appeared in Ciceron system
     #     mother_language: String, 1st language of user
-    username = request.form['username']
+    if request.method == 'POST':
+        username = request.form['username']
 
-    hash_maker = hashlib.md5()
-    hash_maker.update(app.config['IDENTIFIER'])
-    hash_maker.update(request.form['password'])
-    hash_maker.update(app.config['IDENTIFIER'])
-    hashed_password = hash_maker.digest()
+        hash_maker = hashlib.md5()
+        hash_maker.update(app.config['IDENTIFIER'])
+        hash_maker.update(request.form['password'])
+        hash_maker.update(app.config['IDENTIFIER'])
+        hashed_password = hash_maker.digest()
 
-    nickname = request.form['nickname']
-    mother_language = request.form['mother_language']
+        nickname = request.form['nickname']
+        mother_language = request.form['mother_language']
 
-    g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
-		    [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 0, False, 0, False, False])
-    g.db.commit() 
+        g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
+      		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 0, False, 0, False, False])
+        g.db.commit() 
 
-    return make_response(json.jsonify(status=dict(code=200, message="Registration %s: successful" % username)), 200)
+        return make_response(json.jsonify(status=dict(code=200, message="Registration %s: successful" % username)), 200)
+    
+    return '''
+        <!doctype html>
+        <title>Sign up</title>
+        <h1>Sign up</h1>
+        <form action="" method="post">
+	  <p>ID: <input type=text name="username"></p>
+	  <p>Pass: <input type=password name="password"></p>
+	  <p>Nickname: <input type=text name="nickname"></p>
+	  <p>Mother language setting: <input type=text name="mother_language"></p>
+          <p><input type=submit value="Sign up!"></p>
+        </form>
+        '''
 
 @app.route('/nickCheck', methods=['GET'])
 @exception_detector

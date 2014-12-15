@@ -1,0 +1,31 @@
+# README #
+
+Ciceron server code
+
+### What is this repository for? ###
+
+* Ciceron server code written by python and Flask
+* Closed beta
+
+### How do I get set up? ###
+
+* Summary of set up
+  - Check http://flask.pocoo.org/docs/0.10/installation/#virtualenv
+  - For activate virtual env: execute shell '. venv/bin/activate'
+      # DO NOT FORGET DOT!!! DOT MEANS current folder in GNU/UNIX
+  - Execute shell 'pip install Flask'
+  - After then, you don't have to execute 'pip install Flask' every time when you execute 'git fetch; git rebase'.
+  - In virtual env, execute 'python run.py' and you may use server as localhost:5000
+
+* Database configuration
+  - Sqlite3
+  - File based DB
+  - 'ciceron.db' is the DB file
+  - So, you don't have to import anything.
+* How to run tests
+  - In virtual env, execute 'python run_test.py'
+
+### TEST CREDENTIAL ###
+
+* ID: admin@ciceron.me
+* Pass: !master@Of#Ciceron$
