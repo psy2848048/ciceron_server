@@ -233,7 +233,7 @@ def post_list():
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     if request.method == "GET":
-        query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, due_date, image_files, sound_file FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
+        query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, due_date, image_files, sound_file FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
         if 'last_post_time' in request.args.keys():
             query += "AND request_date < datetime(%f) " % Decimal(request.args['last_post_time'])
         query += "ORDER BY request_date DESC LIMIT 20"
@@ -246,7 +246,7 @@ def post_list():
             item = dict()
 	    item['is_SOS'] = bool(row[0])
 	    item['id'] = row[1]
-	    item['requestor_id'] = row[2]
+	    item['requester_id'] = row[2]
 	    item['from_lang'] = row[3]
 	    item['to_lang'] = row[4]
 	    item['main_text'] = row[5]
@@ -277,7 +277,7 @@ def post():
 
 	post = dict()
 	post['id'] = start_count
-	post['requestor_id'] = session['username']
+	post['requester_id'] = session['username']
 	post['from_lang'] = request.form['from_lang']
 	post['to_lang'] = request.form['to_lang']
 	post['is_SOS'] = request.form['is_SOS']
@@ -296,7 +296,7 @@ def post():
         query_post = "INSERT INTO Requests_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	g.db.execute(query_post, [
 	        post['id'],
-	        (post['requestor_id']),
+	        (post['requester_id']),
 	        (post['from_lang']),
 	        (post['to_lang']),
 		post['is_SOS'],
@@ -325,7 +325,7 @@ def history():
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     #query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) AND translator_id IS NOT NULL "
-    query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) "
+    query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requester_id = ? OR translator_id = ?) "
     if 'last_post_time' in request.args.keys():
         query += " AND request_date < datetime(%f) " % Decimal(request.args['last_post_time'])
     query += " ORDER BY request_date DESC LIMIT 20"
@@ -339,7 +339,7 @@ def history():
 
 	item['is_SOS'] = bool(row[0])
 	item['id'] = row[1]
-	item['requestor_id'] = row[2]
+	item['requester_id'] = row[2]
 	item['from_lang'] = row[3]
 	item['to_lang'] = row[4]
 	item['main_text'] = row[5]

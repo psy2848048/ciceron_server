@@ -16,7 +16,7 @@ is_Instagram BOOL)
  
 CREATE TABLE Requests_list (
 id INT PRIMARY KEY UNIQUE NOT NULL, 
-requestor_id STRING NOT NULL, 
+requester_id STRING NOT NULL, 
 from_lang STRING NOT NULL, 
 to_lang STRING NOT NULL, 
 is_SOS BOOL NOT NULL, 
