@@ -1,20 +1,21 @@
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response
 from contextlib import closing
-from datetime import datetime
-import hashlib, sqlite3, os
+from datetime import datetime, timedelta
+import hashlib, sqlite3, os, time
 from functools import wraps
 from werkzeug import secure_filename
+from decimal import Decimal
 
 DATABASE = 'ciceron.db'
 DEBUG = True
 IDENTIFIER = "millionare@ciceron!@"
 UPLOAD_FOLDER_PROFILE_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profile_pic")
-UPLOAD_FOLDER_REQUEST_PIC = os.path.join(os.path.dirname(os.path.abspathg(__file__)), "request_pic")
+UPLOAD_FOLDER_REQUEST_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "request_pic")
 UPLOAD_FOLDER_REQUEST_SOUND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sounds")
 UPLOAD_FOLDER_REQUEST_DOC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "request_doc")
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'gif', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
-ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', .'oga', 'flac', '3gp', 'm4a'])
+ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -168,7 +169,7 @@ def nickChecker():
 
 @app.route('/idCheck', methods=['GET'])
 @exception_detector
-def nickChecker():
+def idChecker():
     email_id = request.args['email_id']
     print "email_id: %s" % email_id
     cursor = g.db.execute("select * from Users where string_id = ?", [buffer(email_id)])
@@ -209,11 +210,10 @@ def post_list():
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     if request.method == "GET":
-        query = "SELECT TOP 20 is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date FROM Requests_list \
-                     WHERE is_request_picked = 0 AND is_request_finished = 0 "
+        query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, due_date, image_files, sound_file FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
         if 'last_post_time' in request.args.keys():
-            query += "AND request_date < %d " % request.args['last_post_time']
-        query += "ORDER BY request_date DESC"
+            query += "AND request_date < datetime(%f) " % Decimal(request.args['last_post_time'])
+        query += "ORDER BY request_date DESC LIMIT 20"
 
         cursor = g.db.execute(query)
         rs = cursor.fetchall()
@@ -221,25 +221,28 @@ def post_list():
 
         for row in rs:
             item = dict()
-	    item['is_SOS'] = row[0]
+	    item['is_SOS'] = bool(row[0])
 	    item['id'] = row[1]
 	    item['requestor_id'] = row[2]
 	    item['from_lang'] = row[3]
 	    item['to_lang'] = row[4]
 	    item['main_text'] = row[5]
 	    item['request_date'] = row[6]
+	    item['due_date'] = row[7]
+	    item['is_image'] = True if row[8] is not None else False
+	    item['is_sound'] = True if row[9] is not None else False
 
 	    result.append(item)
 
-        return make_response(json.jsonfy(item_list = result), 200)
+        return make_response(json.jsonify(item_list = result), 200)
 
-@app_route('/post', methods=["POST"])
+@app.route('/post', methods=["POST"])
 @exception_detector
 @login_required
 def post():
     # Request method: POST
     if request.method == "POST":
-        query_for_get_last_id = "SELECT TOP 1 id from Requests_list ORDER BY id DESC"
+        query_for_get_last_id = "SELECT id from Requests_list ORDER BY id DESC LIMIT 1"
 	cursor = g.db.execute(query_for_get_last_id)
 	count_data = cursor.fetchall()
 
@@ -247,11 +250,11 @@ def post():
 	if len(count_data) == 0:
             start_count = 1
 	else:
-            start_count = int(count_data[0]) # [0]? or [0][0]
+            start_count = int(count_data[0][0]) + 1 # [0]? or [0][0]
 
 	post = dict()
 	post['id'] = start_count
-	post['requestor_id'] = request.form['requestor_id']
+	post['requestor_id'] = session['username']
 	post['from_lang'] = request.form['from_lang']
 	post['to_lang'] = request.form['to_lang']
 	post['is_SOS'] = request.form['is_SOS']
@@ -262,28 +265,28 @@ def post():
 	post['request_date'] = datetime.now()
         
 	post['due_date'] = None
-	if post['is_SOS'] == True:
-            post['due_date'] = post['request_date'] + datetime.timedelta(minutes=30)
+	if bool(post['is_SOS']) == True:
+            post['due_date'] = post['request_date'] + timedelta(minutes=30)
 	else:
-	    post['due_date'] = post['request_date'] + datetime.timedelta(days=7)
+	    post['due_date'] = post['request_date'] + timedelta(days=7)
 
-        query_post = "INSERT INTO Request_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        query_post = "INSERT INTO Requests_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	g.db.execute(query_post, [
 	        post['id'],
-	        buffer(post['requestor_id']),
-	        buffer(post['from_lang']),
-	        buffer(post['to_lang']),
+	        (post['requestor_id']),
+	        (post['from_lang']),
+	        (post['to_lang']),
 		post['is_SOS'],
-	        buffer(post['main_text']),
-	        buffer(post['context_text']) if post['context_text'] is not None else None,
-	        buffer(post['image_files']) if post['image_files'] is not None else None,
-	        buffer(post['sound_file']) if post['sound_file'] is not None else None,
+	        (post['main_text']),
+	        (post['context_text']) if post['context_text'] is not None else None,
+	        (post['image_files']) if post['image_files'] is not None else None,
+	        (post['sound_file']) if post['sound_file'] is not None else None,
 		post['request_date'],
 		post['due_date'],
 		None,
 		None,
-		None,
-		None
+		0,
+		0
 	    ])
 
 	g.db.commit()
@@ -298,20 +301,20 @@ def history():
     # Parameters
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
-    query = "SELECT TOP 20 is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list \
-                 WHERE requestor_id = ? AND translator_id IS NOT NULL "
+    #query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) AND translator_id IS NOT NULL "
+    query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) "
     if 'last_post_time' in request.args.keys():
-        query += "AND request_date < %d " % request.args['last_post_time']
-    query += "ORDER BY request_date DESC"
+        query += " AND request_date < datetime(%f) " % Decimal(request.args['last_post_time'])
+    query += " ORDER BY request_date DESC LIMIT 20"
 
-    cursor = g.db.execute(query, [session['username']])
+    cursor = g.db.execute(query, [session['username'], session['username']])
     rs = cursor.fetchall()
     result = []
 
     for row in rs:
         item = dict()
 
-	item['is_SOS'] = row[0]
+	item['is_SOS'] = bool(row[0])
 	item['id'] = row[1]
 	item['requestor_id'] = row[2]
 	item['from_lang'] = row[3]
@@ -324,7 +327,7 @@ def history():
 
 	result.append(item)
 
-    return make_response(json.jsonfy(item_list = result), 200)
+    return make_response(json.jsonify(item_list = result), 200)
 
 @app.route('/pick_request/<post_id>', methods=['GET'])
 @login_required

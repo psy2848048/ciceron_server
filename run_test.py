@@ -1,4 +1,4 @@
-import os, run, unittest, tempfile
+import os, run, unittest, tempfile, datetime, time
 from flask import url_for
 
 class CiceronTestCase(unittest.TestCase):
@@ -82,6 +82,67 @@ class CiceronTestCase(unittest.TestCase):
 	print rv
 	print rv.data
 	assert 'Login required'
+
+    def test_Post(self):
+	print "=============test-Post==================="
+        self.signUp(username="psy2848048@gmail.com",
+		    password="ciceron!",
+		    nickname="CiceronMaster",
+		    mother_language="Korean")
+	self.login(username="psy2848048@gmail.com",
+		    password="ciceron!"
+		    )
+
+	rv = self.app.post('/post', data=dict(
+			from_lang="Korean",
+			to_lang="English",
+			is_SOS=0,
+			main_text="English is too difficult to learn and use properly. I really need your help",
+			))
+	print rv.data
+	assert "Posted" in rv.data
+
+	rv = self.app.post('/post', data=dict(
+			from_lang="Korean",
+			to_lang="English",
+			is_SOS=1,
+			main_text="English is too difficult to learn and use properly. I really need your help",
+			))
+	print rv.data
+	assert "Posted" in rv.data
+
+        rv = self.app.get('/post_list')
+	print "Posted list"
+	print rv.data
+
+        rv = self.app.get('/post_list?last_post_time=%f' % time.time())
+	print "Posted list with last_post_time"
+	print rv.data
+
+        rv = self.app.get('/history')
+        print "History of psy2848048@gmail.com"
+	print rv.data
+
+        rv = self.app.get('/history?last_post_time=%f' % time.time())
+	print "History with last_post_time"
+	print rv.data
+
+        print "Test with different user"
+        self.signUp(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
+		    nickname="CiceronUser",
+		    mother_language="Korean")
+	self.login(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+		    )
+
+        rv = self.app.get('/post_list')
+	print "Posted list"
+	print rv.data
+
+        rv = self.app.get('/history')
+        print "History of jun.hang.lee@sap.com"
+	print rv.data
 
 if __name__ == "__main__":
     unittest.main()
