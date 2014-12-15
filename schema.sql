@@ -6,7 +6,8 @@ nickname STRING NOT NULL, -- This name will be shown in app.
 profile_img STRING, 
 mother_tongue_language STRING, 
 other_language STRING, 
-requested INT, 
+requested INT,
+grade INT,
 is_translator BOOL, 
 translated INT,
  
@@ -16,7 +17,7 @@ is_Instagram BOOL)
  
 CREATE TABLE Requests_list (
 id INT PRIMARY KEY UNIQUE NOT NULL, 
-requester_id STRING NOT NULL, 
+requester_id STRING NOT NULL,
 from_lang STRING NOT NULL, 
 to_lang STRING NOT NULL, 
 is_SOS BOOL NOT NULL, 
@@ -24,19 +25,21 @@ main_text TEXT,
 context_text TEXT, 
 image_files STRING, -- separate files with ';' and parse when request 
 sound_file STRING, 
-request_date TIMESTAMP, 
+request_date TIMESTAMP,
+format STRING,
+subject STRING,
 due_date TIMESTAMP,
 translator_id STRING, 
-translator_pic STRING, 
 is_request_picked BOOL, 
-is_request_finished BOOL )
+is_request_finished BOOL,
+price FLOAT )
 ; 
  
 CREATE TABLE Result (
 request_id INT, 
 reply_id INT, 
-requestor_nick STRING, 
-translator_name STRING, 
+requestor_id STRING, 
+translator_id STRING, 
 comment_text TEXT, 
 is_result BOOL )
 ;

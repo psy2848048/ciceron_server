@@ -159,8 +159,8 @@ def sign_up_email():
         nickname = request.form['nickname']
         mother_language = request.form['mother_language']
 
-        g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?)", 
-      		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 0, False, 0, False, False])
+        g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", 
+      		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 0, 1, False, 0, False, False])
         g.db.commit() 
 
         return make_response(json.jsonify(status=dict(code=200, message="Registration %s: successful" % username)), 200)
@@ -233,7 +233,7 @@ def post_list():
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     if request.method == "GET":
-        query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, due_date, image_files, sound_file FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
+        query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
         if 'last_post_time' in request.args.keys():
             query += "AND request_date < datetime(%f) " % Decimal(request.args['last_post_time'])
         query += "ORDER BY request_date DESC LIMIT 20"
@@ -247,13 +247,21 @@ def post_list():
 	    item['is_SOS'] = bool(row[0])
 	    item['id'] = row[1]
 	    item['requester_id'] = row[2]
+            cursor = g.db.execute("SELECT profile_img, grade FORM Users WHERE string_id = ?", [ item['requester_id'] ])
+	    rs = cursor.fetchall()
+	    item['requester_pic'] = rs[0][0]
+	    item['requester_grade'] = rs[0][1]
+
 	    item['from_lang'] = row[3]
 	    item['to_lang'] = row[4]
 	    item['main_text'] = row[5]
 	    item['request_date'] = row[6]
-	    item['due_date'] = row[7]
-	    item['is_image'] = True if row[8] is not None else False
-	    item['is_sound'] = True if row[9] is not None else False
+	    item['format'] = row[7]
+	    item['subject'] = row[8]
+	    item['due_date'] = row[9]
+	    item['is_image'] = True if row[10] is not None else False
+	    item['is_sound'] = True if row[11] is not None else False
+	    item['price'] = row[12]
 
 	    result.append(item)
 
@@ -286,6 +294,8 @@ def post():
 	post['image_files'] = request.form.get('image_files', None)
 	post['sound_file'] = request.form.get('sound_file', None)
 	post['request_date'] = datetime.now()
+	post['format'] = request.form['format']
+	post['subject'] = request.form['subject']
         
 	post['due_date'] = None
 	if bool(post['is_SOS']) == True:
@@ -293,7 +303,9 @@ def post():
 	else:
 	    post['due_date'] = post['request_date'] + timedelta(days=7)
 
-        query_post = "INSERT INTO Requests_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	post['price'] = request.form['price']
+
+        query_post = "INSERT INTO Requests_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	g.db.execute(query_post, [
 	        post['id'],
 	        (post['requester_id']),
@@ -305,11 +317,13 @@ def post():
 	        (post['image_files']) if post['image_files'] is not None else None,
 	        (post['sound_file']) if post['sound_file'] is not None else None,
 		post['request_date'],
+		post['format'],
+		post['subject'],
 		post['due_date'],
 		None,
-		None,
 		0,
-		0
+		0,
+		post['price']
 	    ])
 
 	g.db.commit()
