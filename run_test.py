@@ -98,6 +98,9 @@ class CiceronTestCase(unittest.TestCase):
 			to_lang="English",
 			is_SOS=0,
 			main_text="English is too difficult to learn and use properly. I really need your help",
+			format="Formal",
+			subject="Announcement",
+			price=0.50
 			))
 	print rv.data
 	assert "Posted" in rv.data
@@ -107,6 +110,9 @@ class CiceronTestCase(unittest.TestCase):
 			to_lang="English",
 			is_SOS=1,
 			main_text="English is too difficult to learn and use properly. I really need your help",
+			format="Thesis",
+			subject="Scholar",
+			price=0.50
 			))
 	print rv.data
 	assert "Posted" in rv.data
