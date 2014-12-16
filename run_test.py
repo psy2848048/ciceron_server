@@ -150,5 +150,63 @@ class CiceronTestCase(unittest.TestCase):
         print "History of jun.hang.lee@sap.com"
 	print rv.data
 
+    def test_pick_request(self):
+	print "================test-pick-request=============="
+        self.signUp(username="psy2848048@gmail.com",
+		    password="ciceron!",
+		    nickname="CiceronMaster",
+		    mother_language="Korean")
+	self.login(username="psy2848048@gmail.com",
+		    password="ciceron!"
+		    )
+
+	rv = self.app.post('/post', data=dict(
+			from_lang="Korean",
+			to_lang="English",
+			is_SOS=0,
+			main_text="English is too difficult to learn and use properly. I really need your help",
+			format="Formal",
+			subject="Announcement",
+			price=0.50
+			))
+	print rv.data
+	assert "Posted" in rv.data
+
+	print "1. Pick request which you requested. Error expected."
+
+	rv = self.app.post('/post', data=dict(
+			from_lang="Korean",
+			to_lang="English",
+			is_SOS=1,
+			main_text="English is too difficult to learn and use properly. I really need your help",
+			format="Thesis",
+			subject="Scholar",
+			price=0.50
+			))
+	print rv.data
+	assert "Posted" in rv.data
+
+        print "Try to pickl"
+	rv = self.app.get('/pick_request/1')
+	print rv.data
+	assert "You cannot translate"
+
+        print "Test with different user"
+        self.signUp(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
+		    nickname="CiceronUser",
+		    mother_language="Korean")
+	self.login(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+		    )
+
+	print "Try to pick again"
+	rv = self.app.get('/pick_request/1')
+	print rv.data
+	assert "Post 1 is picked" in rv.data
+
+        rv = self.app.get('/post_list')
+	print rv.data
+
 if __name__ == "__main__":
     unittest.main()

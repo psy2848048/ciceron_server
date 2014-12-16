@@ -373,15 +373,18 @@ def pick_request(post_id):
     # Request method: GET
     # Parameters
     #    post_id: requested post id
+    query_validation = "SELECT requester_id FROM Requests_list WHERE id = ?"
+    cursor = g.db.execute(query_validation, [int(post_id)])
+    requester_id = cursor.fetchall()[0][0]
 
-    query_pic = "SELECT profile_img from Users WHERE string_id = ?"
-    cursor = g.db.execute(query_pic, [buffer(session['username'])])
-    image_address = cursor.fetchall()[0][0]
+    if session['username'] == requester_id:
+        return make_response(json.jsonify(code=406, message="You cannot translate your request"), 406)
 
-    query_information = "UPDATE Requests_list SET due_date = current_timestamp, translator_id = '%s', translator_pic = '%s', is_request_picked = 1 WHERE id = %d" \
-                             % (buffer(session['username']), buffer(image_address), post_id)
-    g.db.execute(query_information)
+    query_information = "UPDATE Requests_list SET due_date = current_timestamp, translator_id = ?, is_request_picked = 1 WHERE id = ?"
+    g.db.execute(query_information, [buffer(session['username']), int(post_id)])
     g.db.commit()
+
+    return make_response("Post %d is picked by %s" % (int(post_id), session['username']), 200)
 
 if __name__ == '__main__':
     app.run()
