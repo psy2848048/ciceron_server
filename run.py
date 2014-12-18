@@ -380,11 +380,41 @@ def pick_request(post_id):
     if session['username'] == requester_id:
         return make_response(json.jsonify(code=406, message="You cannot translate your request"), 406)
 
+    query_check_user_language = "SELECT mother_tongue_language, other_language FROM Users WHERE string_id = ?"
+    cursor = g.db.execute(query_check_user_language, [buffer(session['username'])])
+    temp_lang = cursor.fetchall()[0]
+    translator_language_list = []
+    translator_language_list.append(temp_lang[0])
+    if temp_lang[1] is not None:
+        for lang_item in temp_lang[1].split(';'):
+            if temp_lang is not None:
+                translator_language_list.append(lang_item)
+	    else:
+                pass
+
+    query_check_item_language = "SELECT from_lang, to_lang FROM Requests_list WHERE id = ?"
+    cursor = g.db.execute(query_check_item_language, [int(post_id)])
+    request_lang = cursor.fetchall()[0]
+    if not (request_lang[0] in translator_language_list and request_lang[1] in translator_language_list):
+        return make_response(json.jsonify(code=401, message="According to your language ability, you cannot translate this request.\nIf you want to request, please register as a translator!"), 401)
+
     query_information = "UPDATE Requests_list SET due_date = current_timestamp, translator_id = ?, is_request_picked = 1 WHERE id = ?"
     g.db.execute(query_information, [buffer(session['username']), int(post_id)])
     g.db.commit()
 
     return make_response("Post %d is picked by %s" % (int(post_id), session['username']), 200)
+
+@app.route('/add_language', methods=["POST"])
+@login_required
+@excpetion_detector
+def add_langaugae():
+    query = ""
+
+@app.route('/comment/<post_id>', methods=["GET", "POST"])
+@login_requerd
+@exception_detector
+def comment(post_id):
+    query = ""
 
 if __name__ == '__main__':
     app.run()

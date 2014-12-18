@@ -189,7 +189,7 @@ class CiceronTestCase(unittest.TestCase):
         print "Try to pickl"
 	rv = self.app.get('/pick_request/1')
 	print rv.data
-	assert "You cannot translate"
+	assert "You cannot translate your request"
 
         print "Test with different user"
         self.signUp(username="jun.hang.lee@sap.com",
@@ -203,7 +203,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "Try to pick again"
 	rv = self.app.get('/pick_request/1')
 	print rv.data
-	assert "Post 1 is picked" in rv.data
+	assert "According to your language abilit" in rv.data
 
         rv = self.app.get('/post_list')
 	print rv.data
