@@ -406,12 +406,12 @@ def pick_request(post_id):
 
 @app.route('/add_language', methods=["POST"])
 @login_required
-@excpetion_detector
+@exception_detector
 def add_langaugae():
     query = ""
 
 @app.route('/comment/<post_id>', methods=["GET", "POST"])
-@login_requerd
+@login_required
 @exception_detector
 def comment(post_id):
     query = ""

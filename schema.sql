@@ -36,10 +36,10 @@ price FLOAT )
 ; 
  
 CREATE TABLE Result (
-request_id INT, 
-reply_id INT, 
-requestor_id STRING, 
-translator_id STRING, 
+request_id INT,
+reply_id INT,
+is_requester BOOL,
+post_time timestamp,
 comment_text TEXT, 
 is_result BOOL )
 ;
