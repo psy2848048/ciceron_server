@@ -1,15 +1,17 @@
 CREATE TABLE Users (
 string_id STRING NOT NULL UNIQUE PRIMARY KEY, -- E-mail address 
-password_hased STRING, -- No NOT NULL 'cause of FB, instagram, etc 
+password_hashed STRING, -- No NOT NULL 'cause of FB, instagram, etc 
 nickname STRING NOT NULL, -- This name will be shown in app. 
  
 profile_img STRING, 
 mother_tongue_language STRING, 
 other_language STRING, 
-requested INT,
 grade INT,
+requested_SOS INT,
+requested_normal INT,
 is_translator BOOL, 
-translated INT,
+translated_SOS INT,
+translated_normal INT,
  
 is_FB BOOL, 
 is_Instagram BOOL)
@@ -42,4 +44,10 @@ is_requester BOOL,
 post_time timestamp,
 comment_text TEXT, 
 is_result BOOL )
+;
+
+CREATE TABLE Property (
+id STRING,
+amount DECIMAL(10,2)
+)
 ;

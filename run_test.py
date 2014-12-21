@@ -93,6 +93,7 @@ class CiceronTestCase(unittest.TestCase):
 		    password="ciceron!"
 		    )
 
+	print "Post normal request without money"
 	rv = self.app.post('/post', data=dict(
 			from_lang="Korean",
 			to_lang="English",
@@ -102,8 +103,12 @@ class CiceronTestCase(unittest.TestCase):
 			subject="Announcement",
 			price=0.50
 			))
-	print rv.data
-	assert "Posted" in rv.data
+	try:
+	    assert "Not enough money" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
+
 
 	rv = self.app.post('/post', data=dict(
 			from_lang="Korean",
@@ -114,8 +119,11 @@ class CiceronTestCase(unittest.TestCase):
 			subject="Scholar",
 			price=0.50
 			))
-	print rv.data
-	assert "Posted" in rv.data
+	try:
+	    assert "Posted" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
 
         rv = self.app.get('/post_list')
 	print "Posted list"
@@ -169,8 +177,11 @@ class CiceronTestCase(unittest.TestCase):
 			subject="Announcement",
 			price=0.50
 			))
-	print rv.data
-	assert "Posted" in rv.data
+	try:
+	    assert "Not enough" in rv.data
+	except:
+            print rv.data
+	    raise AssertionError
 
 	print "1. Pick request which you requested. Error expected."
 
@@ -183,13 +194,19 @@ class CiceronTestCase(unittest.TestCase):
 			subject="Scholar",
 			price=0.50
 			))
-	print rv.data
-	assert "Posted" in rv.data
+        try:
+	    assert "Posted" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
 
-        print "Try to pickl"
+        print "Try to pick"
 	rv = self.app.get('/pick_request/1')
-	print rv.data
-	assert "You cannot translate your request"
+	try:
+	    assert "You cannot translate your request"
+	except:
+	    print rv.data
+	    raise AssertionError
 
         print "Test with different user"
         self.signUp(username="jun.hang.lee@sap.com",
@@ -202,10 +219,111 @@ class CiceronTestCase(unittest.TestCase):
 
 	print "Try to pick again"
 	rv = self.app.get('/pick_request/1')
-	print rv.data
-	assert "According to your language abilit" in rv.data
+	try:
+	    assert "According to your language" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
 
         rv = self.app.get('/post_list')
+	print rv.data
+
+    def test_comment(self):
+	print "================test-comment=============="
+	print "1. Post SOS request"
+        self.signUp(username="psy2848048@gmail.com",
+		    password="ciceron!",
+		    nickname="CiceronMaster",
+		    mother_language="Korean")
+	self.login(username="psy2848048@gmail.com",
+		    password="ciceron!"
+		    )
+
+	rv = self.app.post('/post', data=dict(
+			from_lang="Korean",
+			to_lang="English",
+			is_SOS=1,
+			main_text="English is too difficult to learn and use properly. I really need your help",
+			format="Formal",
+			subject="Announcement",
+			price=0
+			))
+
+	rv = self.app.get('/post_list')
+	print rv.data
+        print ""
+	print "2. Sign up another user and pick request"
+        self.signUp(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
+		    nickname="CiceronUser",
+		    mother_language="Korean")
+	self.login(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+		    )
+
+	print "3. Add English as another language ability"
+	rv = self.app.post('/add_language', data=dict(language="English"))
+	try:
+	    assert "added for user" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
+
+        print "4. pick request"
+	rv = self.app.get('/pick_request/1')
+	try:
+	    assert "is picked by" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
+
+        rv = self.app.get('/post_list')
+	print rv.data
+
+        print "5. Print comment"
+	rv = self.app.get('/comment/1')
+	print rv.data
+
+	print "6. Add comment"
+	rv = self.app.post('/comment/1', data=dict(comment_text="BlahBlah", is_result=0))
+	try:
+	    assert "is posted in post" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
+
+	rv = self.app.get('/comment/1')
+	print rv.data
+
+	print "7. Comment from requester"
+	self.login(username="psy2848048@gmail.com",
+		    password="ciceron!"
+		    )
+	rv = self.app.post('/comment/1', data=dict(comment_text="It's not enough answer. Could you please check it again?", is_result=0))
+	try:
+	    assert "is posted in post" in rv.data
+	except:
+	    print rv.data
+	    raise AssertionError
+
+	rv = self.app.get('/comment/1')
+	print rv.data
+
+	print ""
+	print "8. Post another comment"
+	self.login(username="jun.hang.lee@sap.com",
+		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+		    )
+	rv = self.app.post('/comment/1', data=dict(comment_text="Shut da fuck up", is_result=0))
+
+	rv = self.app.get('/comment/1')
+	print rv.data
+        print ""
+	print "9. Accept translator's result and close the request"
+	self.login(username="psy2848048@gmail.com",
+		    password="ciceron!"
+		    )
+	rv = self.app.get('/accept/1', data=dict(comment_text="It's not enough answer. Could you please check it again?", is_result=0))
 	print rv.data
 
 if __name__ == "__main__":

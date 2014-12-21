@@ -16,6 +16,7 @@ UPLOAD_FOLDER_REQUEST_DOC = os.path.join(os.path.dirname(os.path.abspath(__file_
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'gif', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
+VERSION= "2014.12.28"
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -72,6 +73,20 @@ def pic_allowed_file(filename):
 def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
+def hashed_id_maker(conn):
+    cursor = conn.execute( "SELECT password_hashed FROM Users WHERE string_id = ?", [buffer(session['username'])])
+    password_hashed = cursor.fetchall()[0][0]
+
+    hash_maker = hashlib.md5()
+
+    hash_maker.update(app.config['VERSION'])
+    hash_maker.update(session['username'])
+    hash_maker.update(password_hashed)
+    hash_maker.update(app.config['VERSION'])
+    hashed_ID = hash_maker.digest()
+
+    return hashed_ID
+
 @app.route('/')
 @exception_detector
 def index():
@@ -90,7 +105,7 @@ def login_email():
 	hash_maker.update(app.config['IDENTIFIER'])
 	hashed_password = hash_maker.digest()
         
-        cursor = g.db.execute("SELECT string_id, password_hased FROM Users where string_id = ?", [buffer(username)])
+        cursor = g.db.execute("SELECT string_id, password_hashed FROM Users where string_id = ?", [buffer(username)])
 
 	rs = cursor.fetchall()
 	if len(rs) > 1:
@@ -159,8 +174,17 @@ def sign_up_email():
         nickname = request.form['nickname']
         mother_language = request.form['mother_language']
 
-        g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", 
-      		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 0, 1, False, 0, False, False])
+        g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+      		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 1, 0, 0, False, 0, 0, False, False])
+
+	hash_maker = hashlib.md5()
+        hash_maker.update(app.config['VERSION'])
+	hash_maker.update(request.form['username'])
+	hash_maker.update(hashed_password)
+	hash_maker.update(app.config['VERSION'])
+	hashed_ID = hash_maker.digest()
+	g.db.execute("INSERT INTO Property VALUES (?,0)", [buffer(hashed_ID)])
+
         g.db.commit() 
 
         return make_response(json.jsonify(status=dict(code=200, message="Registration %s: successful" % username)), 200)
@@ -233,7 +257,8 @@ def post_list():
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     if request.method == "GET":
-        query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
+        #query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
+        query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list "
         if 'last_post_time' in request.args.keys():
             query += "AND request_date < datetime(%f) " % Decimal(request.args['last_post_time'])
         query += "ORDER BY request_date DESC LIMIT 20"
@@ -288,7 +313,7 @@ def post():
 	post['requester_id'] = session['username']
 	post['from_lang'] = request.form['from_lang']
 	post['to_lang'] = request.form['to_lang']
-	post['is_SOS'] = request.form['is_SOS']
+	post['is_SOS'] = int(request.form['is_SOS'])
 	post['main_text'] = request.form['main_text']
 	post['context_text'] = request.form.get('context_text', None)
 	post['image_files'] = request.form.get('image_files', None)
@@ -298,12 +323,21 @@ def post():
 	post['subject'] = request.form['subject']
         
 	post['due_date'] = None
-	if bool(post['is_SOS']) == True:
+	if post['is_SOS'] == True:
             post['due_date'] = post['request_date'] + timedelta(minutes=30)
+	    post['price'] = 0
 	else:
 	    post['due_date'] = post['request_date'] + timedelta(days=7)
+	    post['price'] = request.form['price']
 
-	post['price'] = request.form['price']
+        property_id = hashed_id_maker(g.db)
+
+        cursor = g.db.execute("SELECT amount FROM Property WHERE id = ?", [buffer(property_id)])
+	amount = cursor.fetchall()
+	if len(amount) == 0:
+	    return make_response(json.jsonify(status=406, message="No price information of ID %s" % session['username']), 406)
+        elif amount < post['price']:
+	    return make_response(json.jsonify(status=400, message="Not enough money required"), 400)
 
         query_post = "INSERT INTO Requests_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	g.db.execute(query_post, [
@@ -325,6 +359,13 @@ def post():
 		0,
 		post['price']
 	    ])
+
+	query_update_request = "UPDATE Users SET %s = %s + 1 WHERE string_id = ?"
+	if post['is_SOS'] == True:
+	    g.db.execute(query_update_request % ("requested_SOS", "requested_SOS"), [session['username']])
+	else:
+	    g.db.execute(query_update_request % ("requested_normal", "requested_normal"), [session['username']])
+	    g.db.execute("UPDATE Property SET amount = amount - ? WHERE id = ?", [ post['price'], buffer(property_id) ])
 
 	g.db.commit()
 
@@ -398,7 +439,7 @@ def pick_request(post_id):
     if not (request_lang[0] in translator_language_list and request_lang[1] in translator_language_list):
         return make_response(json.jsonify(code=401, message="According to your language ability, you cannot translate this request.\nIf you want to request, please register as a translator!"), 401)
 
-    query_information = "UPDATE Requests_list SET due_date = current_timestamp, translator_id = ?, is_request_picked = 1 WHERE id = ?"
+    query_information = "UPDATE Requests_list SET translator_id = ?, is_request_picked = 1 WHERE id = ?"
     g.db.execute(query_information, [buffer(session['username']), int(post_id)])
     g.db.commit()
 
@@ -408,13 +449,125 @@ def pick_request(post_id):
 @login_required
 @exception_detector
 def add_langaugae():
-    query = ""
+    query_load_current_language_status = "SELECT other_language FROM Users WHERE string_id = ?"
+    cursor = g.db.execute(query_load_current_language_status, [ buffer(session['username']) ])
 
-@app.route('/comment/<post_id>', methods=["GET", "POST"])
+    current_language_list = cursor.fetchall()[0][0]
+    current_language = None
+    if current_language_list is not None:
+        current_language = current_language_list[0][0]
+	current_language += (';' + request.form['language'])
+    else:
+	current_language = request.form['language']
+
+    query_add_language = "UPDATE Users SET other_language = ? WHERE string_id = ?"
+    g.db.execute(query_add_language, [ current_language, buffer(session['username'])  ])
+
+    g.db.commit()
+
+    return make_response(json.jsonify(status=200, message="%s is added for user %s as his/her language ability" % (request.form['language'], session['username'])), 200)
+
+@app.route('/comment/<request_id>', methods=["GET", "POST"])
 @login_required
 @exception_detector
-def comment(post_id):
-    query = ""
+def comment(request_id):
+    if request.method == "POST":
+        query_distinguish_requester = "SELECT requester_id, translator_id FROM Requests_list WHERE id = ?"
+        cursor = g.db.execute(query_distinguish_requester, [request_id])
+        result_distinguish_requester = cursor.fetchall()
+
+	is_requester = None
+        if len(result_distinguish_requester) == 0:
+            return make_response(json.jsonify(status=406, message="This request id DOES NOT exist. Please check the DB"), 406)
+
+        elif str(result_distinguish_requester[0][0]) == str(session['username']):
+	    is_requester = True
+	elif str(result_distinguish_requester[0][1]) == str(session['username']):
+	    is_requester = False
+
+	query_check_reply_id = "SELECT reply_id FROM Result WHERE request_id = ? ORDER BY reply_id DESC LIMIT 1"
+	cursor = g.db.execute(query_check_reply_id, [request_id])
+	result_check_reply_id = cursor.fetchall()
+
+	reply_counter = 0
+	if len(result_check_reply_id) == 0:
+	    reply_counter = 1
+	else:
+	    reply_counter = result_check_reply_id[0][0] + 1
+
+        query = "INSERT INTO Result VALUES(?,?,?,?,?,?)"
+
+        item=dict()
+        item['request_id'] = request_id
+        item['reply_id'] = reply_counter
+        item['is_requester'] = is_requester
+        item['post_time'] = datetime.now()
+        item['comment_text'] = request.form['comment_text']
+        item['is_result'] = int(request.form['is_result']) # Might be userless column
+
+        g.db.execute(query, [
+	        item['request_id'],
+	        item['reply_id'],
+      	        item['is_requester'],
+		item['post_time'],
+	        item['comment_text'],
+	        item['is_result']
+	        ])
+
+	g.db.commit()
+
+	return make_response(
+			json.jsonify(
+				status=200, 
+				message="Comment %d is posted in post id %d" % (int(item['reply_id']), int(item['request_id']) )
+				), 
+			200)
+
+    elif request.method == "GET":
+        query_comment_list = "SELECT * FROM Result WHERE request_id = ? ORDER BY reply_id"
+	cursor = g.db.execute(query_comment_list, [request_id])
+
+	result_comment_list = []
+
+	for row in cursor.fetchall():
+	    item = dict()
+	    item['request_id'] = row[0]
+	    item['reply_id'] = row[1]
+	    item['is_requester'] = bool(row[2])
+	    item['post_time'] = row[3]
+	    item['comment_text'] = row[4]
+	    item['is_result'] = bool(row[5]) # Might be useless column
+
+	    result_comment_list.append(item)
+
+	return make_response(json.jsonify(result=result_comment_list), 200)
+
+@app.route('/accept/<request_id>', methods = ["GET"])
+@login_required
+@exception_detector
+def accept(request_id):
+    query_request_checker = "SELECT requester_id, is_request_picked, is_request_finished, is_SOS, price FROM Requests_list WHERE id = ?"
+    cursor = g.db.execute(query_request_checker, [request_id])
+    result = cursor.fetchall()
+
+    if len(result) == 0:
+        return make_response(json.jsonify(status=404, message="No post exists with id %d" % int(request_id)), 404)
+
+    elif not (str(result[0][0]) == str(session['username']) and bool(result[0][1]) == True and bool(result[0][2]) == False):
+	return make_response(json.jsonify(status=406, message="No authority of accepting the translation result and closing the post %d" % int(request_id)), 406)
+    else:
+	query_closing_request = "UPDATE Requests_list SET is_request_finished = 1 WHERE id = ?"
+        g.db.execute(query_closing_request, [request_id])
+
+	query_update_userinfo = "UPDATE Users SET %s = %s + 1 WHERE string_id = ?"
+	if result[0][3] == True:
+	    g.db.execute(query_update_userinfo % ("translated_SOS", "requested_normal"), [session['username']])
+	else:
+	    g.db.execute(query_update_userinfo % ("translated_normal", "requested_normal"), [session['username']])
+	    g.db.execute("UPDATE Property SET amount = amount + ? WHERE id = ?", [result[0][4], hashed_id_maker(g)])
+
+	g.db.commit()
+	return make_response(json.jsonify(status=200, message="Post %d has just closed" % int(request_id)), 200)
 
 if __name__ == '__main__':
     app.run()
