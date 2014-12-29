@@ -364,7 +364,7 @@ def post_list():
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     if request.method == "GET":
-        query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
+        query = "SELECT * FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
         #query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list "
         if 'last_post_time' in request.args.keys():
             condition.append("AND request_date < datetime(%f) " % Decimal(request.args['last_post_time']))
@@ -376,24 +376,23 @@ def post_list():
 
         for row in rs:
             item = dict()
-	    item['is_SOS'] = bool(row[0])
-	    item['id'] = row[1]
-	    item['requester_id'] = row[2]
-            cursor = g.db.execute("SELECT profile_img, grade FROM Users WHERE string_id = ?", [ buffer(item['requester_id']) ])
-	    rs = cursor.fetchall()
-	    item['requester_pic'] = rs[0][0]
-	    item['requester_grade'] = rs[0][1]
-
-	    item['from_lang'] = row[3]
-	    item['to_lang'] = row[4]
-	    item['main_text'] = row[5]
-	    item['request_date'] = row[6]
-	    item['format'] = row[7]
-	    item['subject'] = row[8]
-	    item['due_date'] = row[9]
-	    item['is_image'] = True if row[10] is not None else False
-	    item['is_sound'] = True if row[11] is not None else False
-	    item['price'] = row[12]
+            item['id'] = int(row[0])
+      	    item['requester_id'] = str(row[1])
+	    item['from_lang'] = row[2]
+	    item['to_lang'] = row[3]
+	    item['is_SOS'] = bool(int(row[4]))
+	    item['main_text'] = str(row[5])
+	    item['context_text'] = str(row[6])
+	    item['image_files'] = str(row[7])
+	    item['sound_file'] = str(row[8])
+	    item['request_date'] = row[9]
+	    item['format'] = str(row[10])
+	    item['subject'] = str(row[11])
+	    item['due_date'] = str(row[12])
+	    item['translator_id'] = str(row[13])
+	    item['is_request_picked'] = bool(int(row[14]))
+	    item['is_request_finished'] = bool(int(row[15]))
+	    item['price'] = float(row[16])
 
 	    result.append(item)
 
@@ -445,10 +444,10 @@ def post():
         
 	post['due_date'] = None
 	if post['is_SOS'] == True:
-            post['due_date'] = post['request_date'] + timedelta(minutes=30)
+            post['due_date'] = post['request_date'] + timedelta(minutes=5)
 	    post['price'] = 0
 	else:
-	    post['due_date'] = post['request_date'] + timedelta(days=7)
+	    post['due_date'] = post['request_date'] + timedelta(days=2)
 	    post['price'] = request.form['price']
 
         property_id = hashed_id_maker(g.db)
@@ -498,17 +497,17 @@ def post():
         # Description: Succeed to post the request
 	return make_response(json.jsonify(status=200, message="Posted %d" % post['id']), 200)
 
-@app.route('/history', methods=["GET"])
+@app.route('/history_requester', methods=["GET"])
 @login_required
 @exception_detector
-def history():
+def history_requester():
     # Request method: GET
     # Parameters
     #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
     #                               If this parameter is not provided, recent 20 posts from now are returned
     #     filter: Show user's order with the status following- Pending, in progress, completed
     #query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) AND translator_id IS NOT NULL "
-    query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE requester_id = ? "
+    query = "SELECT * FROM Requests_list WHERE requester_id = ? "
 
     condition =[]
     if 'last_post_time' in request.args.keys():
@@ -533,18 +532,81 @@ def history():
 
     for row in rs:
         item = dict()
+        item['id'] = int(row[0])
+	item['requester_id'] = str(row[1])
+	item['from_lang'] = row[2]
+	item['to_lang'] = row[3]
+	item['is_SOS'] = bool(int(row[4]))
+	item['main_text'] = str(row[5])
+	item['context_text'] = str(row[6])
+	item['image_files'] = str(row[7])
+	item['sound_file'] = str(row[8])
+	item['request_date'] = row[9]
+	item['format'] = str(row[10])
+	item['subject'] = str(row[11])
+	item['due_date'] = str(row[12])
+	item['translator_id'] = str(row[13])
+	item['is_request_picked'] = bool(int(row[14]))
+	item['is_request_finished'] = bool(int(row[15]))
+	item['price'] = float(row[16])
+	result.append(item)
 
-	item['is_SOS'] = bool(row[0])
-	item['id'] = int(row[1])
-	item['requester_id'] = str(row[2])
-	item['from_lang'] = row[3]
-	item['to_lang'] = row[4]
-	item['main_text'] = row[5]
-	item['request_date'] = row[6]
-	item['translator_id'] = str(row[7])
-	item['is_request_picked'] = bool(int(row[8]))
-	item['is_request_finished'] = bool(int(row[9]))
+    # Status code 200 (OK)
+    # Description: Give JSON data to client machine
+    return make_response(json.jsonify(item_list = result), 200)
 
+@app.route('/history_translator', methods=["GET"])
+@login_required
+@exception_detector
+def history_translator():
+    # Request method: GET
+    # Parameters
+    #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
+    #                               If this parameter is not provided, recent 20 posts from now are returned
+    #     filter: Show user's order with the status following- Pending, in progress, completed
+    #query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) AND translator_id IS NOT NULL "
+    query = "SELECT * FROM Requests_list WHERE translator_id = ? "
+
+    condition =[]
+    if 'last_post_time' in request.args.keys():
+        condition.append("request_date < datetime(%f) " % Decimal(request.args['last_post_time']))
+    if 'filter' in request.args.keys():
+	if request.args['filter'] == 'pending':
+	    condition.append("is_request_picked = 0")
+	elif request.args['filter'] == 'in_progress':
+	    condition.append("is_request_picked = 1 AND is_request_finished = 0")
+	elif request.args['filter'] == 'completed':
+	    condition.append("is request_picked = 1 AND is_request_finished = 1")
+
+    for item in condition:
+        query += " AND " + item
+
+    query += " ORDER BY request_date DESC LIMIT 20"
+    print query
+
+    cursor = g.db.execute(query, [session['username']])
+    rs = cursor.fetchall()
+    result = []
+
+    for row in rs:
+        item = dict()
+        item['id'] = int(row[0])
+	item['requester_id'] = str(row[1])
+	item['from_lang'] = row[2]
+	item['to_lang'] = row[3]
+	item['is_SOS'] = bool(int(row[4]))
+	item['main_text'] = str(row[5])
+	item['context_text'] = str(row[6])
+	item['image_files'] = str(row[7])
+	item['sound_file'] = str(row[8])
+	item['request_date'] = row[9]
+	item['format'] = str(row[10])
+	item['subject'] = str(row[11])
+	item['due_date'] = str(row[12])
+	item['translator_id'] = str(row[13])
+	item['is_request_picked'] = bool(int(row[14]))
+	item['is_request_finished'] = bool(int(row[15]))
+	item['price'] = float(row[16])
 	result.append(item)
 
     # Status code 200 (OK)

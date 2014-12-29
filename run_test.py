@@ -133,11 +133,11 @@ class CiceronTestCase(unittest.TestCase):
 	print "Posted list with last_post_time"
 	print rv.data
 
-        rv = self.app.get('/history')
+        rv = self.app.get('/history_requester')
         print "History of psy2848048@gmail.com"
 	print rv.data
 
-        rv = self.app.get('/history?last_post_time=%f' % time.time())
+        rv = self.app.get('/history_requester?last_post_time=%f' % time.time())
 	print "History with last_post_time"
 	print rv.data
 
@@ -154,7 +154,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "Posted list"
 	print rv.data
 
-        rv = self.app.get('/history')
+        rv = self.app.get('/history_traslator')
         print "History of jun.hang.lee@sap.com"
 	print rv.data
 
@@ -431,7 +431,7 @@ class CiceronTestCase(unittest.TestCase):
 	rv = self.app.get('/accept/1')
 	print rv.data
 
-	rv = self.app.get('/history')
+	rv = self.app.get('/history_requester')
 	print rv.data
 
 if __name__ == "__main__":
