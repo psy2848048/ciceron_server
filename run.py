@@ -832,5 +832,57 @@ def accept(request_id):
 	g.db.commit()
 	return make_response(json.jsonify(status=200, message="Post %d has just closed" % int(request_id)), 200)
 
+@app.route('/profile', methods = ['GET'])
+@login_required
+@exception_detector
+def profile():
+    # Method: GET
+    # Parameters
+    #     id: String, text
+
+    user_ID = session['username']
+    request_ID = None
+    if request.args.get('id') is not None:
+        request_ID = request.args.get('id')
+    else:
+	return make_response(json.jsonify(status=406, message="ID is required"), 406)
+
+    query_money_check = "SELECT * FROM Property WHERE id = ?"
+    query_inquiry = "SELECT string_id, nickname, profile_img, mother_tongue_language, other_language, grade, requested_SOS, requested_normal, is_translator, translated_SOS, translated_normal FROM Users WHERE string_id = ?"
+
+    # ID check: Are you requesting yours, or others?
+    #     Yours -> show including points
+    #     Others-> show except points
+
+    cursor = g.db.execute(query_inquiry, [buffer(request_ID)])
+    profile = dict()
+    info = cursor.fetchall()[0]
+
+    profile['string_id'] = str(info[0])
+    profile['nickname'] = str(info[1])
+    profile['profilee_img'] = str(info[2] if info[2] is not None else None)
+
+    lang_list = []
+    lang_list.append(str(info[3]))
+    if info[4] is not None:
+	for lang in info[4].split(';'):
+            lang_list.append(lang)
+
+    profile['language'] = lang_list
+    profile['grade'] = int(info[5])
+    profile['requested_SOS'] = int(info[6])
+    profile['requested_normal'] = int(info[7])
+    profile['is_translator'] = bool(int(info[8]))
+    profile['translated_SOS'] = int(info[9])
+    profile['translated_normal'] = int(info[10])
+
+    if user_ID == request_ID:
+	hashed_ID = hashed_id_maker(g.db)
+        cursor = g.db.execute(query_money_check, [buffer(hashed_ID)])
+	money_in_the_purse = float(cursor.fetchall()[0][1])
+	profile['point'] = money_in_the_purse
+
+    return make_response(json.jsonify(status=200, profile=profile), 200)
+
 if __name__ == '__main__':
     app.run()
