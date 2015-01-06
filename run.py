@@ -860,7 +860,7 @@ def profile():
 
     profile['string_id'] = str(info[0])
     profile['nickname'] = str(info[1])
-    profile['profilee_img'] = str(info[2] if info[2] is not None else None)
+    profile['profilee_img'] = str(info[2]) if info[2] is not None else None
 
     lang_list = []
     lang_list.append(str(info[3]))
