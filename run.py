@@ -885,4 +885,4 @@ def profile():
     return make_response(json.jsonify(status=200, profile=profile), 200)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0", port=int("80"))
