@@ -1,53 +1,164 @@
-CREATE TABLE Users (
-string_id STRING NOT NULL UNIQUE PRIMARY KEY, -- E-mail address 
-password_hashed STRING, -- No NOT NULL 'cause of FB, instagram, etc 
-nickname STRING NOT NULL, -- This name will be shown in app. 
- 
-profile_img STRING, 
-mother_tongue_language STRING, 
-other_language STRING, 
-grade INT,
-requested_SOS INT,
-requested_normal INT,
-is_translator BOOL, 
-translated_SOS INT,
-translated_normal INT,
- 
-is_FB BOOL, 
-is_Instagram BOOL)
-; 
- 
-CREATE TABLE Requests_list (
-id INT PRIMARY KEY UNIQUE NOT NULL, 
-requester_id STRING NOT NULL,
-from_lang STRING NOT NULL, 
-to_lang STRING NOT NULL, 
-is_SOS BOOL NOT NULL, 
-main_text TEXT, 
-context_text TEXT, 
-image_files STRING, -- separate files with ';' and parse when request 
-sound_file STRING, 
-request_date TIMESTAMP,
-format STRING,
-subject STRING,
-due_date TIMESTAMP,
-translator_id STRING, 
-is_request_picked BOOL, 
-is_request_finished BOOL,
-price FLOAT )
-; 
- 
-CREATE TABLE Result (
-request_id INT,
-reply_id INT,
-is_requester BOOL,
-post_time timestamp,
-comment_text TEXT, 
-is_result BOOL )
-;
+CREATE TABLE D_USERS (
+    id INT,
+    email STRING,
+    name STRING,
+    mother_language_id INT, -- D_LANGUAGES
+    is_translator BOOL,
+    other_language_list_id INT,
+    profile_pic_path STRING
+    numOfRequestPending INT,
+    numOfRequestOngoing INT,
+    numOfRequestCompleted INT,
+    numOfTranslationPending INT,
+    numOfTranslationOngoing INT,
+    numOfTranslationCompleted INT,
+    badgeList_id INT, -- D_AWARDED_BADGES
+    machine_id INT, -- D_MACHINES
+);
 
-CREATE TABLE Property (
+CREATE TABLE D_TRANSLATABLE_LANGUAGES (
+    id INT,
+    user_id INT -- D_USERS
+    language_id INT -- D_LANGUAGES
+);
+
+CREATE TABLE D_LANGUAGES (
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_FORMATS (
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_SUBJECTS(
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_QUEUE_LISTS (
+    id INT, -- REQUEST_ID from F_REQUESTS
+    user_id INT -- D_USERS
+);
+
+CREATE TABLE D_REQUEST_TEXTS (
+    id INT,
+    path STRING
+);
+
+CREATE TABLE D_REQUEST_PHOTOS (
+    id INT,
+    request_id INT,
+    path STRING
+);
+
+CREATE TABLE D_REQUEST_FILES (
+    id INT,
+    path STRING
+);
+
+CREATE TABLE D_REQUEST_SOUNDS (
+    id INT,
+    path STRING
+);
+
+CREATE TABLE D_CLIENT_COMPLETED_GROUPS (
+    id INT,
+    user_id INT, -- D_USERS
+    text STRING
+);
+
+CREATE TABLE D_TRANSLATOR_COMPLETED_GROUPS (
+    id INT,
+    user_id INT, -- D_USERS
+    text STRING
+);
+
+CREATE TABLE D_CLIENT_COMPLETED_REQUEST_TITLES (
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_TRANSLATOR_COMPLETED_REQUEST_TITLES (
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_CONTEXTS (
+    id INT,
+    text TEXT
+);
+
+CREATE TABLE D_COMMENTS (
+    id INT,
+    text TEXT
+);
+
+CREATE TABLE D_TONES (
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_BADGES (
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_AWARDED_BADGES (
+    id INT, -- badgeList_id from F_PROFILES
+    badge_id INT -- D_BADGES
+);
+
+CREATE TABLE D_MACHINE_OSS(
+    id INT,
+    text STRING
+);
+
+CREATE TABLE D_MACHINES (
+    id INT,
+    os_id INT, -- D_MACHINE_OSS
+    reg_key STRING
+);
+
+CREATE TABLE F_REQUESTS (
+    request_id INT,
+    client_userid INT, -- D_USERS
+    original_lang_id INT, -- D_LANGUAGES
+    target_lang_id INT, -- D_LANGUAGES
+    isSos BOOL,
+    status_id INT, -- 0: pending, 1: ongoing, 2: completed
+    format_id INT, -- D_FORMATS
+    subject_id INT, -- D_SUBJECTS
+    queue_id INT, -- D_QUEUE_LISTS
+    ongoing_worker_id INT, -- D_USERS
+    is_text BOOL,
+    text_id INT, -- D_REQUEST_TEXTS
+    is_photo BOOL,
+    photo_id INT, -- D_REQUEST_PHOTOS
+    is_file BOOL,
+    file_id INT, -- D_REQUEST_FILES
+    is_sound BOOL,
+    sound_id INT, -- D_REQUEST_SOUNDS
+    client_completed_group_id INT, -- D_CLIENT_COMPLETED_GROUPS
+    translator_completed_group_id INT, -- D_TRANSLATOR_COMPLETED_GROUPS
+    client_title_id INT, -- D_CLIENT_COMPLETED_REQUEST_TITLES
+    translator_title_id INT, -- D_TRANSLATOR_COMPLETED_REQUEST_TITLES
+    registered_time TIMESTAMP,
+    due_time TIMESTAMP,
+    points DOUBLE,
+    context_id INT, -- D_CONTEXTS
+    comment_id INT, -- D_COMMENTS
+    tone_id INT -- D_TONES
+);
+
+CREATE TABLE PASSWORDS (
+    user_id INT, -- D_USERS
+    hashed_pass STRING
+);
+
+CREATE TABLE Revenue (
 id STRING,
 amount DECIMAL(10,2)
-)
-;
+);
+

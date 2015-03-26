@@ -1,12 +1,12 @@
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response
 from contextlib import closing
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time
+import hashlib, sqlite3, os, time, requests
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
 
-DATABASE = 'ciceron.db'
+DATABASE = '../db/ciceron.db'
 DEBUG = True
 IDENTIFIER = "millionare@ciceron!@"
 UPLOAD_FOLDER_PROFILE_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profile_pic")
@@ -20,7 +20,8 @@ VERSION= "2014.12.28"
 
 app = Flask(__name__)
 app.config.from_object(__name__)
-app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
+app.secret_key = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
+app.project_number = 1021873337108
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -101,27 +102,55 @@ def hashed_other_id_maker(conn, string_id):
 
     return hashed_ID
 
+def check_and_update_reg_key(conn, os_name, registration_id):
+    # Register key: Android
+    user_id = session['username']
+    cursor = conn.execute("SELECT * FROM RegKey_%s WHERE id = ?" % os_name, [buffer(user_id)])
+    result = cursor.fetchall()
+    if len(result) == 0:
+        conn.execute("INSERT INTO RegKey_android VALUES (?, ?)"), [buffer(user_id), buffer(registration_id)]
+    elif len(result) == 1 and result[0][1] != registration_id:
+        conn.execute("UPDATE RegKey_android SET reg_key = ? WHERE id = ?", [buffer(registration_id), buffer(user_id)])
+
 @app.route('/')
 @exception_detector
-def index():
+def loginCheck():
     if 'username' in session:
-        return 'Logged in as %s' % escape(session['username'])
-    return 'You are not logged in'
+	client_os = request.args.get('client_os', None)
+	registration_id = request.args.get('registration_id', None)
+
+	if client_os is not None and registration_id is not None:
+	    check_and_update_reg_key(g.db, client_os, registration_id)
+	    g.db.coomit()
+
+        return make_response(json.jsonify(
+                    user_id=session['username'],
+		    is_loggedIn = True), 200)
+    else:
+        return make_response(json.jsonify(
+                    user_id=None,
+		    is_loggedIn = False), 406)
 
 @app.route('/login_email', methods=['POST', 'GET'])
 @exception_detector
 def login_email():
     if request.method == "POST":
 	# Parameter
-        #     username: E-mail ID
-        #     password: password
+        #     username:        E-mail ID
+        #     password:        password
+	#     registration_id: registration_id of client phone device
+
         username = request.form['username']
+
 	hash_maker = hashlib.md5()
 	hash_maker.update(app.config['IDENTIFIER'])
 	hash_maker.update(request.form['password'])
 	hash_maker.update(app.config['IDENTIFIER'])
 	hashed_password = hash_maker.digest()
-        
+
+	registration_id = request.form.get('registration_id', None)
+	client_os = request.form.get('client_os', None)
+
         cursor = g.db.execute("SELECT string_id, password_hashed FROM Users where string_id = ?", [buffer(username)])
 
 	rs = cursor.fetchall()
@@ -140,6 +169,11 @@ def login_email():
 	    # Description: Success to log in
 	    session['logged_in'] = True
 	    session['username'] = username
+
+	    if client_os is not None and registration_id is not None:
+                check_and_update_reg_key(g.db, client_os, registration_id)
+		g.db.commit()
+
 	    return make_response('You\'re logged with user %s' % username, 200)
 	else:
 	    # Status code 406 (ERROR)
@@ -192,6 +226,9 @@ def sign_up_email():
     #     password: String, password
     #     nickname: String, this name will be used and appeared in Ciceron system
     #     mother_language: String, 1st language of user
+    #     client_os
+    #     registration_id
+
     if request.method == 'POST':
         username = request.form['username']
 
@@ -203,6 +240,8 @@ def sign_up_email():
 
         nickname = request.form['nickname']
         mother_language = request.form['mother_language']
+	registration_id = request.form.get('registration_id', None)
+	client_os = request.form.get('client_os', None)
 
         g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
       		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 1, 0, 0, False, 0, 0, False, False])
@@ -214,6 +253,8 @@ def sign_up_email():
 	hash_maker.update(app.config['VERSION'])
 	hashed_ID = hash_maker.digest()
 	g.db.execute("INSERT INTO Property VALUES (?,0)", [buffer(hashed_ID)])
+
+	if client_os is not None and registration_id is not None: check_and_update_reg_key(g.db, client_os, registration_id)
 
         g.db.commit() 
 
@@ -885,4 +926,4 @@ def profile():
     return make_response(json.jsonify(status=200, profile=profile), 200)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int("80"))
+    app.run(host="0.0.0.0", port=80)
