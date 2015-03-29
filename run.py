@@ -5,6 +5,7 @@ import hashlib, sqlite3, os, time, requests
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
+from ciceron_lib import *
 
 DATABASE = '../db/ciceron.db'
 DEBUG = True
@@ -42,153 +43,97 @@ def teardown_request(exception):
     if db is not None:
         db.close()
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'username' in session:
-            return f(*args, **kwargs)
-        else:
-    	    return make_response(json.jsonify(
-                       status_code = 401,
-    	               message = "Login required"
-	           ), 401)
-    return decorated_function
-
-def exception_detector(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            print e
-	    g.db.rollback()
-	    return make_response(json.jsonify(
-                       status_code = 400,
-    	               message = "Abnormal DB connection"
-	           ), 400)
-    return decorated_function
-
 def pic_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
 
 def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
-def hashed_id_maker(conn):
-    cursor = conn.execute( "SELECT password_hashed FROM Users WHERE string_id = ?", [buffer(session['username'])])
-    password_hashed = cursor.fetchall()[0][0]
-
-    hash_maker = hashlib.md5()
-
-    hash_maker.update(app.config['VERSION'])
-    hash_maker.update(session['username'])
-    hash_maker.update(password_hashed)
-    hash_maker.update(app.config['VERSION'])
-    hashed_ID = hash_maker.digest()
-
-    return hashed_ID
-
-def hashed_other_id_maker(conn, string_id):
-    cursor = conn.execute( "SELECT password_hashed FROM Users WHERE string_id = ?", [buffer(string_id)])
-    password_hashed = cursor.fetchall()[0][0]
-
-    hash_maker = hashlib.md5()
-
-    hash_maker.update(app.config['VERSION'])
-    hash_maker.update(string_id)
-    hash_maker.update(password_hashed)
-    hash_maker.update(app.config['VERSION'])
-    hashed_ID = hash_maker.digest()
-
-    return hashed_ID
-
-def check_and_update_reg_key(conn, os_name, registration_id):
-    # Register key: Android
-    user_id = session['username']
-    cursor = conn.execute("SELECT * FROM RegKey_%s WHERE id = ?" % os_name, [buffer(user_id)])
-    result = cursor.fetchall()
-    if len(result) == 0:
-        conn.execute("INSERT INTO RegKey_android VALUES (?, ?)"), [buffer(user_id), buffer(registration_id)]
-    elif len(result) == 1 and result[0][1] != registration_id:
-        conn.execute("UPDATE RegKey_android SET reg_key = ? WHERE id = ?", [buffer(registration_id), buffer(user_id)])
-
 @app.route('/')
 @exception_detector
 def loginCheck():
-    if 'username' in session:
-	client_os = request.args.get('client_os', None)
-	registration_id = request.args.get('registration_id', None)
+    if 'useremail' in session:
+        client_os = request.args.get('client_os', None)
+        registration_id = request.args.get('registration_id', None)
 
-	if client_os is not None and registration_id is not None:
-	    check_and_update_reg_key(g.db, client_os, registration_id)
-	    g.db.coomit()
+        #if client_os is not None and registration_id is not None:
+        #    check_and_update_reg_key(g.db, client_os, registration_id)
+        #    g.db.coomit()
 
         return make_response(json.jsonify(
-                    user_id=session['username'],
-		    is_loggedIn = True), 200)
+               useremail=session['useremail'],
+		       is_loggedIn = True,
+               message="User %s is logged in" % session['session'])
+             , 200)
     else:
         return make_response(json.jsonify(
-                    user_id=None,
-		    is_loggedIn = False), 406)
+            useremail=None,
+            is_loggedIn=True,
+            message="No user is logged in")
+            , 200)
 
-@app.route('/login_email', methods=['POST', 'GET'])
+@app.route('/login', methods=['POST', 'GET'])
 @exception_detector
-def login_email():
+def login():
     if request.method == "POST":
-	# Parameter
-        #     username:        E-mail ID
-        #     password:        password
-	#     registration_id: registration_id of client phone device
+        # Parameter
+        #     email:        E-mail ID
+        #     password:     password
+        #     client_os:    := Android, iPhone, Blackberry, web.. (OPTIONAL)
+        #     machine_id:   machine_id of client phone device (OPTIONAL)
 
-        username = request.form['username']
+        # Get parameters
+        email = request.form['email']
+   	    hashed_password = get_hashed_password(
+                request.form['password'],
+                app.config['IDENTIFIER'])
+        machine_id = request.form.get('machine_id', None)
+        client_os = request.form.get('client_os', None)
+        user_id = get_user_id(g.db, email)
 
-	hash_maker = hashlib.md5()
-	hash_maker.update(app.config['IDENTIFIER'])
-	hash_maker.update(request.form['password'])
-	hash_maker.update(app.config['IDENTIFIER'])
-	hashed_password = hash_maker.digest()
+        # Get hashed_password using user_id for comparing
+        cursor = g.db.execute("SELECT hashed_pass FROM PASSWORDS where id = ?",
+                [user_id])
+        rs = cursor.fetchall()
 
-	registration_id = request.form.get('registration_id', None)
-	client_os = request.form.get('client_os', None)
-
-        cursor = g.db.execute("SELECT string_id, password_hashed FROM Users where string_id = ?", [buffer(username)])
-
-	rs = cursor.fetchall()
-	if len(rs) > 1:
-	    # Status code 406 (ERROR)
+        if len(rs[0]) > 1:
+            # Status code 406 (ERROR)
             # Description: Same e-mail address tried to be inserted into DB
-	    return make_response ('Constraint violation error!', 406)
-
-        elif len(rs) == 0:
-	    # Status code 406 (ERROR)
+            return make_response ('Constraint violation error!', 500)
+        
+        elif len(rs[0]) == 0:
+            # Status code 406 (ERROR)
             # Description: Not registered
-	    return make_response ('Not registered %s' % username, 406)
+            return make_response ('Not registered %s' % username, 403)
+        
+        elif len(rs[0]) == 1 and str(rs[0][0]) == str(hashed_password):
+            # Status code 200 (OK)
+            # Description: Success to log in
+            session['logged_in'] = True
+            session['useremail'] = username
+        
+            #if client_os is not None and registration_id is not None:
+            #    check_and_update_reg_key(g.db, client_os, registration_id)
+        
+            return make_response(json.jsonify(
+                message='You\'re logged with user %s' % username)
+                , 200)
+        else:
+            # Status code 406 (ERROR)
+            # Description: Password incorrect
+            return make_response(json.jsonify(
+                message='Please check the password'
+                ), 403)
 
-	if str(rs[0][1]) == str(hashed_password):
-	    # Status code 200 (OK)
-	    # Description: Success to log in
-	    session['logged_in'] = True
-	    session['username'] = username
+	    return
 
-	    if client_os is not None and registration_id is not None:
-                check_and_update_reg_key(g.db, client_os, registration_id)
-		g.db.commit()
-
-	    return make_response('You\'re logged with user %s' % username, 200)
-	else:
-	    # Status code 406 (ERROR)
-	    # Description: Password incorrect
-	    print "Current pass: %s" % rs[0][1]
-	    print "Input pass: %s" % hashed_password
-	    return make_response('Please check the password', 406)
-	return
     else:
         return '''
         <!doctype html>
         <title>LogIn test</title>
         <h1>Login</h1>
         <form action="" method="post">
-	  <p>ID: <input type=text name="username"></p>
+	  <p>ID: <input type=text name="email"></p>
 	  <p>Password: <input type=password name="password"></p>
           <p><input type=submit value=login></p>
         </form>
@@ -199,23 +144,20 @@ def login_email():
 def logout():
     # No parameter needed
     if session['logged_in'] == True:
-	username_temp = session['username']
+        username_temp = session['useremail']
         session.pop('logged_in', None)
-	session.pop('username', None)
-	# Status code 200 (OK)
+        session.pop('useremail', None)
+        # Status code 200 (OK)
         # Logout success
         return make_response(json.jsonify(
-                   status_code = 200,
                    message = "User %s is logged out" % username_temp
                ), 200)
     else:
-	# Status code 406 (ERROR)
-	# Description: Not logged in yet
+        # Status code 406 (ERROR)
+        # Description: Not logged in yet
         return make_response(json.jsonify(
-                   status_code = 406,
                    message = "You've never logged in"
                ), 406)
-        
 
 @app.route('/signUp_email', methods=['POST', 'GET'])
 @exception_detector
