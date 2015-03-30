@@ -6,7 +6,7 @@ CREATE TABLE D_USERS (
     email STRING,
     name STRING,
     mother_language_id INT, -- D_LANGUAGES
-    is_translator BOOL,
+    is_translator INT,
     other_language_list_id INT,
     profile_pic_path STRING,
     numOfRequestPending INT,
@@ -42,7 +42,8 @@ CREATE TABLE D_SUBJECTS(
 );
 
 CREATE TABLE D_QUEUE_LISTS (
-    id INT, -- REQUEST_ID from F_REQUESTS
+    id INT,
+    request_id INT, -- REQUEST_ID from F_REQUESTS
     user_id INT -- D_USERS
 );
 
@@ -110,7 +111,8 @@ CREATE TABLE D_BADGES (
 );
 
 CREATE TABLE D_AWARDED_BADGES (
-    id INT, -- badgeList_id from D_USERS
+    id INT,
+    user_id INT,  -- badgeList_id from D_USERS
     badge_id INT -- D_BADGES
 );
 
@@ -126,7 +128,7 @@ CREATE TABLE D_MACHINES (
 );
 
 CREATE TABLE F_REQUESTS (
-    request_id INT,
+    id INT,
     client_user_id INT, -- D_USERS
     original_lang_id INT, -- D_LANGUAGES
     target_lang_id INT, -- D_LANGUAGES
@@ -161,8 +163,8 @@ CREATE TABLE PASSWORDS (
     hashed_pass STRING
 );
 
-CREATE TABLE Revenue (
-id STRING,
+CREATE TABLE REVENUE (
+id INT, -- D_USER
 amount DECIMAL(10,2)
 );
 
@@ -261,7 +263,8 @@ CREATE VIEW V_TRANSLATABLE_LANGUAGES as
 
 CREATE VIEW V_QUEUE_LISTS as
   SELECT
-    fact.id request_id,
+    fact.id id,
+    fact.request_id request_id,
     fact.user_id user_id,
     users.email user_email,
     users.name user_name,

@@ -10,10 +10,12 @@ from ciceron_lib import *
 DATABASE = '../db/ciceron.db'
 DEBUG = True
 IDENTIFIER = "millionare@ciceron!@"
-UPLOAD_FOLDER_PROFILE_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profile_pic")
-UPLOAD_FOLDER_REQUEST_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "request_pic")
-UPLOAD_FOLDER_REQUEST_SOUND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sounds")
-UPLOAD_FOLDER_REQUEST_DOC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "request_doc")
+UPLOAD_FOLDER_PROFILE_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","profile_pic")
+UPLOAD_FOLDER_REQUEST_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "request_pic")
+UPLOAD_FOLDER_REQUEST_SOUND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sounds")
+UPLOAD_FOLDER_REQUEST_DOC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "request_doc")
+UPLOAD_FOLDER_REQUEST_TEXT =  os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "request_text")
+
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'gif', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
@@ -159,9 +161,9 @@ def logout():
                    message = "You've never logged in"
                ), 406)
 
-@app.route('/signUp_email', methods=['POST', 'GET'])
+@app.route('/signup', methods=['POST', 'GET'])
 @exception_detector
-def sign_up_email():
+def signup():
     # Request method: POST
     # Parameters
     #     username: String, email ID ex) psy2848048@gmail.com
@@ -172,37 +174,50 @@ def sign_up_email():
     #     registration_id
 
     if request.method == 'POST':
-        username = request.form['username']
+        # Get parameter values
+        email = request.form['email']
+   	    hashed_password = get_hashed_password(
+                request.form['password'],
+                app.config['IDENTIFIER'])
+        facebook_id = request.form.get('facebook_id', None)
+        name = request.form['name']
+        mother_language_id = request.form['mother_language']
+        #registration_id = request.form.get('registration_id', None)
+        #client_os = request.form.get('client_os', None)
 
-        hash_maker = hashlib.md5()
-        hash_maker.update(app.config['IDENTIFIER'])
-        hash_maker.update(request.form['password'])
-        hash_maker.update(app.config['IDENTIFIER'])
-        hashed_password = hash_maker.digest()
+        # Insert values to D_USERS
+        user_id = get_new_id(g.db, "D_USERS")
+        g.db.execute("INSERT INTO w VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                [user_id,
+                 buffer(email),
+                 buffer(name),
+                 mother_language_id,
+                 0,
+                 None,
+                 None,
+                 0,
+                 0,
+                 0,
+                 0,
+                 0,
+                 0,
+                 None,
+                 None,
+                 buffer("")])
 
-        nickname = request.form['nickname']
-        mother_language = request.form['mother_language']
-	registration_id = request.form.get('registration_id', None)
-	client_os = request.form.get('client_os', None)
-
-        g.db.execute("INSERT INTO Users VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
-      		        [buffer(username), buffer(hashed_password), buffer(nickname), None, buffer(mother_language), None, 1, 0, 0, False, 0, 0, False, False])
-
-	hash_maker = hashlib.md5()
-        hash_maker.update(app.config['VERSION'])
-	hash_maker.update(request.form['username'])
-	hash_maker.update(hashed_password)
-	hash_maker.update(app.config['VERSION'])
-	hashed_ID = hash_maker.digest()
-	g.db.execute("INSERT INTO Property VALUES (?,0)", [buffer(hashed_ID)])
-
-	if client_os is not None and registration_id is not None: check_and_update_reg_key(g.db, client_os, registration_id)
+        g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
+            [user_id, buffer(hashed_password)])
+        g.db.execute("INSERT INTO REVENUE VALUES (?,?)",
+            [user_id, 0])
+        client_completed_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
+        g.db.execute("INSERT INTO D_CLIENT_COMPLETED_GROUPS VALUES (?,?)",
+                [client_completed_group_id, buffer("All")])
 
         g.db.commit() 
 
         # Status code 200 (OK)
 	# Description: Signed up successfully
-        return make_response(json.jsonify(status=dict(code=200, message="Registration %s: successful" % username)), 200)
+        return make_response(json.jsonify(status=dict(message="Registration %s: successful" % email)), 200)
     
     return '''
         <!doctype html>
@@ -217,65 +232,334 @@ def sign_up_email():
         </form>
         '''
 
-@app.route('/nickCheck', methods=['GET'])
-@exception_detector
-def nickChecker():
-    # Method: GET
-    # Parameter: String, nickname
-    nickname = request.args['nickname']
-    print "nick: %s" % nickname
-    cursor = g.db.execute("select * from Users where nickname = ?", [buffer(nickname)])
-    check_data = cursor.fetchall()
-    if len(check_data) == 0:
-	# Status code 200 (OK)
-	# Description: Inputted nickname is avaiable
-        return make_response(json.jsonify(status=dict(code=200, message="You may use the nick %s" % nickname)), 200)
-    else:
-	# Status code 406
-	# Description: Inputted nickname is duplicated with other's one
-	return make_response(json.jsonify(status=dict(code=406, message="Duplicated nick %s" % nickname)), 406)
-
 @app.route('/idCheck', methods=['GET'])
 @exception_detector
 def idChecker():
     # Method: GET
     # Parameter: String id
-    email_id = request.args['email_id']
+    email = request.args['email']
     print "email_id: %s" % email_id
-    cursor = g.db.execute("select * from Users where string_id = ?", [buffer(email_id)])
+    cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email])
     check_data = cursor.fetchall()
-    if len(check_data) == 0:
-	# Status code 200 (OK)
-	# Description: Inputted e-mail ID is available
-        return make_response(json.jsonify(status=dict(code=200, message="You may use the id %s" % email_id)), 200)
+    if len(check_data[0]) == 0:
+        # Status code 200 (OK)
+        # Description: Inputted e-mail ID is available
+        return make_response(json.jsonify(
+            message="You may use the id %s" % email), 200)
     else:
-	# Status code 406 (OK)
-	# Description: Inputted e-mail ID is duplicated with other's one
-	return make_response(json.jsonify(status=dict(code=406, message="Duplicated nick %s" % email_id)), 406)
+        # Status code 406 (OK)
+        # Description: Inputted e-mail ID is duplicated with other's one
+        return make_response(json.jsonify(
+            message="Duplicated ID '%s'" % email_id), 406)
 
-@app.route('/update_profile_pic', methods=["GET", "POST"])
+@app.route('/user/profile', methods = ['GET', 'POST'])
+@login_required
+@exception_detector
+def user_profile():
+    if request.method == 'GET':
+        # Method: GET
+        # Parameters
+        #     user_email: String, text
+
+        # Get value
+        email = request.args['user_email']
+
+        # Start logic
+        cursor = g.db.execute("SELECT * FROM D_USERS WHERE email = ?", [email])
+        userinfo = cursor.fetchall()
+
+        # Unique constraint check
+        if len(userinfo) > 1:
+            return make_response(json.jsonify(
+                message = "More than 2 records for one ID! Internal server error!"),
+                500)
+
+        # Filter if there is no information with the given ID
+        elif len(userinfo[0]) == 0:
+            return make_response(json.jsonify(
+                message = "Please check the input ID: %s" % email),
+                400)
+
+        # ID check: Are you requesting yours, or others?
+        #     Yours -> show including points
+        #     Others-> show except points
+        is_your_profile = None
+        if email == session['useremail']: is_your_profile = True
+        else:                            is_your_profile = False
+
+        # Gather IDs of list form information
+        user_id = userinfo[0][0]
+        other_language_list_id = userinfo[0][5]
+        badgeList_id = userinfo[0][13]
+
+        # Get list: other languages translatable
+        cursor = g.db.execute("SELECT translatable_language_id FROM D_TRANSLATABLE_LANGUAGES WHERE id = ?",
+                [other_language_list_id])
+        other_language_list = [ item[0] for item in cursor.fetchall() ]
+
+        # Get list: badges list
+        cursor = g.db.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = ?",
+                [badgeList_id])
+        badgeList = [ item[0] for item in cursor.fetchall() ]
+
+        profile = dict(
+            user_email=                     email,
+            user_name=                      userinfo[0][2],
+            user_motherLang=                userinfo[0][3],
+            user_profilePicPath=            userinfo[0][5]
+            user_translatableLang=          other_language_list,
+            user_numOfRequestPending=       userinfo[0][7],
+            user_numOfRequestOngoing=       userinfo[0][8],
+            user_numOfRequestCompleted=     userinfo[0][9],
+            user_numOfTranslationPending=   userinfo[0][10],
+            user_numOfTranslationOngoing=   userinfo[0][11],
+            user_numOfTranslationCompleted= userinfo[0][12],
+            user_badgeList=                 badgeList,
+            user_isTranslator=              userinfo[0][4],
+            user_profileText=               userinfo[0][15]
+            )
+
+        if is_your_profile == True:
+            cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?",  [user_id])
+            profile['user_revenue'] = cursor.fetchall()[0][0]
+
+        return make_response(json.jsonify(profile), 200)
+
+    elif request.method == "POST":
+        # Method: GET
+        # Parameters
+        #     user_email: String, text
+        #     user_profilePic: binary
+
+        # Get parameter value
+        profileText = request.form.get('user_profileText', None)
+
+        # Start logic
+        # Get user number
+        email = session['useremail']
+
+        if profileText is not None:
+            g.db.execute("UPDATE D_USERS SET profile_text = ? WHERE email = ?",
+                    [buffer(profileText), buffer(email)])
+            g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Your profile is susccessfully updated!"), 200)
+
+@app.route('/user/profile/photo', methods=["POST", "GET"])
 @exception_detector
 @login_required
-def update_profile_pic():
-    # IN CONSTRUCTION
-    profile_pic = request.files['file']
-    filename = ""
-    if profile_pic and pic_allowed_file(profile_pic.filename):
-        filename = secure_filename(profile_pic.filename)
-        profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], filename))
+def user_profile_photo():
+    if request.method == "POST":
+        profile_pic = request.files['photo']
+        filename = ""
+        path = ""
+        if profile_pic and pic_allowed_file(profile_pic.filename):
+            pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
+            profile_pic.save(pic_path)
 
-	g.db.execute("UPDATE Users SET profile_img = ? WHERE string_id = ?", [buffer(filename), buffer(session['username'])])
-	return make_response(json.jsonify(status=200, message="Upload complete", path=os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], filename)), 200)
+        g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
+        g.db.commit()
 
-    return '''
-        <!doctype html>
-        <title>Upload test / Profile pic</title>
-        <h1>Upload new File</h1>
-        <form action="" method=post enctype=multipart/form-data>
-          <p><input type=file name=file>
-             <input type=submit value=Upload>
-        </form>
-        '''
+        return make_response(json.jsonify(
+                message="Upload complete",
+                path=pic_path),
+            200)
+
+    else:
+        return '''
+            <!doctype html>
+            <title>Upload test / Profile pic</title>
+            <h1>Upload new File</h1>
+            <form action="" method=post enctype=multipart/form-data>
+              <p><input type=file name=file>
+                 <input type=submit value=Upload>
+            </form>
+            '''
+
+@app.route('/requests', methods=["GET", "POST"])
+@exception_detector
+def requests():
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        
+        query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id is null AND status_id in (0,1) AND is_request_finished = 0 "
+        if 'since' in request.args.keys():
+            condition.append("AND registered_time < datetime(%f) " % Decimal(request.args['since']))
+        query += "ORDER BY registered_time DESC LIMIT 20"
+
+        cursor = g.db.execute(query)
+        rs = cursor.fetchall()
+        result = []
+
+        for row in rs:
+            # For fetching translators in queue
+            queue_id = row[23]
+            cursor2 = g.db.execute("SELECT * FROM V_QUEUE_LISTS WHERE id = ? ORDER BY user_id",
+                    [queue_id])
+
+            queue_list = []
+            for q_item in cursor2.fetchall():
+                temp_item=dict(
+                        id=      q_item[2],
+                        name=    q_item[4],
+                        picPath= q_item[5]
+                        )
+                queue_list.append(temp_item)
+
+            # For getting word count of the request
+            cursor2 = g.db.execute("SELECT path FROM id = ?" [row[28]])
+            list_txt = cursor2.fetchall()
+            if len(list_txt[0]) == 0:
+                num_of_words = None
+            else:
+                num_of_words = word_counter(list_txt[0][0])
+
+            # For getting context text
+
+            item = dict(
+                    request_id=row[0]
+                    request_clientId=row[2],
+                    request_clientName=row[3],
+                    request_clientPicPath=row[4],
+                    request_originalLang=row[13],
+                    request_targetLang=row[15],
+                    request_isSos=row[17],
+                    request_format=row[19],
+                    request_subject=row[21],
+                    request_translatorsInQueue=queue_list,
+                    request_isTransOngoing=row[18],
+                    request_ongoingWorkerId=row[6],
+                    request_ongoingWorkerName=row[7],
+                    request_ongoingWorkerPicPath=row[8],
+                    request_registeredTime=row[24],
+                    request_isText=row[27],
+                    request_isPhoto=row[29],
+                    request_isSound=row[31],
+                    request_isFile=row[33],
+                    reqeust_words=num_of_words,
+                    request_dueTime=row[25],
+                    request_points=row[26],
+                    request_text=row[36]
+                )
+            result.append(item)
+
+        return make_response(json.jsonify(result), 200)
+
+    elif request.method == "POST":
+        request_id = get_new_id(g.db, "F_REQUESTS")
+        client_user_id = get_user_id(g.db, request.form['request_clientId'])
+        original_lang_id = request.form['request_originalLang']
+        target_lang_id = request.form['request_targetLang']
+        isSos = request.form['request_isSos']
+        format_id = request.form.get('request_format')
+        subject_id = request.form.get('request_subject')
+        registered_time = request.form['request_registeredTime']
+        is_text = request.form.get('request_isText')
+        text_string = request.form.get('request_text')
+        is_photo = request.form.get('request_isPhoto')
+        #photo_binary
+        is_sound = request.form.get('request_isSound')
+        #sound_binary
+        is_file = request.form.get('request_isFile')
+        #file_binary
+        words = request.form.get('reqeust_words')
+        due_time = request.form['request_dueTime']
+        point = request.form.get('request_points')
+        context = request.form.get('request_context')
+
+        new_photo_id = None
+        new_sound_id = None
+        new_file_id = None
+        new_text_id = None
+
+        # Upload binaries into file and update each dimension table
+        if (request.files.get('request_photo') is not None):
+            binary = request.files['request_photo']
+            filename = ""
+            path = ""
+            if pic_allowed_file(binary.filename):
+                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_PIC'], secure_filename(binary.filename))
+                binary.save(path)
+
+            new_photo_id = get_new_id(g.db, "D_REQUEST_PHOTOS")
+            g.db.execute("INSERT INTO D_REQUEST_PHOTOS VALUES (?,?,?)",
+                    [new_photo_id, request_id, buffer(path)])
+
+        if (request.files.get('request_sound') is not None):
+            binary = request.files['request_sound']
+            filename = ""
+            path = ""
+            if sound_allowed_file(binary.filename):
+                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_SOUND'], secure_filename(binary.filename))
+                binary.save(path)
+
+            new_sound_id = get_new_id(g.db, "D_REQUEST_SOUNDS")
+            g.db.execute("INSERT INTO D_REQUEST_SOUNDS VALUES (?,?)",
+                    [new_sound_id, buffer(path)])
+        
+        if (request.files.get('request_file') is not None):
+            binary = request.files['request_file']
+            filename = ""
+            path = ""
+            if doc_allowed_file(binary.filename):
+                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_DOC'], secure_filename(binary.filename))
+                binary.save(path)
+
+            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
+            g.db.execute("INSERT INTO D_REQUEST_FILES VALUES (?,?)",
+                    [new_file_id, buffer(path)])
+
+        if text_string:
+            filename = str(datetime.now()) + ".txt"
+            path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_TEXT'], filename)
+            f = open(path, 'w')
+            f.write(text_string)
+            f.close()
+
+            new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
+            g.db.execute("INSERT INTO D_REQUEST_TEXTS VALUES (?,?)",
+                    [new_text_id, buffer(path)])
+
+        # Input context text into dimension table
+        new_context_id = get_new_id(g.db, "D_CONTEXTS")
+        g.db.exeucte("INSERT INTO D_CONTEXTS VALUES (?,?)",
+                [new_context_id, buffer(context)])
+
+        g.db.execute("INSERT INTO F_REQUESTS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+                   [request_id,
+                    client_user_id,
+                    original_lang_id,
+                    target_lang_id,
+                    isSos,
+                    0,
+                    format_id,
+                    subject_id,
+                    None,
+                    None,
+                    is_text,
+                    new_text_id,
+                    is_photo,
+                    new_photo_id,
+                    is_file,
+                    new_file_id,
+                    is_sound,
+                    new_sound_id,
+                    None,
+                    None,
+                    None,
+                    None,
+                    registered_time,
+                    due_time,
+                    point,
+                    new_context_id,
+                    None,
+                    None])
+
+        g.db.commit()
 
 @app.route('/charge', methods = ["GET", "POST"])
 @exception_detector
@@ -338,147 +622,6 @@ def charge():
 	    <p><input type=submit value=Charge>
 	    </form>
         '''
-
-@app.route('/post_list', methods=["GET"])
-@exception_detector
-def post_list():
-    # Request method: GET
-    # Parameters
-    #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
-    #                               If this parameter is not provided, recent 20 posts from now are returned
-    if request.method == "GET":
-        query = "SELECT * FROM Requests_list WHERE is_request_picked = 0 AND is_request_finished = 0 "
-        #query = "SELECT is_SOS, id, requester_id, from_lang, to_lang, main_text, request_date, format, subject, due_date, image_files, sound_file, price FROM Requests_list "
-        if 'last_post_time' in request.args.keys():
-            condition.append("AND request_date < datetime(%f) " % Decimal(request.args['last_post_time']))
-        query += "ORDER BY request_date DESC LIMIT 20"
-
-        cursor = g.db.execute(query)
-        rs = cursor.fetchall()
-        result = []
-
-        for row in rs:
-            item = dict()
-            item['id'] = int(row[0])
-      	    item['requester_id'] = str(row[1])
-	    item['from_lang'] = row[2]
-	    item['to_lang'] = row[3]
-	    item['is_SOS'] = bool(int(row[4]))
-	    item['main_text'] = str(row[5])
-	    item['context_text'] = str(row[6])
-	    item['image_files'] = str(row[7])
-	    item['sound_file'] = str(row[8])
-	    item['request_date'] = row[9]
-	    item['format'] = str(row[10])
-	    item['subject'] = str(row[11])
-	    item['due_date'] = str(row[12])
-	    item['translator_id'] = str(row[13])
-	    item['is_request_picked'] = bool(int(row[14]))
-	    item['is_request_finished'] = bool(int(row[15]))
-	    item['price'] = float(row[16])
-
-	    result.append(item)
-
-        # Status code 200 (OK)
-	# Description: Listing up 20 requested items which is not picked by translator and is not closed.
-        #              Recent 20 items if time parameter is not given
-	#              Recent 20 times from the given time if time parameter is given
-        return make_response(json.jsonify(item_list = result), 200)
-
-@app.route('/post', methods=["POST"])
-@exception_detector
-@login_required
-def post():
-    # Request method: POST
-    # Parameter
-    #     from_lang: String, language of origin text
-    #     to_lang: String, target language
-    #     is_SOS: Bool, True(1) - SOS request, False(0) - Normal request
-    #     main_text: Text, origin text
-    #     context_text: Text, context text
-    #     image_files: image file name list will be given if user requested with photo files
-    #     sound_file: sound file name will be biven if user requested with sound file
-    #     format: request format of this post
-    #     subject: request subject of this post
-    if request.method == "POST":
-        query_for_get_last_id = "SELECT id from Requests_list ORDER BY id DESC LIMIT 1"
-	cursor = g.db.execute(query_for_get_last_id)
-	count_data = cursor.fetchall()
-
-	start_count = 0
-	if len(count_data) == 0:
-            start_count = 1
-	else:
-            start_count = int(count_data[0][0]) + 1 # [0]? or [0][0]
-
-	post = dict()
-	post['id'] = start_count
-	post['requester_id'] = session['username']
-	post['from_lang'] = request.form['from_lang']
-	post['to_lang'] = request.form['to_lang']
-	post['is_SOS'] = int(request.form['is_SOS'])
-	post['main_text'] = request.form['main_text']
-	post['context_text'] = request.form.get('context_text', None)
-	post['image_files'] = request.form.get('image_files', None)
-	post['sound_file'] = request.form.get('sound_file', None)
-	post['request_date'] = datetime.now()
-	post['format'] = request.form['format']
-	post['subject'] = request.form['subject']
-        
-	post['due_date'] = None
-	if post['is_SOS'] == True:
-            post['due_date'] = post['request_date'] + timedelta(minutes=5)
-	    post['price'] = 0
-	else:
-	    post['due_date'] = post['request_date'] + timedelta(days=2)
-	    post['price'] = request.form['price']
-
-        property_id = hashed_id_maker(g.db)
-
-        cursor = g.db.execute("SELECT amount FROM Property WHERE id = ?", [buffer(property_id)])
-	amount = cursor.fetchall()
-	if len(amount) == 0:
-	    # Status code 406 (ERROR)
-	    # Description: Cannot find point information with given ID
-	    return make_response(json.jsonify(status=406, message="No price information of ID %s" % session['username']), 406)
-        elif float(amount[0][0]) < float(post['price']):
-	    # Status code 406 (ERROR)
-	    # Description: price in POST is bigger than user's account
-	    return make_response(json.jsonify(status=400, message="Not enough money required"), 400)
-
-        query_post = "INSERT INTO Requests_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-	g.db.execute(query_post, [
-	        post['id'],
-	        (post['requester_id']),
-	        (post['from_lang']),
-	        (post['to_lang']),
-		post['is_SOS'],
-	        (post['main_text']),
-	        (post['context_text']) if post['context_text'] is not None else None,
-	        (post['image_files']) if post['image_files'] is not None else None,
-	        (post['sound_file']) if post['sound_file'] is not None else None,
-		post['request_date'],
-		post['format'],
-		post['subject'],
-		post['due_date'],
-		None,
-		0,
-		0,
-		post['price']
-	    ])
-
-	query_update_request = "UPDATE Users SET %s = %s + 1 WHERE string_id = ?"
-	if post['is_SOS'] == True:
-	    g.db.execute(query_update_request % ("requested_SOS", "requested_SOS"), [session['username']])
-	else:
-	    g.db.execute(query_update_request % ("requested_normal", "requested_normal"), [session['username']])
-	    g.db.execute("UPDATE Property SET amount = amount - ? WHERE id = ?", [ post['price'], buffer(property_id) ])
-
-	g.db.commit()
-
-        # Status code 200 (OK)
-        # Description: Succeed to post the request
-	return make_response(json.jsonify(status=200, message="Posted %d" % post['id']), 200)
 
 @app.route('/history_requester', methods=["GET"])
 @login_required
@@ -814,58 +957,6 @@ def accept(request_id):
 
 	g.db.commit()
 	return make_response(json.jsonify(status=200, message="Post %d has just closed" % int(request_id)), 200)
-
-@app.route('/profile', methods = ['GET'])
-@login_required
-@exception_detector
-def profile():
-    # Method: GET
-    # Parameters
-    #     id: String, text
-
-    user_ID = session['username']
-    request_ID = None
-    if request.args.get('id') is not None:
-        request_ID = request.args.get('id')
-    else:
-	return make_response(json.jsonify(status=406, message="ID is required"), 406)
-
-    query_money_check = "SELECT * FROM Property WHERE id = ?"
-    query_inquiry = "SELECT string_id, nickname, profile_img, mother_tongue_language, other_language, grade, requested_SOS, requested_normal, is_translator, translated_SOS, translated_normal FROM Users WHERE string_id = ?"
-
-    # ID check: Are you requesting yours, or others?
-    #     Yours -> show including points
-    #     Others-> show except points
-
-    cursor = g.db.execute(query_inquiry, [buffer(request_ID)])
-    profile = dict()
-    info = cursor.fetchall()[0]
-
-    profile['string_id'] = str(info[0])
-    profile['nickname'] = str(info[1])
-    profile['profilee_img'] = str(info[2]) if info[2] is not None else None
-
-    lang_list = []
-    lang_list.append(str(info[3]))
-    if info[4] is not None:
-	for lang in info[4].split(';'):
-            lang_list.append(lang)
-
-    profile['language'] = lang_list
-    profile['grade'] = int(info[5])
-    profile['requested_SOS'] = int(info[6])
-    profile['requested_normal'] = int(info[7])
-    profile['is_translator'] = bool(int(info[8]))
-    profile['translated_SOS'] = int(info[9])
-    profile['translated_normal'] = int(info[10])
-
-    if user_ID == request_ID:
-	hashed_ID = hashed_id_maker(g.db)
-        cursor = g.db.execute(query_money_check, [buffer(hashed_ID)])
-	money_in_the_purse = float(cursor.fetchall()[0][1])
-	profile['point'] = money_in_the_purse
-
-    return make_response(json.jsonify(status=200, profile=profile), 200)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=80)

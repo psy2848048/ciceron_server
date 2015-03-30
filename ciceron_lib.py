@@ -105,3 +105,12 @@ def exception_detector(f):
                     500
                    )
     return decorated_function
+
+def word_counter(filePathName):
+    f = open(filePathName, 'r')
+    words=0
+    for lines in f.readlines():
+        words += len(lines.aplit(' '))
+    f.close()
+
+    return words
