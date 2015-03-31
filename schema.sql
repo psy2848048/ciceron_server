@@ -1,5 +1,5 @@
-CREATE DATABASE CICERON;
-USE CICERON;
+--CREATE DATABASE CICERON;
+--USE CICERON;
 
 CREATE TABLE D_USERS (
     id INT,
@@ -171,7 +171,7 @@ amount DECIMAL(10,2)
 CREATE VIEW V_REQUESTS as
   SELECT
     -- Client
-    fact.request_id request_id,
+    fact.id request_id,
     fact.client_user_id client_user_id,
     user_client.email client_email,
     user_client.name client_name,

@@ -4,90 +4,113 @@ from flask import url_for
 class CiceronTestCase(unittest.TestCase):
     def setUp(self):
         self.db_fd, run.app.config['DATABASE'] = tempfile.mkstemp()
-	run.app.config['TESTING'] = True
-	self.app = run.app.test_client()
-	run.init_db()
+        run.app.config['TESTING'] = True
+        self.app = run.app.test_client()
+        run.init_db()
 
     def tearDown(self):
         os.close(self.db_fd)
-	os.unlink(run.app.config['DATABASE'])
+        os.unlink(run.app.config['DATABASE'])
 
-    def signUp(self, username, password, nickname, mother_language):
-        return self.app.post('/signUp_email', data=dict(
-		username=username,
-		password=password,
-		nickname=nickname,
-		mother_language=mother_language
-		), follow_redirects=True)
+    def signUp(self, email, password, name, mother_language_id):
+        return self.app.post('/signup', data=dict(
+                email=email,
+                password=password,
+                name=name,
+                mother_language_id=mother_language_id
+                ), follow_redirects=True)
 
-    def login(self, username, password):
-        return self.app.post('/login_email', data=dict(
-		    username=username,
-		    password=password
-		), follow_redirects=True)
+    def login(self, email, password):
+        return self.app.post('/login', data=dict(
+               email=email,
+               password=password
+           ), follow_redirects=True)
 
     def test_login(self):
         print "=============test_login=============="
 
-        self.signUp(username="psy2848048@gmail.com",
+        self.signUp(email="psy2848048@gmail.com",
 		    password="ciceron!",
-		    nickname="CiceronMaster",
-		    mother_language="Korean")
-	print "SignUp complete"
+		    name="CiceronMaster",
+		    mother_language_id=0)
+        print "SignUp complete"
 
-	print "Step 1: attempt to login with non-registered user"
-	rv = self.login(username="psy2848048@nate.com",
-		    password="wleifasef"
-		    )
-	print rv.data
+        print "Step 1: attempt to login with non-registered user"
+        rv = self.login(email="psy2848048@nate.com",
+        	    password="wleifasef"
+        	    )
+        print rv.data
         assert 'Not registered' in rv.data
-
-	print "Step 2: attempt to login with registered user but the password is wrong"
-	rv = self.login(username="psy2848048@gmail.com",
-		    password="wleifasef"
-		    )
-	print rv.data
+        
+        print "Step 2: attempt to login with registered user but the password is wrong"
+        rv = self.login(email="psy2848048@gmail.com",
+        	    password="wleifasef"
+        	    )
+        print rv.data
         assert 'Please check the password' in rv.data
         rv = self.app.get('/')
-	print rv.data
-
-	print "Step 3: attempt to login with registered user, correct password"
-	rv = self.login(username="psy2848048@gmail.com",
-		    password="ciceron!"
-		    )
-	print rv.data
+        print rv.data
+        
+        print "Step 3: attempt to login with registered user, correct password"
+        rv = self.login(email="psy2848048@gmail.com",
+        	    password="ciceron!"
+        	    )
+        print rv.data
         assert 'You\'re logged with user' in rv.data
-	rv = self.app.get('/')
-	print rv.data
+        rv = self.app.get('/')
+        print rv.data
 
-    def test_nickchecker(self):
-	print "=================test-nickchecker===================="
-
-	rv = self.app.get('/nickCheck?nickname=psy2848048')
-	print rv
-	assert 'You may use' in  rv.data
-
-        self.signUp(username="psy2848048@gmail.com",
-		    password="ciceron!",
-		    nickname="CiceronMaster",
-		    mother_language="Korean")
-
-	rv = self.app.get('/nickCheck?nickname=CiceronMaster')
-	print rv
-	assert 'Duplicated' in  rv.data
+    def test_idChecker(self):
+        print "=================test-nickchecker===================="
+        
+        rv = self.app.get('/idCheck?email=psy2848048@gmail.com')
+        print rv
+        assert 'You may use' in  rv.data
+        
+        self.signUp(email="psy2848048@gmail.com",
+        	    password="ciceron!",
+        	    name="CiceronMaster",
+        	    mother_language_id=0)
+        
+        rv = self.app.get('/idCheck?email=psy2848048@gmail.com')
+        print rv
+        assert 'Duplicated' in  rv.data
 
     def test_login_decorator(self):
-	print "==============test-login-req-decorator=============="
-	rv = self.app.get("/pick_request/1")
-	print rv
-	print rv.data
-	assert 'Login required'
+        print "==============test-login-req-decorator=============="
+        rv = self.app.get("/user/profile")
+        print rv
+        print rv.data
+        assert 'Login required' in rv.data
+
+        self.signUp(email="psy2848048@gmail.com",
+        	    password="ciceron!",
+        	    name="CiceronMaster",
+        	    mother_language_id=0)
+        rv = self.login(email="psy2848048@gmail.com",
+        	    password="ciceron!"
+        	    )
+
+        print "Login complete"
+
+        rv = self.app.get("/user/profile")
+        print rv
+        print rv.data
+
+        rv = self.app.post("/user/profile",
+                data=dict(
+                    user_profileText="Test"
+                    )
+                )
+
+        rv = self.app.get("/user/profile")
+        print rv.data
 
     def test_Post(self):
 	print "=============test-Post==================="
         self.signUp(username="psy2848048@gmail.com",
 		    password="ciceron!",
-		    nickname="CiceronMaster",
+		    name="CiceronMaster",
 		    mother_language="Korean")
 	self.login(username="psy2848048@gmail.com",
 		    password="ciceron!"
@@ -144,7 +167,7 @@ class CiceronTestCase(unittest.TestCase):
         print "Test with different user"
         self.signUp(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    nickname="CiceronUser",
+		    name="CiceronUser",
 		    mother_language="Korean")
 	self.login(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
@@ -162,7 +185,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "================test-pick-request=============="
         self.signUp(username="psy2848048@gmail.com",
 		    password="ciceron!",
-		    nickname="CiceronMaster",
+		    name="CiceronMaster",
 		    mother_language="Korean")
 	self.login(username="psy2848048@gmail.com",
 		    password="ciceron!"
@@ -211,7 +234,7 @@ class CiceronTestCase(unittest.TestCase):
         print "Test with different user"
         self.signUp(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    nickname="CiceronUser",
+		    name="CiceronUser",
 		    mother_language="Korean")
 	self.login(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
@@ -233,7 +256,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "1. Post SOS request"
         self.signUp(username="psy2848048@gmail.com",
 		    password="ciceron!",
-		    nickname="CiceronMaster",
+		    name="CiceronMaster",
 		    mother_language="Korean")
 	self.login(username="psy2848048@gmail.com",
 		    password="ciceron!"
@@ -255,7 +278,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "2. Sign up another user and pick request"
         self.signUp(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    nickname="CiceronUser",
+		    name="CiceronUser",
 		    mother_language="Korean")
 	self.login(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
@@ -331,7 +354,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "1. Post SOS request"
         self.signUp(username="psy2848048@gmail.com",
 		    password="ciceron!",
-		    nickname="CiceronMaster",
+		    name="CiceronMaster",
 		    mother_language="Korean")
 	self.login(username="psy2848048@gmail.com",
 		    password="ciceron!"
@@ -360,7 +383,7 @@ class CiceronTestCase(unittest.TestCase):
 	print "3. Sign up another user and pick request"
         self.signUp(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    nickname="CiceronUser",
+		    name="CiceronUser",
 		    mother_language="Korean")
 	self.login(username="jun.hang.lee@sap.com",
 		    password="IWantToExitw/SAPLabsKoreaFucking!!!"

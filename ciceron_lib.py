@@ -1,5 +1,5 @@
 import hashlib
-from flask import make_response, json
+from flask import make_response, json, g, session
 from functools import wraps
 
 # hashed ID maker for REVUNUE table
@@ -34,11 +34,11 @@ def hashed_other_id_maker(conn, string_id):
     return hashed_ID
 
 def get_hashed_password(password, salt):
-	hash_maker = hashlib.md5()
-	hash_maker.update(salt)
-	hash_maker.update(password)
-	hash_maker.update(salt)
-	return hash_maker.digest()
+    hash_maker = hashlib.md5()
+    hash_maker.update(salt)
+    hash_maker.update(password)
+    hash_maker.update(salt)
+    return hash_maker.digest()
 
 #def check_and_update_reg_key(conn, os_name, registration_id):
 #    # Register key: Android
@@ -57,7 +57,12 @@ def get_id_from_text(conn, text, table):
 def get_user_id(conn, text_id):
     cursor = conn.execute("SELECT id from D_USERS WHERE email = ?",
             [buffer(text_id)])
-    return int(cursor.fetchall()[0][0])
+    rs = cursor.fetchall()
+    if len(rs) == 0:
+        result = -1
+    else:
+        result = int(rs[0][0])
+    return result
 
 def get_user_email(conn, num_id):
     cursor = conn.execute("SELECT email from D_USERS WHERE id = ?",
@@ -72,21 +77,21 @@ def get_new_id(conn, table):
     cursor = conn.execute("SELECT max(id) FROM %s " % table)
     current_id_list = cursor.fetchall()
     new_id = None
-    if len(current_id_list[0]) == 0: new_id = 0
-    else:                            new_id = int(current_id_list[0][0]) + 1
+    if current_id_list[0][0] is None: new_id = 0
+    else:                         new_id = int(current_id_list[0][0]) + 1
 
     return new_id
 
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'username' in session:
+        if 'useremail' in session:
             return f(*args, **kwargs)
         else:
-    	    return make_response(json.jsonify(
+            return make_response(json.jsonify(
                        status_code = 403,
-    	               message = "Login required"
-	           ), 403)
+                       message = "Login required"
+               ), 403)
     return decorated_function
 
 def exception_detector(f):
