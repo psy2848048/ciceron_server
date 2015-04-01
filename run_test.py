@@ -106,150 +106,165 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get("/user/profile")
         print rv.data
 
-    def test_Post(self):
-	print "=============test-Post==================="
-        self.signUp(username="psy2848048@gmail.com",
-		    password="ciceron!",
-		    name="CiceronMaster",
-		    mother_language="Korean")
-	self.login(username="psy2848048@gmail.com",
-		    password="ciceron!"
-		    )
+    def test_request(self):
+        print "=============test-request==================="
+        self.signUp(email="psy2848048@gmail.com",
+        	    password="ciceron!",
+        	    name="CiceronMaster",
+        	    mother_language_id=0)
+        self.login(email="psy2848048@gmail.com",
+        	    password="ciceron!"
+        	    )
+        
+        text = "This is test text\nAnd I donno how to deal with"
+        print "Post normal request without money"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=1,
+                request_isSos=True,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text.split(' ')),
+                request_dueTime=datetime.datetime.now(),
+        		request_points=0.50,
+                request_context=""
+        		))
 
-	print "Post normal request without money"
-	rv = self.app.post('/post', data=dict(
-			from_lang="Korean",
-			to_lang="English",
-			is_SOS=0,
-			main_text="English is too difficult to learn and use properly. I really need your help",
-			format="Formal",
-			subject="Announcement",
-			price=0.50
-			))
-	try:
-	    assert "Not enough money" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
+        try:
+            assert "Request ID" in rv.data
+        except:
+            print rv.data
+            raise AssertionError
 
+        print "Pass step 1"
 
-	rv = self.app.post('/post', data=dict(
-			from_lang="Korean",
-			to_lang="English",
-			is_SOS=1,
-			main_text="English is too difficult to learn and use properly. I really need your help",
-			format="Thesis",
-			subject="Scholar",
-			price=0.50
-			))
-	try:
-	    assert "Posted" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
+        text2 = "testtesttest\nChinese\na;eoifja;ef"
+        
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=2,
+                request_isSos=False,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text2,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text.split(' ')),
+                request_dueTime=datetime.datetime.now(),
+        		request_points=0,
+                request_context="Wow!"
+        		))
+        try:
+            assert "Request ID" in rv.data
+        except:
+            print rv.data
+            raise AssertionError
 
-        rv = self.app.get('/post_list')
-	print "Posted list"
-	print rv.data
-
-        rv = self.app.get('/post_list?last_post_time=%f' % time.time())
-	print "Posted list with last_post_time"
-	print rv.data
-
-        rv = self.app.get('/history_requester')
-        print "History of psy2848048@gmail.com"
-	print rv.data
-
-        rv = self.app.get('/history_requester?last_post_time=%f' % time.time())
-	print "History with last_post_time"
-	print rv.data
-
+        print "Passed step 2"
+        
+        rv = self.app.get('/requests')
+        print "Posted list"
+        print rv.data
+        
+        rv = self.app.get('/requests?since=%f' % time.time())
+        print "Posted list with last_post_time"
+        print rv.data
+        
         print "Test with different user"
-        self.signUp(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    name="CiceronUser",
-		    mother_language="Korean")
-	self.login(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-		    )
-
-        rv = self.app.get('/post_list')
-	print "Posted list"
-	print rv.data
-
-        rv = self.app.get('/history_traslator')
-        print "History of jun.hang.lee@sap.com"
-	print rv.data
+        self.signUp(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
+        	    name="CiceronUser",
+        	    mother_language_id=2)
+        self.login(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+        	    )
+        
+        rv = self.app.get('/requests')
+        print "Posted list"
+        print rv.data
 
     def test_pick_request(self):
-	print "================test-pick-request=============="
-        self.signUp(username="psy2848048@gmail.com",
-		    password="ciceron!",
-		    name="CiceronMaster",
-		    mother_language="Korean")
-	self.login(username="psy2848048@gmail.com",
-		    password="ciceron!"
-		    )
+        print "================test-pick-request=============="
+        self.signUp(email="psy2848048@gmail.com",
+        	    password="ciceron!",
+        	    name="CiceronMaster",
+        	    mother_language_id=0)
+        self.login(email="psy2848048@gmail.com",
+        	    password="ciceron!"
+        	    )
+        
+        text = "This is test text\nAnd I donno how to deal with"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=1,
+                request_isSos=True,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text.split(' ')),
+                request_dueTime=datetime.datetime.now(),
+        		request_points=0.50,
+                request_context=""
+        		))
+        text2 = "testtesttest\nChinese\na;eoifja;ef"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=2,
+                request_isSos=False,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text2,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text.split(' ')),
+                request_dueTime=datetime.datetime.now(),
+        		request_points=0,
+                request_context="Wow!"
+        		))
+        
+        rv = self.app.get('/requests')
+        print "Posted list"
+        print rv.data
+        
+        self.signUp(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
+        	    name="CiceronUser",
+        	    mother_language_id=2)
+        self.login(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+        	    )
 
-	rv = self.app.post('/post', data=dict(
-			from_lang="Korean",
-			to_lang="English",
-			is_SOS=0,
-			main_text="English is too difficult to learn and use properly. I really need your help",
-			format="Formal",
-			subject="Announcement",
-			price=0.50
-			))
-	try:
-	    assert "Not enough" in rv.data
-	except:
-            print rv.data
-	    raise AssertionError
+        rv = self.app.post('/user/translations/pending', data=dict(
+            request_id=0
+            ))
+        
+        print "Queue list"
+        print rv.data
 
-	print "1. Pick request which you requested. Error expected."
-
-	rv = self.app.post('/post', data=dict(
-			from_lang="Korean",
-			to_lang="English",
-			is_SOS=1,
-			main_text="English is too difficult to learn and use properly. I really need your help",
-			format="Thesis",
-			subject="Scholar",
-			price=0.50
-			))
-        try:
-	    assert "Posted" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
-
-        print "Try to pick"
-	rv = self.app.get('/pick_request/1')
-	try:
-	    assert "You cannot translate your request"
-	except:
-	    print rv.data
-	    raise AssertionError
-
-        print "Test with different user"
-        self.signUp(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    name="CiceronUser",
-		    mother_language="Korean")
-	self.login(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-		    )
-
-	print "Try to pick again"
-	rv = self.app.get('/pick_request/1')
-	try:
-	    assert "According to your language" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
-
-        rv = self.app.get('/post_list')
-	print rv.data
+        rv = self.app.get('/user/translations/pending')
+        print "Posted list"
+        print rv.data
 
     def test_comment(self):
 	print "================test-comment=============="

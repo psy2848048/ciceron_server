@@ -10,11 +10,12 @@ from ciceron_lib import *
 DATABASE = '../db/ciceron.db'
 DEBUG = True
 IDENTIFIER = "millionare@ciceron!@"
-UPLOAD_FOLDER_PROFILE_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..","profile_pic")
-UPLOAD_FOLDER_REQUEST_PIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "request_pic")
-UPLOAD_FOLDER_REQUEST_SOUND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sounds")
-UPLOAD_FOLDER_REQUEST_DOC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "request_doc")
-UPLOAD_FOLDER_REQUEST_TEXT =  os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "request_text")
+BASEPATH = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER_PROFILE_PIC = "profile_pic"
+UPLOAD_FOLDER_REQUEST_PIC = "request_pic"
+UPLOAD_FOLDER_REQUEST_SOUND = "sounds"
+UPLOAD_FOLDER_REQUEST_DOC = "request_doc"
+UPLOAD_FOLDER_REQUEST_TEXT =  "request_text"
 
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'gif', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
@@ -389,70 +390,21 @@ def requests():
         #     since(optional): Timestamp, take recent 20 post before the timestamp.
         #                  If this parameter is not provided, recent 20 posts from now are returned
         
-        query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id is null AND status_id in (0,1) AND is_request_finished = 0 "
+        query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id is null AND status_id = 0 "
         if 'since' in request.args.keys():
-            condition.append("AND registered_time < datetime(%f) " % Decimal(request.args['since']))
+            query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query += "ORDER BY registered_time DESC LIMIT 20"
 
         cursor = g.db.execute(query)
         rs = cursor.fetchall()
-        result = []
+        result = json_from_V_REQUESTS(g.db, rs)
 
-        for row in rs:
-            # For fetching translators in queue
-            queue_id = row[23]
-            cursor2 = g.db.execute("SELECT * FROM V_QUEUE_LISTS WHERE id = ? ORDER BY user_id",
-                    [queue_id])
-
-            queue_list = []
-            for q_item in cursor2.fetchall():
-                temp_item=dict(
-                        id=      q_item[2],
-                        name=    q_item[4],
-                        picPath= q_item[5]
-                        )
-                queue_list.append(temp_item)
-
-            # For getting word count of the request
-            cursor2 = g.db.execute("SELECT path FROM id = ?" [row[28]])
-            list_txt = cursor2.fetchall()
-            if len(list_txt[0]) == 0:
-                num_of_words = None
-            else:
-                num_of_words = word_counter(list_txt[0][0])
-
-            # For getting context text
-
-            item = dict(
-                    request_id=row[0],
-                    request_clientId=row[2],
-                    request_clientName=row[3],
-                    request_clientPicPath=row[4],
-                    request_originalLang=row[13],
-                    request_targetLang=row[15],
-                    request_isSos=row[17],
-                    request_format=row[19],
-                    request_subject=row[21],
-                    request_translatorsInQueue=queue_list,
-                    request_isTransOngoing=row[18],
-                    request_ongoingWorkerId=row[6],
-                    request_ongoingWorkerName=row[7],
-                    request_ongoingWorkerPicPath=row[8],
-                    request_registeredTime=row[24],
-                    request_isText=row[27],
-                    request_isPhoto=row[29],
-                    request_isSound=row[31],
-                    request_isFile=row[33],
-                    reqeust_words=num_of_words,
-                    request_dueTime=row[25],
-                    request_points=row[26],
-                    request_text=row[36]
-                )
-            result.append(item)
-
-        return make_response(json.jsonify(result), 200)
+        return make_response(json.jsonify(result=result), 200)
 
     elif request.method == "POST":
+        # Method: POST
+        # Parameters -> Please check code
+
         request_id = get_new_id(g.db, "F_REQUESTS")
         client_user_id = get_user_id(g.db, request.form['request_clientId'])
         original_lang_id = request.form['request_originalLang']
@@ -461,13 +413,13 @@ def requests():
         format_id = request.form.get('request_format')
         subject_id = request.form.get('request_subject')
         registered_time = request.form['request_registeredTime']
-        is_text = request.form.get('request_isText')
-        text_string = request.form.get('request_text')
-        is_photo = request.form.get('request_isPhoto')
+        is_text = request.form.get('request_isText', False)
+        text_string = request.form.get('request_text', False)
+        is_photo = request.form.get('request_isPhoto', False)
         #photo_binary
-        is_sound = request.form.get('request_isSound')
+        is_sound = request.form.get('request_isSound', False)
         #sound_binary
-        is_file = request.form.get('request_isFile')
+        is_file = request.form.get('request_isFile', False)
         #file_binary
         words = request.form.get('reqeust_words')
         due_time = request.form['request_dueTime']
@@ -517,9 +469,10 @@ def requests():
                     [new_file_id, buffer(path)])
 
         if text_string:
-            filename = str(datetime.now()) + ".txt"
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_TEXT'], filename)
-            f = open(path, 'w')
+            import codecs
+            f = codecs.open(path, 'w', "utf-8")
             f.write(text_string)
             f.close()
 
@@ -529,7 +482,7 @@ def requests():
 
         # Input context text into dimension table
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
-        g.db.exeucte("INSERT INTO D_CONTEXTS VALUES (?,?)",
+        g.db.execute("INSERT INTO D_CONTEXTS VALUES (?,?)",
                 [new_context_id, buffer(context)])
 
         g.db.execute("INSERT INTO F_REQUESTS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
@@ -565,8 +518,61 @@ def requests():
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="Request ID %d  has been posted by %s" % (request_id, email)
+            message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
             ), 200)
+
+@app.route('/user/translations/pending', methods=["GET", "POST"])
+@login_required
+@exception_detector
+def work_in_queue():
+    if request.method == "POST":
+        # Request method: POST
+        # Parameters
+        #     request_id: Integer
+
+        # Translators in queue
+        # Get request ID
+        request_id = int(request.form['request_id'])
+        cursor = g.db.execute("SELECT queue_id FROM F_REQUESTS WHERE id = ? ", [request_id])
+        rs = cursor.fetchall()
+
+        if len(rs) == 0:
+            return make_response(json.jsonify(
+                message = "There is no request whose ID is %d" % request_id
+                ), 406)
+
+        queue_id = rs[0][0]
+        user_id = get_user_id(g.db, session['useremail'])
+        query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
+
+        if queue_id is None:
+            queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
+            g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
+
+        g.db.execute(query, [queue_id, request_id, user_id])
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message = "You are in queue for translating request #%d" % request_id
+            ), 200)
+
+    elif request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(OPTIONAL): Timestamp integer, for paging
+
+        my_user_id = get_user_id(g.db, session['useremail'])
+        query_pending = """SELECT * FROM V_REQUESTS 
+            WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
+        if 'since' in request.args.keys():
+            query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+        query_pending += "ORDER BY registered_time DESC LIMIT 20"
+
+        cursor = g.db.execute(query_pending, [my_user_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs)
+
+        return make_response(json.jsonify(result=result), 200)
 
 @app.route('/charge', methods = ["GET", "POST"])
 @exception_detector
@@ -630,64 +636,6 @@ def charge():
         </form>
         '''
 
-@app.route('/history_requester', methods=["GET"])
-@login_required
-@exception_detector
-def history_requester():
-    # Request method: GET
-    # Parameters
-    #     last_post_time(optional): Timestamp, take recent 20 post before the timestamp.
-    #                               If this parameter is not provided, recent 20 posts from now are returned
-    #     filter: Show user's order with the status following- Pending, in progress, completed
-    #query = "SELECT is_SOS, id, requestor_id, from_lang, to_lang, main_text, request_date, translator_id, is_request_picked, is_request_finished FROM Requests_list WHERE (requestor_id = ? OR translator_id = ?) AND translator_id IS NOT NULL "
-    query = "SELECT * FROM Requests_list WHERE requester_id = ? "
-
-    condition =[]
-    if 'last_post_time' in request.args.keys():
-        condition.append("request_date < datetime(%f) " % Decimal(request.args['last_post_time']))
-
-    if 'filter' in request.args.keys():
-        if request.args['filter'] == 'pending':
-            condition.append("is_request_picked = 0")
-        elif request.args['filter'] == 'in_progress':
-            condition.append("is_request_picked = 1 AND is_request_finished = 0")
-        elif request.args['filter'] == 'completed':
-            condition.append("is request_picked = 1 AND is_request_finished = 1")
-
-    for item in condition:
-        query += " AND " + item
-
-    query += " ORDER BY request_date DESC LIMIT 20"
-    print query
-
-    cursor = g.db.execute(query, [session['username']])
-    rs = cursor.fetchall()
-    result = []
-
-    for row in rs:
-        item = dict()
-        item['id'] = int(row[0])
-        item['requester_id'] = str(row[1])
-        item['from_lang'] = row[2]
-        item['to_lang'] = row[3]
-        item['is_SOS'] = bool(int(row[4]))
-        item['main_text'] = str(row[5])
-        item['context_text'] = str(row[6])
-        item['image_files'] = str(row[7])
-        item['sound_file'] = str(row[8])
-        item['request_date'] = row[9]
-        item['format'] = str(row[10])
-        item['subject'] = str(row[11])
-        item['due_date'] = str(row[12])
-        item['translator_id'] = str(row[13])
-        item['is_request_picked'] = bool(int(row[14]))
-        item['is_request_finished'] = bool(int(row[15]))
-        item['price'] = float(row[16])
-        result.append(item)
-
-    # Status code 200 (OK)
-    # Description: Give JSON data to client machine
-    return make_response(json.jsonify(item_list = result), 200)
 
 @app.route('/history_translator', methods=["GET"])
 @login_required
