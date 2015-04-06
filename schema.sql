@@ -116,6 +116,11 @@ CREATE TABLE D_AWARDED_BADGES (
     badge_id INT -- D_BADGES
 );
 
+CREATE TABLE D_TRANSLATED_TEXT(
+    id INT,
+    path STRING
+);
+
 CREATE TABLE D_MACHINE_OSS(
     id INT,
     text STRING
@@ -155,7 +160,8 @@ CREATE TABLE F_REQUESTS (
     points DOUBLE,
     context_id INT, -- D_CONTEXTS
     comment_id INT, -- D_COMMENTS
-    tone_id INT -- D_TONES
+    tone_id INT, -- D_TONES
+    translatedText_id INT -- D_TRANSLATED_TEXT
 );
 
 CREATE TABLE PASSWORDS (
@@ -227,6 +233,9 @@ CREATE VIEW V_REQUESTS as
     translator_groups.text translator_completed_group,
     fact.translator_title_id translator_title_id,
     translator_title.text translator_title
+    -- Result
+    fact.translatedText_id translatedText_id,
+    result.path translatedText
 
   FROM
     F_REQUESTS fact
@@ -246,7 +255,10 @@ CREATE VIEW V_REQUESTS as
   LEFT OUTER JOIN D_CLIENT_COMPLETED_REQUEST_TITLES client_titles
              ON fact.client_title_id = client_titles.id
   LEFT OUTER JOIN D_TRANSLATOR_COMPLETED_REQUEST_TITLES translator_title
-             ON fact.translator_title_id = translator_title.id;
+             ON fact.translator_title_id = translator_title.id
+  LEFT OUTER JOIN D_TRANSLATED_TEXT result
+             ON fact.translatedText_id = result.id
+            ;
 
 CREATE VIEW V_TRANSLATABLE_LANGUAGES as
   SELECT

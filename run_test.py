@@ -246,6 +246,11 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get('/requests')
         print "Posted list"
         print rv.data
+
+        print "Attempt to translate what he/she requested"
+
+        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
+        print rv.data
         
         self.signUp(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!",

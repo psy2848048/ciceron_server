@@ -95,8 +95,8 @@ def get_path_from_id(conn, id_num, table):
     else:            result = str(rs[0][0])
     return result
 
-def get_main_text(conn, text_id):
-    path = get_path_from_id(conn, text_id, "D_REQUEST_TEXTS")
+def get_main_text(conn, text_id, table):
+    path = get_path_from_id(conn, text_id, table)
     if path is None: return None
     else:
         words = ""
@@ -142,7 +142,7 @@ def word_counter(filePathName):
 
     return words
 
-def json_from_V_REQUESTS(conn, rs):
+def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     result = []
 
     for row in rs:
@@ -168,11 +168,6 @@ def json_from_V_REQUESTS(conn, rs):
         else:
             num_of_words = word_counter(list_txt[0][0])
 
-        # Show context if normal request, or show main text
-
-        text_appear = None
-        if row[17] == "True": text_appear = get_main_text(g.db, row[28])
-        else                : text_appear = str(row[36]) if row[36] is not None else None
 
         item = dict(
                 request_id=row[0],
@@ -196,9 +191,79 @@ def json_from_V_REQUESTS(conn, rs):
                 request_isFile= True if row[33] == "True" else False,
                 reqeust_words=num_of_words,
                 request_dueTime=row[25],
-                request_points=row[26],
-                request_text=text_appear
+                request_points=row[26]
             )
+
+        if purpose == "newsfeed":
+            # Show context if normal request, or show main text
+            text_appear = None
+            if row[17] == "True": text_appear = get_main_text(g.db, row[28])
+            else                : text_appear = str(row[36]) if row[36] is not None else None
+            item['request_text'] = text_appear
+
+        elif purpose == "complete_client":
+            item['request_title']=str(row[44]) if row[44] is not None else None
+
+        elif purpose == "complete_translator":
+            item['request_title']=str(row[48]) if row[48] is not None else None
+
+        elif purpose == "ongoing_translator":
+            del item['request_translatorsInQueue']
+            del item['request_isTransOngoing']
+            del item['request_ongoingWorkerId']
+            del item['request_ongoingWorkerName']
+            del item['request_ongoingWorkerPicPath']
+            del item['request_isTransOngoing']
+            item['request_text'] = get_main_text(g.db, row[28], "D_REQUEST_TEXTS")
+            item['request_context'] = str(row[36]) if row[36] is not None else None
+            item['request_translatedText'] = get_main_text(g.db, row[49], "D_TRANSLATED_TEXT")
+
+        if purpose.startswith('complete') or purpose.startswith('ongoing'):
+            # For getting translator's badges
+            cursor2 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM D_USERS WHERE email = ? LIMIT 1)", [buffer(row[6])])
+            badge_list = [ row[0] for row in cursor2.fetchall() ]
+            item['translator_achievement'] = badge_list
+
         result.append(item)
 
     return result
+
+def complete_groups(table):
+    if request.method == "GET":
+        my_user_id = get_user_id(g.db, session['useremail'])
+        cursor = g.db.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
+        rs = cursor.fetchall()
+
+        result = [ dict(id=row[0], name=str(row[1])) for row in rs ]
+        return make_response(json.jsonify(data=result), 200)
+
+    elif request.method == "POST":
+        group_name = request.form['group_name']
+        if group_name == "Documents":
+            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+
+        my_user_id = get_user_id(g.db, session['useremail'])
+
+        new_group_id = get_new_id(g.db, table)
+        g.db.execute("INSERT INTO %s VALUES (?,?,?)" % table,
+            [new_group_id, my_user_id, buffer(group_name)])
+        g.db.commit()
+        return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+
+    elif request.method == "PUT":
+        group_id = int(request.form['group_id'])
+        group_name = request.form['group_name']
+        if group_name == "Documents":
+            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+        g.db.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
+        g.db.commit()
+        return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
+
+    elif request.method == 'DELETE':
+        group_id = int(request.form['group_id'])
+        group_text = get_text_from_id(g.db, group_id, table)
+        if group_text == "Documents":
+            return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
+        g.db.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
+        g.db.commit()
+        return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
