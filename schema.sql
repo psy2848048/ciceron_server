@@ -155,8 +155,11 @@ CREATE TABLE F_REQUESTS (
     translator_completed_group_id INT, -- D_TRANSLATOR_COMPLETED_GROUPS
     client_title_id INT, -- D_CLIENT_COMPLETED_REQUEST_TITLES
     translator_title_id INT, -- D_TRANSLATOR_COMPLETED_REQUEST_TITLES
+    is_paid BOOL,
     registered_time TIMESTAMP,
     due_time TIMESTAMP,
+    expected_time TIMESTAMP,
+    submitted_time TIMESTAMP,
     points DOUBLE,
     context_id INT, -- D_CONTEXTS
     comment_id INT, -- D_COMMENTS
@@ -206,6 +209,8 @@ CREATE VIEW V_REQUESTS as
     fact.queue_id queue_id,
 
     fact.registered_time registered_time,
+    fact.expected_time expected_time,
+    fact.submitted_time submitted_time,
     fact.due_time due_time,
     fact.points points,
     -- Request type
@@ -232,10 +237,11 @@ CREATE VIEW V_REQUESTS as
     fact.translator_completed_group_id translator_completed_group_id,
     translator_groups.text translator_completed_group,
     fact.translator_title_id translator_title_id,
-    translator_title.text translator_title
+    translator_title.text translator_title,
     -- Result
     fact.translatedText_id translatedText_id,
-    result.path translatedText
+    result.path translatedText,
+    fact.is_paid is_paid
 
   FROM
     F_REQUESTS fact

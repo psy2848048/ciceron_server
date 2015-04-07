@@ -215,9 +215,6 @@ def signup():
             [user_id, buffer(hashed_password)])
         g.db.execute("INSERT INTO REVENUE VALUES (?,?)",
             [user_id, 0])
-        client_completed_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
-        g.db.execute("INSERT INTO D_CLIENT_COMPLETED_GROUPS VALUES (?,?,?)",
-                [client_completed_group_id, user_id, buffer("All")])
 
         g.db.commit() 
 
@@ -340,6 +337,7 @@ def user_profile():
         # Get parameter value
         profileText = request.form.get('user_profileText', None)
         profile_pic = request.files.get('photo', None)
+        is_translator = request.form.get('user_isTranslator', None)
 
         # Start logic
         # Get user number
@@ -358,6 +356,9 @@ def user_profile():
             profile_pic.save(pic_path)
 
             g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
+
+        if is_translator:
+            g.db.execute("UPDATE D_USERS SET is_translator = ? WHERE email = ?", [is_translator, buffer(session['useremail'])])
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -498,7 +499,9 @@ def requests():
         g.db.execute("INSERT INTO D_CONTEXTS VALUES (?,?)",
                 [new_context_id, buffer(context)])
 
-        g.db.execute("INSERT INTO F_REQUESTS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+        g.db.execute("""INSERT INTO F_REQUESTS
+            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", 
                    [request_id,           # id
                     client_user_id,       # client_user_id
                     original_lang_id,     # original_lang_id
@@ -526,7 +529,8 @@ def requests():
                     point,                # points
                     new_context_id,       # context_id
                     None,                 # comment_id
-                    None])                # tone_id
+                    None,                 # tone_id
+                    None])                # translatedText_id
 
         g.db.commit()
 
@@ -537,8 +541,13 @@ def requests():
 @app.route('/user/translations/pending', methods=["GET", "POST"])
 @login_required
 @exception_detector
+@translator_checker
 def work_in_queue():
     if request.method == "POST":
+        # Not really RESTful.
+        # In POST, it should be changed into /user/translations/pending/<request_id>
+        # But Error must be occurred because form data is not needed in the case of above.
+
         # Request method: POST
         # Parameters
         #     request_id: Integer
@@ -600,8 +609,9 @@ def work_in_queue():
 
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/translation/ongoing', methods=['GET', 'POST'])
+@app.route('/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
+@translator_checker
 @exception_detector
 def pick_request():
     if request.method == "POST":
@@ -611,7 +621,7 @@ def pick_request():
         request_id = int(request.form['request_id'])
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        g.db.execute("UPDATE F_REQUESTS SET status_id = 1 AND ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [my_user_id, request_id])
+        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [my_user_id, request_id])
 
         user_id = get_user_id(g.db, session['useremail'])
 
@@ -645,7 +655,7 @@ def pick_request():
         query_ongoing += "ORDER BY registered_time DESC LIMIT 20"
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute(query_pending, [my_user_id], purpose="ongoing_translator")
+        cursor = g.db.execute(query_ongoing, [my_user_id])
         rs = cursor.fetchall()
 
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator") # PLEASE REVISE
@@ -654,26 +664,24 @@ def pick_request():
 @app.route('/user/translations/complete/<str_request_id>/title', methods = ["POST"])
 @exception_detector
 @login_required
+@translator_checker
 def set_title_translator(str_request_id):
-    if request.method = "POST":
+    if request.method == "POST":
         request_id = int(str_request_id)
         title_text = request.form['title_text']
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_id_from_text(g.db, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
 
         # No default group. Insert new default group entry for user
-        if default_group_id == -1:
-            default_group_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_GROUPS")
-            g.db.execute("INSERT INTO D_TRANSLATOR_COMPLETED_GROUPS VALUES (?,?,?)",
-                [default_group_id, my_user_id, buffer("Documents")])
-
         new_title_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_REQUEST_TITLES")
         g.db.execute("INSERT INTO D_TRANSLATOR_COMPLETED_REQUEST_TITLES VALUES (?,?)",
                 [new_title_id, buffer(title_text)])
 
-        g.db.execute("UPDATE F_REQUESTS SET translator_completed_group_id = ?, translator_title_id = ? WHERE id = ?", 
-            [default_group_id, new_title_id, request_id])
+        g.db.execute("UPDATE F_REQUESTS SET translator_title_id = ? WHERE id = ?", 
+            [new_title_id, request_id])
+
+        g.db.commit()
 
         return make_response(json.jsonify(
             message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
@@ -686,41 +694,19 @@ def set_title_translator(str_request_id):
 
 @app.route('/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
 @exception_detector
+@translator_checker
 @login_required
-def translate_item(str_request_id):
+def working_translate_item(str_request_id):
     if request.method == "PUT":
+        save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
         request_id = int(str_request_id)
-        new_translatedText = request.form.get("request_translatedText", None)
-        new_comment = request.form.get("request_comment", None)
-        new_tone = request.form.get("request_tone", None)
-
-        cursor = g.db.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
-        rs = cursor.fetchall()
-
-        translatedText_path = rs[0][0]
-        comment_id = rs[0][1]
-        tone_id = rs[0][2]
-
-        # Save new translated text
-        import codecs
-        f = codecs.open(translatedText_path, 'w', "utf-8")
-        f.write(new_translatedText)
-        f.close()
-
-        # Save new comment
-        g.db.execute("UPDATE D_COMMENTS SET text = ? WHERE id = ?", [buffer(new_comment), comment_id])
-
-        # Save new tone
-        g.db.execute("UPDATE D_TONES SET text = ? WHERE id = ?", [buffer(new_tone), tone_id])
-
-        g.db.commit()
         return make_response(json.jsonify(
             message="Request id %d is auto saved." % request_id
             ), 200)
 
     elif request.method == "GET":
         request_id = int(str_request_id)
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE request_id = ?", [request_id])
+        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ?", [request_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
@@ -728,47 +714,63 @@ def translate_item(str_request_id):
 @app.route('/user/translations/complete/<str_request_id>', methods=["POST"])
 @exception_detector
 @login_required
-def translate_item(str_request_id):
+@translator_checker
+def post_translate_item(str_request_id):
     request_id = int(str_request_id)
-    new_translatedText = request.form.get("request_translatedText", None)
-    new_comment = request.form.get("request_comment", None)
-    new_tone = request.form.get("request_tone", None)
+    save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
-    cursor = g.db.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
+    # Assign default group to requester and translator
+    cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
     rs = cursor.fetchall()
 
-    translatedText_path = rs[0][0]
-    comment_id = rs[0][1]
-    tone_id = rs[0][2]
+    requester_id = rs[0][0]
+    translator_id = rs[0][1]
 
-    # Save new translated text
-    import codecs
-    f = codecs.open(translatedText_path, 'w', "utf-8")
-    f.write(new_translatedText)
-    f.close()
+    requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
+    translator_default_group_id =  get_group_id_from_user_and_text(g.db, translator_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
 
-    # Save new comment
-    g.db.execute("UPDATE D_COMMENTS SET text = ? WHERE id = ?", [buffer(new_comment), comment_id])
-
-    # Save new tone
-    g.db.execute("UPDATE D_TONES SET text = ? WHERE id = ?", [buffer(new_tone), tone_id])
+    # No default group. Insert new default group entry for user
+    if requester_default_group_id == -1:
+        requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
+        g.db.execute("INSERT INTO D_CLIENT_COMPLETED_GROUPS VALUES (?,?,?)",
+            [requester_default_group_id, requester_id, buffer("Documents")])
+    if translator_default_group_id == -1:
+        translator_default_group_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_GROUPS")
+        g.db.execute("INSERT INTO D_TRANSLATOR_COMPLETED_GROUPS VALUES (?,?,?)",
+            [translator_default_group_id, translator_id, buffer("Documents")])
 
     # Change the state of the request
-    g.db.execute("UPDATE F_REQUESTS SET status_id = 2 WHERE id = ?", [request_id])
+    g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=? WHERE id = ?", [requester_default_group_id, translator_default_group_id, datetime.now(), request_id])
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="Request id %d is auto saved." % request_id
+        message="Request id %d is submitted." % request_id
         ), 200)
 
 @app.route('/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
 @exception_detector
+@translator_checker
 @login_required
 def translators_complete_groups():
-    complete_groups("D_TRANSLATOR_COMPLETED_GROUPS")
+    if request.method == "GET":
+        result = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "GET")
+        return make_response(json.jsonify(data=result), 200)
+
+    elif request.method == "POST":
+        group_name = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "POST")
+        return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+
+    elif request.method == "PUT":
+        group_name = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
+        return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
+
+    elif request.method == "DELETE":
+        group_id = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "DELETE")
+        return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector
+@translator_checker
 @login_required
 def translation_completed_items_in_group(str_group_id):
     if request.method == "POST":
@@ -792,6 +794,7 @@ def translation_completed_items_in_group(str_group_id):
 @app.route('/user/translations/complete/<str_request_id>', methods = ["GET"])
 @exception_detector
 @login_required
+@translator_checker
 def translation_completed_items_detail(str_request_id):
     request_id = int(str_request_id)
     cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? LIMIT 1", [request_id])
@@ -803,25 +806,19 @@ def translation_completed_items_detail(str_request_id):
 @exception_detector
 @login_required
 def set_title_client(str_request_id):
-    if request.method = "POST":
+    if request.method == "POST":
         request_id = int(str_request_id)
         title_text = request.form['title_text']
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_id_from_text(g.db, "Documents", "D_CLIENT_COMPLETED_GROUPS")
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
 
         # No default group. Insert new default group entry for user
-        if default_group_id == -1:
-            default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
-            g.db.execute("INSERT INTO D_CLIENT_COMPLETED_GROUPS VALUES (?,?,?)",
-                [default_group_id, my_user_id, buffer("Documents")])
-
         new_title_id = get_new_id(g.db, "D_CLIENT_COMPLETED_REQUEST_TITLES")
         g.db.execute("INSERT INTO D_CLIENT_COMPLETED_REQUEST_TITLES VALUES (?,?)",
                 [new_title_id, buffer(title_text)])
 
-        g.db.execute("UPDATE F_REQUESTS SET client_completed_group_id = ?, client_title_id = ? WHERE id = ?", 
-            [default_group_id, new_title_id, request_id])
+        g.db.execute("UPDATE F_REQUESTS SET client_title_id = ? WHERE id = ?", [new_title_id, request_id])
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -837,7 +834,21 @@ def set_title_client(str_request_id):
 @exception_detector
 @login_required
 def client_complete_groups():
-    complete_groups("D_CLIENT_COMPLETED_GROUPS")
+    if request.method == "GET":
+        result = complete_groups("D_CLIENT_COMPLETED_GROUPS", "GET")
+        return make_response(json.jsonify(data=result), 200)
+
+    elif request.method == "POST":
+        group_name = complete_groups("D_CLIENT_COMPLETED_GROUPS", "POST")
+        return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+
+    elif request.method == "PUT":
+        group_name = complete_groups("D_CLIENT_COMPLETED_GROUPS", "PUT")
+        return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
+
+    elif request.method == "DELETE":
+        group_id = complete_groups("D_CLIENT_COMPLETED_GROUPS", "DELETE")
+        return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
 
 @app.route('/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector

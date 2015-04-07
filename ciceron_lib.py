@@ -1,5 +1,6 @@
-import hashlib, codecs
-from flask import make_response, json, g, session
+import hashlib, codecs, os
+from flask import make_response, json, g, session, request
+from datetime import datetime
 from functools import wraps
 
 # hashed ID maker for REVUNUE table
@@ -104,6 +105,14 @@ def get_main_text(conn, text_id, table):
         words = ('').join(f.readlines())
         return words
 
+def get_group_id_from_user_and_text(conn, user_id, text, table):
+    cursor = conn.execute("SELECT id FROM %s WHERE user_id = ? AND text = ?" % table, [user_id, buffer(text)])
+    rs = cursor.fetchall()
+    if len(rs) == 0:
+        return -1
+    else:
+        return rs[0][0]
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -131,6 +140,22 @@ def exception_detector(f):
                        ),
                     500
                    )
+    return decorated_function
+
+def translator_checker(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE email = ?", [buffer(session['useremail'])])
+        rs = cursor.fetchall()
+        if len(rs) == 0 or rs[0][0] == 0:
+            return make_response(
+                    json.jsonify(
+                       message = "You are not translator. This API is only for translators."
+                       ), 403)
+
+        else:
+            return f(*args, **kwargs)
+
     return decorated_function
 
 def word_counter(filePathName):
@@ -161,7 +186,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             queue_list.append(temp_item)
 
         # For getting word count of the request
-        cursor2 = conn.execute("SELECT path FROM D_REQUEST_TEXTS  WHERE id = ?", [row[28]])
+        cursor2 = conn.execute("SELECT path FROM D_REQUEST_TEXTS  WHERE id = ?", [row[30]])
         list_txt = cursor2.fetchall()
         if len(list_txt[0]) == 0:
             num_of_words = None
@@ -185,38 +210,42 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_ongoingWorkerName=str(row[7]) if row[7] is not None else None,
                 request_ongoingWorkerPicPath=str(row[8]) if row[8] is not None else None,
                 request_registeredTime=row[24],
-                request_isText= True if row[27] == "True" else False,
-                request_isPhoto= True if row[29] == "True" else False,
-                request_isSound= True if row[31] == "True" else False,
-                request_isFile= True if row[33] == "True" else False,
+                request_isText= True if row[29] == "True" else False,
+                request_isPhoto= True if row[31] == "True" else False,
+                request_isSound= True if row[33] == "True" else False,
+                request_isFile= True if row[35] == "True" else False,
                 reqeust_words=num_of_words,
-                request_dueTime=row[25],
-                request_points=row[26]
+                request_dueTime=row[27],
+                request_points=row[28]
             )
 
         if purpose == "newsfeed":
             # Show context if normal request, or show main text
             text_appear = None
-            if row[17] == "True": text_appear = get_main_text(g.db, row[28])
-            else                : text_appear = str(row[36]) if row[36] is not None else None
+            if row[17] == "True": text_appear = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+            else                : text_appear = str(row[38]) if row[38] is not None else None
             item['request_text'] = text_appear
 
         elif purpose == "complete_client":
-            item['request_title']=str(row[44]) if row[44] is not None else None
+            item['request_title']=str(row[46]) if row[46] is not None else None
+            item['request_submittedTime'] = row[26]
 
         elif purpose == "complete_translator":
-            item['request_title']=str(row[48]) if row[48] is not None else None
+            item['request_title']=str(row[50]) if row[50] is not None else None
+            item['request_submittedTime'] = row[26]
 
         elif purpose == "ongoing_translator":
-            del item['request_translatorsInQueue']
-            del item['request_isTransOngoing']
-            del item['request_ongoingWorkerId']
-            del item['request_ongoingWorkerName']
-            del item['request_ongoingWorkerPicPath']
-            del item['request_isTransOngoing']
-            item['request_text'] = get_main_text(g.db, row[28], "D_REQUEST_TEXTS")
-            item['request_context'] = str(row[36]) if row[36] is not None else None
-            item['request_translatedText'] = get_main_text(g.db, row[49], "D_TRANSLATED_TEXT")
+            item.pop('request_translatorsInQueue')
+            item.pop('request_isTransOngoing')
+            item.pop('request_ongoingWorkerId')
+            item.pop('request_ongoingWorkerName')
+            item.pop('request_ongoingWorkerPicPath')
+
+            item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+            item['request_context'] = str(row[38]) if row[38] is not None else None
+            item['request_comment'] = str(row[40]) if row[40] is not None else None
+            item['request_tone'] = str(row[42]) if row[42] is not None else None
+            item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
 
         if purpose.startswith('complete') or purpose.startswith('ongoing'):
             # For getting translator's badges
@@ -228,16 +257,16 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
     return result
 
-def complete_groups(table):
-    if request.method == "GET":
+def complete_groups(table, method):
+    if method == "GET":
         my_user_id = get_user_id(g.db, session['useremail'])
         cursor = g.db.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
         rs = cursor.fetchall()
 
         result = [ dict(id=row[0], name=str(row[1])) for row in rs ]
-        return make_response(json.jsonify(data=result), 200)
+        return result
 
-    elif request.method == "POST":
+    elif method == "POST":
         group_name = request.form['group_name']
         if group_name == "Documents":
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
@@ -248,22 +277,69 @@ def complete_groups(table):
         g.db.execute("INSERT INTO %s VALUES (?,?,?)" % table,
             [new_group_id, my_user_id, buffer(group_name)])
         g.db.commit()
-        return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+        return group_name
 
-    elif request.method == "PUT":
+    elif method == "PUT":
         group_id = int(request.form['group_id'])
         group_name = request.form['group_name']
         if group_name == "Documents":
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
         g.db.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
         g.db.commit()
-        return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
+        return group_name
 
-    elif request.method == 'DELETE':
+    elif method == 'DELETE':
         group_id = int(request.form['group_id'])
         group_text = get_text_from_id(g.db, group_id, table)
         if group_text == "Documents":
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
         g.db.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
         g.db.commit()
-        return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
+        return group_id
+
+def save_request(conn, str_request_id, result_folder):
+    request_id = int(str_request_id)
+    new_translatedText = request.form.get("request_translatedText", None)
+    new_comment = request.form.get("request_comment", None)
+    new_tone = request.form.get("request_tone", None)
+
+    cursor = conn.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
+    rs = cursor.fetchall()
+
+    translatedText_path = rs[0][0]
+    comment_id = rs[0][1]
+    tone_id = rs[0][2]
+
+    if new_translatedText is not None:
+        # Save new translated text
+        if translatedText_path is None:
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
+            translatedText_path = os.path.join(result_folder, filename)
+            new_result_id = get_new_id(conn, "D_TRANSLATED_TEXT")
+            conn.execute("INSERT INTO D_TRANSLATED_TEXT VALUES (?,?)", [new_result_id, buffer(translatedText_path)])
+            conn.execute("UPDATE F_REQUESTS SET translatedText_id = ? WHERE id = ?", [new_result_id, request_id])
+
+        import codecs
+        f = codecs.open(translatedText_path, 'w', "utf-8")
+        f.write(new_translatedText)
+        f.close()
+
+    # Save new comment
+    if new_comment is not None:
+        if comment_id is not None:
+            conn.execute("UPDATE D_COMMENTS SET text = ? WHERE id = ?", [buffer(new_comment), comment_id])
+        else:
+            comment_id = get_new_id(conn, "D_COMMENTS")
+            conn.execute("INSERT INTO D_COMMENTS VALUES (?,?)", [comment_id, buffer(new_comment)])
+            conn.execute("UPDATE F_REQUESTS SET comment_id = ? WHERE id = ?", [comment_id, request_id])
+
+    # Save new tone
+    if new_tone is not None:
+        if tone_id is not None:
+            conn.execute("UPDATE D_TONES SET text = ? WHERE id = ?", [buffer(new_tone), tone_id])
+        else:
+            tone_id = get_new_id(conn, "D_TONES")
+            conn.execute("INSERT INTO D_TONES VALUES (?,?)", [tone_id, buffer(new_tone)])
+            conn.execute("UPDATE F_REQUESTS SET tone_id = ? WHERE id = ?", [tone_id, request_id])
+
+    conn.commit()
