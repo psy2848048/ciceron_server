@@ -226,26 +226,32 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             else                : text_appear = str(row[38]) if row[38] is not None else None
             item['request_text'] = text_appear
 
-        elif purpose == "complete_client":
-            item['request_title']=str(row[46]) if row[46] is not None else None
-            item['request_submittedTime'] = row[26]
-
-        elif purpose == "complete_translator":
-            item['request_title']=str(row[50]) if row[50] is not None else None
-            item['request_submittedTime'] = row[26]
-
-        elif purpose == "ongoing_translator":
+        elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
             item.pop('request_translatorsInQueue')
             item.pop('request_isTransOngoing')
             item.pop('request_ongoingWorkerId')
             item.pop('request_ongoingWorkerName')
             item.pop('request_ongoingWorkerPicPath')
 
+            if row[17] == "False": item['request_context'] = str(row[38]) if row[38] is not None else None
             item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
-            item['request_context'] = str(row[38]) if row[38] is not None else None
             item['request_comment'] = str(row[40]) if row[40] is not None else None
             item['request_tone'] = str(row[42]) if row[42] is not None else None
             item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
+
+            item['request_photoPath'] = get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS")
+            item['request_soundPath'] = get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS")
+            item['request_filePath']  = get_path_from_id(g.db, row[34], "D_REQUEST_FILES")
+            item['request_title']=str(row[46]) if row[46] is not None else None
+            item['request_submittedTime'] = row[26]
+
+        elif purpose == "ongoing_client":
+            if row[17] == "False": item['request_context'] = str(row[38]) if row[38] is not None else None
+            item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+
+            item['request_photoPath'] = get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS")
+            item['request_soundPath'] = get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS")
+            item['request_filePath']  = get_path_from_id(g.db, row[34], "D_REQUEST_FILES")
 
         if purpose.startswith('complete') or purpose.startswith('ongoing'):
             # For getting translator's badges
@@ -294,6 +300,12 @@ def complete_groups(table, method):
         if group_text == "Documents":
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
         g.db.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
+
+        default_group_id = get_group_id_from_user_and_text(g.db, session['useremail'], "Documents", table)
+        if table.find("TRANSLATOR") >= 0: col = 'translator_completed_group_id'
+        else:                             col = 'client_completed_group_id'
+        cursor.execute("UPDATE F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}, [default_group_id, group_id])
+
         g.db.commit()
         return group_id
 

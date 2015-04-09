@@ -75,7 +75,7 @@ def loginCheck():
             useremail=None,
             isLoggedIn=False,
             message="No user is logged in")
-            , 200)
+            , 403)
 
 @app.route('/login', methods=['POST', 'GET'])
 @exception_detector
@@ -159,11 +159,11 @@ def logout():
                    message = "User %s is logged out" % username_temp
                ), 200)
     else:
-        # Status code 406 (ERROR)
+        # Status code 403 (ERROR)
         # Description: Not logged in yet
         return make_response(json.jsonify(
                    message = "You've never logged in"
-               ), 406)
+               ), 403)
 
 @app.route('/signup', methods=['POST', 'GET'])
 @exception_detector
@@ -220,7 +220,7 @@ def signup():
 
         # Status code 200 (OK)
         # Description: Signed up successfully
-        return make_response(json.jsonify(status=dict(message="Registration %s: successful" % email)), 200)
+        return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
     
     return '''
         <!doctype html>
@@ -248,12 +248,12 @@ def idChecker():
         # Status code 200 (OK)
         # Description: Inputted e-mail ID is available
         return make_response(json.jsonify(
-            message="You may use the id %s" % email), 200)
+            message="You may use the ID %s" % email), 200)
     else:
-        # Status code 406 (OK)
+        # Status code 400 (BAD)
         # Description: Inputted e-mail ID is duplicated with other's one
         return make_response(json.jsonify(
-            message="Duplicated ID '%s'" % email), 406)
+            message="Duplicated ID '%s'" % email), 400)
 
 @app.route('/user/profile', methods = ['GET', 'POST'])
 @login_required
@@ -538,76 +538,81 @@ def requests():
             message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
             ), 200)
 
-@app.route('/user/translations/pending', methods=["GET", "POST"])
+@app.route('/user/translations/pending', methods=["GET"])
 @login_required
 @exception_detector
 @translator_checker
+def show_queue():
+    # Request method: GET
+    # Parameters
+    #     since(OPTIONAL): Timestamp integer, for paging
+
+    my_user_id = get_user_id(g.db, session['useremail'])
+    query_pending = """SELECT * FROM V_REQUESTS 
+        WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
+    if 'since' in request.args.keys():
+        query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+    query_pending += "ORDER BY registered_time DESC LIMIT 20"
+
+    cursor = g.db.execute(query_pending, [my_user_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs)
+
+    return make_response(json.jsonify(data=result), 200)
+
+@app.route('/user/translations/pending', methods=["POST"])
+@login_required
+@exception_detector
 def work_in_queue():
-    if request.method == "POST":
-        # Not really RESTful.
-        # In POST, it should be changed into /user/translations/pending/<request_id>
-        # But Error must be occurred because form data is not needed in the case of above.
+    # In POST, it should be changed into /user/translations/pending/<request_id>
+    # But Error must be occurred because form data is not needed in the case of above.
 
-        # Request method: POST
-        # Parameters
-        #     request_id: Integer
+    # Request method: POST
+    # Parameters
+    #     request_id: Integer
 
-        # Translators in queue
-        # Get request ID
-        request_id = int(request.form['request_id'])
-        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
-        rs = cursor.fetchall()
+    # Translators in queue
+    # Get request ID
+    request_id = int(request.form['request_id'])
+    translator_email = request.form.get('translator_email', None) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
+    cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
+    rs = cursor.fetchall()
 
-        if len(rs) == 0:
-            return make_response(json.jsonify(
-                message = "There is no request whose ID is %d" % request_id
-                ), 406)
+    if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 406)
 
-        user_id = get_user_id(g.db, session['useremail'])
-        request_user_id = rs[0][1]
-        if user_id == request_user_id:
-            return make_response(json.jsonify(
-                message = "You cannot translate your request. Request ID: %d" % request_id
-                ), 406)
+    if translator_email is None: user_id = get_user_id(g.db, session['useremail'])
+    else:                        user_id = get_user_id(g.db, translator_email)
 
-        queue_id = rs[0][0]
-        cursor.execute("SELECT user_id FROM D_QUEUE_LISTS WHERE id = ? AND user_id = ?", [queue_id, user_id])
-        rs = cursor.fetchall()
-        if len(rs) != 0:
-            return make_response(json.jsonify(
-                message = "You've already standed in queue. Request ID: %d" % request_id
-                ), 406)
+    cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE id = ?", [user_id])
+    rs = cursor.fetchall()
+    if len(rs) == 0 or rs[0][0] == 0: return make_response(json.jsonify( message = "This user is not a translator."), 403)
 
-        query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
-
-        if queue_id is None:
-            queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
-            g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
-
-        g.db.execute(query, [queue_id, request_id, user_id])
-        g.db.commit()
-
+    request_user_id = rs[0][1]
+    if user_id == request_user_id:
         return make_response(json.jsonify(
-            message = "You are in queue for translating request #%d" % request_id
-            ), 200)
+            message = "You cannot translate your request. Request ID: %d" % request_id
+            ), 406)
 
-    elif request.method == "GET":
-        # Request method: GET
-        # Parameters
-        #     since(OPTIONAL): Timestamp integer, for paging
+    queue_id = rs[0][0]
+    cursor.execute("SELECT user_id FROM D_QUEUE_LISTS WHERE id = ? AND user_id = ?", [queue_id, user_id])
+    rs = cursor.fetchall()
+    if len(rs) != 0:
+        return make_response(json.jsonify(
+            message = "You've already standed in queue. Request ID: %d" % request_id
+            ), 406)
 
-        my_user_id = get_user_id(g.db, session['useremail'])
-        query_pending = """SELECT * FROM V_REQUESTS 
-            WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
-        if 'since' in request.args.keys():
-            query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
-        query_pending += "ORDER BY registered_time DESC LIMIT 20"
+    query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
 
-        cursor = g.db.execute(query_pending, [my_user_id])
-        rs = cursor.fetchall()
-        result = json_from_V_REQUESTS(g.db, rs)
+    if queue_id is None:
+        queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
+        g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
 
-        return make_response(json.jsonify(data=result), 200)
+    g.db.execute(query, [queue_id, request_id, user_id])
+    g.db.commit()
+
+    return make_response(json.jsonify(
+        message = "You are in queue for translating request #%d" % request_id
+        ), 200)
 
 @app.route('/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
@@ -648,8 +653,7 @@ def pick_request():
         # Parameters
         #     since (optional): Timestamp integer
 
-        query_ongoing = """SELECT * FROM V_REQUESTS 
-            WHERE ongoing_worker_id = ? """
+        query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? """
         if 'since' in request.args.keys():
             query_ongoing += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query_ongoing += "ORDER BY registered_time DESC LIMIT 20"
@@ -661,55 +665,24 @@ def pick_request():
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator") # PLEASE REVISE
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/translations/complete/<str_request_id>/title', methods = ["POST"])
-@exception_detector
-@login_required
-@translator_checker
-def set_title_translator(str_request_id):
-    if request.method == "POST":
-        request_id = int(str_request_id)
-        title_text = request.form['title_text']
-
-        my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
-
-        # No default group. Insert new default group entry for user
-        new_title_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_REQUEST_TITLES")
-        g.db.execute("INSERT INTO D_TRANSLATOR_COMPLETED_REQUEST_TITLES VALUES (?,?)",
-                [new_title_id, buffer(title_text)])
-
-        g.db.execute("UPDATE F_REQUESTS SET translator_title_id = ? WHERE id = ?", 
-            [new_title_id, request_id])
-
-        g.db.commit()
-
-        return make_response(json.jsonify(
-            message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
-            200)
-
-    else:
-        return make_response(json.jsonify(
-                message="Inappropriate method of this request. POST only"),
-            405)
-
 @app.route('/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
 @exception_detector
 @translator_checker
 @login_required
 def working_translate_item(str_request_id):
-    if request.method == "PUT":
-        save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
-        request_id = int(str_request_id)
-        return make_response(json.jsonify(
-            message="Request id %d is auto saved." % request_id
-            ), 200)
-
-    elif request.method == "GET":
+    if request.method == "GET":
         request_id = int(str_request_id)
         cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ?", [request_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
+
+    elif request.method == "PUT":
+        request_id = int(str_request_id)
+        save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
+        return make_response(json.jsonify(
+            message="Request id %d is auto saved." % request_id
+            ), 200)
 
 @app.route('/user/translations/complete/<str_request_id>', methods=["POST"])
 @exception_detector
@@ -747,6 +720,66 @@ def post_translate_item(str_request_id):
         message="Request id %d is submitted." % request_id
         ), 200)
 
+@app.route('/user/translations/complete/<str_request_id>', methods = ["GET"])
+@exception_detector
+@login_required
+@translator_checker
+def translation_completed_items_detail(str_request_id):
+    request_id = int(str_request_id)
+    user_id = get_user_id(g.db, session['useremail'])
+    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? LIMIT 1", [request_id, user_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
+    return make_response(json.jsonify(data=result), 200)
+
+@app.route('/user/translations/complete', methods = ["GET"])
+@exception_detector
+@login_required
+@translator_checker
+def translation_completed_items_all():
+    since = request.args.get('since', None)
+    user_id = get_user_id(g.db, session['useremail'])
+
+    query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? "
+    if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+    query += " ORDER BY request_id LIMIT 20"
+
+    cursor = g.db.execute(query, [user_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
+    return make_response(json.jsonify(data=result), 200)
+
+@app.route('/user/translations/complete/<str_request_id>/title', methods = ["POST"])
+@exception_detector
+@login_required
+@translator_checker
+def set_title_translator(str_request_id):
+    if request.method == "POST":
+        request_id = int(str_request_id)
+        title_text = request.form['title_text']
+
+        my_user_id = get_user_id(g.db, session['useremail'])
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
+
+        # No default group. Insert new default group entry for user
+        new_title_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_REQUEST_TITLES")
+        g.db.execute("INSERT INTO D_TRANSLATOR_COMPLETED_REQUEST_TITLES VALUES (?,?)",
+                [new_title_id, buffer(title_text)])
+
+        g.db.execute("UPDATE F_REQUESTS SET translator_title_id = ? WHERE id = ?", 
+            [new_title_id, request_id])
+
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
+            200)
+
+    else:
+        return make_response(json.jsonify(
+                message="Inappropriate method of this request. POST only"),
+            405)
+
 @app.route('/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
 @exception_detector
 @translator_checker
@@ -766,7 +799,7 @@ def translators_complete_groups():
 
     elif request.method == "DELETE":
         group_id = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "DELETE")
-        return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
+        return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector
@@ -780,7 +813,7 @@ def translation_completed_items_in_group(str_group_id):
         group_name = get_text_from_id(g.db, group_id, "D_TRANSLATOR_COMPLETED_GROUPS")
         g.db.commit()
         return make_response(
-                json.jsonify(message="Request #%d has moved to the group '%s'" % (request_id, group_name)), 200)
+                json.jsonify(message="Request #%d has been moved to the group '%s'" % (request_id, group_name)), 200)
 
     elif request.method == "GET":
         group_id = int(str_group_id)
@@ -790,17 +823,6 @@ def translation_completed_items_in_group(str_group_id):
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
         return make_response(json.jsonify(data=result), 200)
-
-@app.route('/user/translations/complete/<str_request_id>', methods = ["GET"])
-@exception_detector
-@login_required
-@translator_checker
-def translation_completed_items_detail(str_request_id):
-    request_id = int(str_request_id)
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? LIMIT 1", [request_id])
-    rs = cursor.fetchall()
-    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
-    return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/complete/<str_request_id>/title', methods=["POST"])
 @exception_detector
@@ -866,7 +888,7 @@ def client_completed_items_in_group(str_group_id):
     elif request.method == "GET":
         group_id = int(str_group_id)
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? ",
+        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? ORDER BY request_id DESC",
             [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
