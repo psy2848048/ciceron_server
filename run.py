@@ -89,9 +89,7 @@ def login():
 
         # Get parameters
         email = request.form['email']
-        hashed_password = get_hashed_password(
-                request.form['password'],
-                app.config['IDENTIFIER'])
+        hashed_password = request.form['password']
         machine_id = request.form.get('machine_id', None)
         client_os = request.form.get('client_os', None)
         user_id = get_user_id(g.db, email)
@@ -104,18 +102,19 @@ def login():
         if len(rs) > 1:
             # Status code 500 (ERROR)
             # Description: Same e-mail address tried to be inserted into DB
-            return make_response ('Constraint violation error!', 500)
+            return make_response (json.jsonify(message='Constraint violation error!'), 500)
 
         elif len(rs) == 0:
             # Status code 403 (ERROR)
             # Description: Not registered
-            return make_response ('Not registered %s' % email, 403)
+            return make_response (json.jsonify(message='Not registered %s' % email), 403)
         
-        elif len(rs) == 1 and str(rs[0][0]) == str(hashed_password):
+        elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == str(hashed_password):
             # Status code 200 (OK)
             # Description: Success to log in
             session['logged_in'] = True
             session['useremail'] = email
+            session.pop('salt', None)
         
             #if client_os is not None and registration_id is not None:
             #    check_and_update_reg_key(g.db, client_os, registration_id)
@@ -134,16 +133,9 @@ def login():
         return
 
     else:
-        return '''
-        <!doctype html>
-        <title>LogIn test</title>
-        <h1>Login</h1>
-        <form action="" method="post">
-      <p>ID: <input type=text name="email"></p>
-      <p>Password: <input type=password name="password"></p>
-          <p><input type=submit value=login></p>
-        </form>
-        '''
+        salt = random_string_gen()
+        session['salt'] = salt
+        return make_response(json.jsonify(identifier=salt), 200)
 
 @app.route('/logout')
 @exception_detector
@@ -180,9 +172,7 @@ def signup():
     if request.method == 'POST':
         # Get parameter values
         email = request.form['email']
-        hashed_password = get_hashed_password(
-            request.form['password'],
-            app.config['IDENTIFIER'])
+        hashed_password = get_hashed_password(request.form['password'])
         facebook_id = request.form.get('facebook_id', None)
         name = request.form['name']
         mother_language_id = request.form['mother_language_id']

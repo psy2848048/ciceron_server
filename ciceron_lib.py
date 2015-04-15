@@ -1,4 +1,4 @@
-import hashlib, codecs, os
+import hashlib, codecs, os, random, string
 from flask import make_response, json, g, session, request
 from datetime import datetime
 from functools import wraps
@@ -34,12 +34,18 @@ def hashed_other_id_maker(conn, string_id):
 
     return hashed_ID
 
-def get_hashed_password(password, salt):
-    hash_maker = hashlib.md5()
-    hash_maker.update(salt)
-    hash_maker.update(password)
-    hash_maker.update(salt)
+def get_hashed_password(password, salt=None):
+    hash_maker = hashlib.sha256()
+
+    if salt is None:
+        hash_maker.update(password)
+    else:
+        hash_maker.update(salt + password + salt)
+
     return hash_maker.digest()
+
+def random_string_gen(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 #def check_and_update_reg_key(conn, os_name, registration_id):
 #    # Register key: Android
@@ -135,8 +141,7 @@ def exception_detector(f):
             g.db.rollback()
             return make_response(
                     json.jsonify(
-                       status_code = 500,
-                       message = "DB Internal error"
+                       message = e
                        ),
                     500
                    )
