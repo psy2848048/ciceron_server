@@ -172,7 +172,7 @@ def signup():
     if request.method == 'POST':
         # Get parameter values
         email = request.form['email']
-        hashed_password = get_hashed_password(request.form['password'])
+        hashed_password = request.form['password']
         facebook_id = request.form.get('facebook_id', None)
         name = request.form['name']
         mother_language_id = request.form['mother_language_id']
