@@ -1,4 +1,4 @@
-import hashlib, codecs, os, random, string
+import hashlib, codecs, os, random, string, sys
 from flask import make_response, json, g, session, request
 from datetime import datetime
 from functools import wraps
@@ -17,7 +17,6 @@ def hashed_id_maker(conn):
     hashed_ID = hash_maker.digest()
 
     return hashed_ID
-
 
 # hashed ID maker for REVUNUE table
 def hashed_other_id_maker(conn, string_id):
@@ -40,12 +39,14 @@ def get_hashed_password(password, salt=None):
     if salt is None:
         hash_maker.update(password)
     else:
-        hash_maker.update(salt + password + salt)
+        hash_maker.update(salt.encode() + password + salt.encode())
 
-    return hash_maker.digest()
+    return hash_maker.hexdigest()
 
-def random_string_gen(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+def random_string_gen(size=6, chars=string.letters + string.digits):
+    gened_string = ''.join(random.choice(chars) for _ in range(size))
+    gened_string = gened_string.encode('utf-8')
+    return gened_string
 
 #def check_and_update_reg_key(conn, os_name, registration_id):
 #    # Register key: Android
@@ -227,9 +228,11 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         if purpose == "newsfeed":
             # Show context if normal request, or show main text
             text_appear = None
-            if row[17] == "True": text_appear = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
-            else                : text_appear = str(row[38]) if row[38] is not None else None
-            item['request_text'] = text_appear
+            if row[17] == "True":
+                item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+                item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
+            else:
+                item['request_text'] = str(row[38]) if row[38] is not None else None
 
         elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
             item.pop('request_translatorsInQueue')
@@ -238,7 +241,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             item.pop('request_ongoingWorkerName')
             item.pop('request_ongoingWorkerPicPath')
 
-            if row[17] == "False": item['request_context'] = str(row[38]) if row[38] is not None else None
+            if row[17] == "False":
+                item['request_context'] = str(row[38]) if row[38] is not None else None
             item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
             item['request_comment'] = str(row[40]) if row[40] is not None else None
             item['request_tone'] = str(row[42]) if row[42] is not None else None
@@ -251,7 +255,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             item['request_submittedTime'] = row[26]
 
         elif purpose == "ongoing_client":
-            if row[17] == "False": item['request_context'] = str(row[38]) if row[38] is not None else None
+            if row[17] == "False":
+                item['request_context'] = str(row[38]) if row[38] is not None else None
             item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
 
             item['request_photoPath'] = get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS")
@@ -358,5 +363,22 @@ def save_request(conn, str_request_id, result_folder):
             tone_id = get_new_id(conn, "D_TONES")
             conn.execute("INSERT INTO D_TONES VALUES (?,?)", [tone_id, buffer(new_tone)])
             conn.execute("UPDATE F_REQUESTS SET tone_id = ? WHERE id = ?", [tone_id, request_id])
+
+    conn.commit()
+
+def update_user_record(conn, client_id=None, translator_id=None):
+    if client_id is not None:
+        conn.execute("""UPDATE D_USERS SET 
+                numOfRequestPending = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 0 AND client_user_id = ?),
+                numOfRequestOngoing = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 1 AND client_user_id = ?),
+                numOfRequestCompleted = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 2 AND client_user_id = ?)
+                WHERE id = ?""", [client_id, client_id, client_id, client_id])
+
+    if translator_id is not None:
+        conn.execute("""UPDATE D_USERS SET 
+                numOfTranslationPending = (SELECT count(queue.id) FROM F_REQUESTS fact LEFT OUTER JOIN D_QUEUE_LISTS queue ON fact.queue_id = queue.id WHERE fact.status_id = 0 AND queue.user_id = ?),
+                numOfTranslationOngoing = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = ?),
+                numOfTranslationCompleted = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ?)
+                WHERE id = ?""", [translator_id, translator_id, translator_id, translator_id])
 
     conn.commit()

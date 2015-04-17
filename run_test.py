@@ -1,4 +1,4 @@
-import os, run, unittest, tempfile, datetime, time
+import os, run, unittest, tempfile, datetime, time, json, hashlib, io
 from flask import url_for
 
 class CiceronTestCase(unittest.TestCase):
@@ -13,6 +13,10 @@ class CiceronTestCase(unittest.TestCase):
         os.unlink(run.app.config['DATABASE'])
 
     def signUp(self, email, password, name, mother_language_id):
+        hasher = hashlib.sha256()
+        hasher.update(password)
+        password = hasher.hexdigest()
+        print (password)
         return self.app.post('/signup', data=dict(
                 email=email,
                 password=password,
@@ -21,50 +25,62 @@ class CiceronTestCase(unittest.TestCase):
                 ), follow_redirects=True)
 
     def login(self, email, password):
+        rv = self.app.get('/login')
+        salt = json.loads(rv.data)['identifier']
+        salt = salt.encode('utf-8')
+        print ("SALT: " + salt)
+
+        hasher = hashlib.sha256()
+        hasher.update(password)
+        temp_pass = hasher.hexdigest()
+
+        hasher2 = hashlib.sha256()
+        hasher2.update(salt + temp_pass + salt)
+        value = hasher2.hexdigest()
         return self.app.post('/login', data=dict(
                email=email,
-               password=password
+               password=value
            ), follow_redirects=True)
 
     def test_login(self):
-        print "=============test_login=============="
+        print ("=============test_login==============")
 
         self.signUp(email="psy2848048@gmail.com",
 		    password="ciceron!",
 		    name="CiceronMaster",
 		    mother_language_id=0)
-        print "SignUp complete"
+        print ("SignUp complete")
 
-        print "Step 1: attempt to login with non-registered user"
+        print ("Step 1: attempt to login with non-registered user")
         rv = self.login(email="psy2848048@nate.com",
         	    password="wleifasef"
         	    )
-        print rv.data
+        print (rv.data)
         assert 'Not registered' in rv.data
         
-        print "Step 2: attempt to login with registered user but the password is wrong"
+        print ("Step 2: attempt to login with registered user but the password is wrong")
         rv = self.login(email="psy2848048@gmail.com",
         	    password="wleifasef"
         	    )
-        print rv.data
+        print (rv.data)
         assert 'Please check the password' in rv.data
         rv = self.app.get('/')
-        print rv.data
+        print (rv.data)
         
-        print "Step 3: attempt to login with registered user, correct password"
+        print ("Step 3: attempt to login with registered user, correct password")
         rv = self.login(email="psy2848048@gmail.com",
         	    password="ciceron!"
         	    )
-        print rv.data
+        print (rv.data)
         assert 'You\'re logged with user' in rv.data
         rv = self.app.get('/')
-        print rv.data
+        print (rv.data)
 
     def test_idChecker(self):
-        print "=================test-nickchecker===================="
+        print ("=================test-nickchecker====================")
         
         rv = self.app.get('/idCheck?email=psy2848048@gmail.com')
-        print rv
+        print (rv)
         assert 'You may use' in  rv.data
         
         self.signUp(email="psy2848048@gmail.com",
@@ -73,14 +89,14 @@ class CiceronTestCase(unittest.TestCase):
         	    mother_language_id=0)
         
         rv = self.app.get('/idCheck?email=psy2848048@gmail.com')
-        print rv
+        print (rv)
         assert 'Duplicated' in  rv.data
 
     def test_login_decorator(self):
-        print "==============test-login-req-decorator=============="
+        print ("==============test-login-req-decorator==============")
         rv = self.app.get("/user/profile")
-        print rv
-        print rv.data
+        print (rv)
+        print (rv.data)
         assert 'Login required' in rv.data
 
         self.signUp(email="psy2848048@gmail.com",
@@ -91,11 +107,11 @@ class CiceronTestCase(unittest.TestCase):
         	    password="ciceron!"
         	    )
 
-        print "Login complete"
+        print ("Login complete")
 
         rv = self.app.get("/user/profile")
-        print rv
-        print rv.data
+        print (rv)
+        print (rv.data)
 
         rv = self.app.post("/user/profile",
                 data=dict(
@@ -104,10 +120,10 @@ class CiceronTestCase(unittest.TestCase):
                 )
 
         rv = self.app.get("/user/profile")
-        print rv.data
+        print (rv.data)
 
     def test_request(self):
-        print "=============test-request==================="
+        print ("=============test-request===================")
         self.signUp(email="psy2848048@gmail.com",
         	    password="ciceron!",
         	    name="CiceronMaster",
@@ -117,7 +133,7 @@ class CiceronTestCase(unittest.TestCase):
         	    )
         
         text = "This is test text\nAnd I donno how to deal with"
-        print "Post normal request without money"
+        print ("Post normal request without money")
         rv = self.app.post('/requests', data=dict(
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
@@ -140,10 +156,10 @@ class CiceronTestCase(unittest.TestCase):
         try:
             assert "Request ID" in rv.data
         except:
-            print rv.data
+            print (rv.data)
             raise AssertionError
 
-        print "Pass step 1"
+        print ("Pass step 1")
 
         text2 = "testtesttest\nChinese\na;eoifja;ef"
         

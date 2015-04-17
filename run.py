@@ -1,15 +1,16 @@
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response
 from contextlib import closing
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time, requests
+import hashlib, sqlite3, os, time, requests, sys
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
 from ciceron_lib import *
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 DATABASE = '../db/ciceron.db'
 DEBUG = True
-IDENTIFIER = "millionare@ciceron!@"
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_PROFILE_PIC = "profile_pic"
 UPLOAD_FOLDER_REQUEST_PIC = "request_pic"
@@ -109,7 +110,7 @@ def login():
             # Description: Not registered
             return make_response (json.jsonify(message='Not registered %s' % email), 403)
         
-        elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == str(hashed_password):
+        elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == hashed_password:
             # Status code 200 (OK)
             # Description: Success to log in
             session['logged_in'] = True
@@ -175,7 +176,7 @@ def signup():
         hashed_password = request.form['password']
         facebook_id = request.form.get('facebook_id', None)
         name = request.form['name']
-        mother_language_id = request.form['mother_language_id']
+        mother_language_id = int(request.form['mother_language_id'])
         #registration_id = request.form.get('registration_id', None)
         #client_os = request.form.get('client_os', None)
 
@@ -199,7 +200,7 @@ def signup():
                  0,
                  None,
                  None,
-                 buffer("")])
+                 buffer("nothing")])
 
         g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
             [user_id, buffer(hashed_password)])
@@ -385,7 +386,7 @@ def user_profile():
 #            </form>
 #            '''
 
-@app.route('/requests', methods=["GET", "POST"])
+@app.route('/requests', methods=["GET", "POST", "DELETE"])
 @exception_detector
 def requests():
     if request.method == "GET":
@@ -394,7 +395,8 @@ def requests():
         #     since(optional): Timestamp, take recent 20 post before the timestamp.
         #                  If this parameter is not provided, recent 20 posts from now are returned
         
-        query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id is null AND status_id = 0 "
+        query = """SELECT * FROM V_REQUESTS WHERE
+            (ongoing_worker_id is null AND status_id = 0 isSos = 'False') OR (isSos = 'True')"""
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query += "ORDER BY registered_time DESC LIMIT 20"
@@ -522,33 +524,65 @@ def requests():
                     None,                 # tone_id
                     None])                # translatedText_id
 
+        update_user_record(g.db, client_id=client_user_id)
         g.db.commit()
 
         return make_response(json.jsonify(
             message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
             ), 200)
 
-@app.route('/user/translations/pending', methods=["GET"])
+    elif request.method == "DELETE":
+        request_id = int(request.form['request_id'])
+        user_id = get_user_id(g.db, session['useremail'])
+
+        # Check that somebody is translating this request.
+        # If yes, requester cannot delete this request
+        cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
+                [request_id, user_id])
+
+        num_of_request = cursor.fetchall()[0][0]
+        if num_of_request == 0:
+            return make_response(json.jsonify(
+                message="If translator has taken the request, you cannot delete the request!"), 400)
+
+        g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
+                [request_id, user_id])
+        update_user_record(g.db, client_id=user_id)
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Request #%d is successfully deleted!" % request_id), 200)
+
+@app.route('/user/translations/pending', methods=["GET", "DELETE"])
 @login_required
 @exception_detector
 @translator_checker
 def show_queue():
-    # Request method: GET
-    # Parameters
-    #     since(OPTIONAL): Timestamp integer, for paging
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(OPTIONAL): Timestamp integer, for paging
 
-    my_user_id = get_user_id(g.db, session['useremail'])
-    query_pending = """SELECT * FROM V_REQUESTS 
-        WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
-    if 'since' in request.args.keys():
-        query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
-    query_pending += "ORDER BY registered_time DESC LIMIT 20"
+        my_user_id = get_user_id(g.db, session['useremail'])
+        query_pending = """SELECT * FROM V_REQUESTS 
+            WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
+        if 'since' in request.args.keys():
+            query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+        query_pending += "ORDER BY registered_time DESC LIMIT 20"
 
-    cursor = g.db.execute(query_pending, [my_user_id])
-    rs = cursor.fetchall()
-    result = json_from_V_REQUESTS(g.db, rs)
+        cursor = g.db.execute(query_pending, [my_user_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs)
 
-    return make_response(json.jsonify(data=result), 200)
+        return make_response(json.jsonify(data=result), 200)
+
+    elif request.method == "DELETE":
+        request_id = int(request.form['request_id'])
+        my_user_id = get_user_id(g.db, session['useremail'])
+        g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?", [request_id, my_user_id])
+        update_user_record(g.db, translator_id=update_user_record)
+
+        return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
 
 @app.route('/user/translations/pending', methods=["POST"])
 @login_required
@@ -598,6 +632,8 @@ def work_in_queue():
         g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
 
     g.db.execute(query, [queue_id, request_id, user_id])
+
+    update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
     g.db.commit()
 
     return make_response(json.jsonify(
@@ -632,6 +668,7 @@ def pick_request():
         g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE id = ? and request_id = ? and user_id = ?",
                 [queue_id, request_id, my_user_id])
 
+        update_user_record(g.db, client_id=request_user_id, translator_id=my_user_id)
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -704,6 +741,7 @@ def post_translate_item(str_request_id):
 
     # Change the state of the request
     g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=? WHERE id = ?", [requester_default_group_id, translator_default_group_id, datetime.now(), request_id])
+    update_user_record(g.db, client_id=requester_id, translator_id=translator_id)
     g.db.commit()
 
     return make_response(json.jsonify(
