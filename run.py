@@ -396,10 +396,10 @@ def requests():
         #                  If this parameter is not provided, recent 20 posts from now are returned
         
         query = """SELECT * FROM V_REQUESTS WHERE
-            (ongoing_worker_id is null AND status_id = 0 isSos = 'False') OR (isSos = 'True')"""
+            (ongoing_worker_id is null AND status_id = 0 AND isSos = 'False') OR (isSos = 'True') """
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
-        query += "ORDER BY registered_time DESC LIMIT 20"
+        query += " ORDER BY registered_time DESC LIMIT 20"
 
         cursor = g.db.execute(query)
         rs = cursor.fetchall()
@@ -598,7 +598,7 @@ def work_in_queue():
     # Translators in queue
     # Get request ID
     request_id = int(request.form['request_id'])
-    translator_email = request.form.get('translator_email', None) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
+    translator_email = request.form.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
     cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
     rs = cursor.fetchall()
 
@@ -606,12 +606,12 @@ def work_in_queue():
 
     if translator_email is None: user_id = get_user_id(g.db, session['useremail'])
     else:                        user_id = get_user_id(g.db, translator_email)
+    request_user_id = rs[0][1]
 
     cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE id = ?", [user_id])
     rs = cursor.fetchall()
     if len(rs) == 0 or rs[0][0] == 0: return make_response(json.jsonify( message = "This user is not a translator."), 403)
 
-    request_user_id = rs[0][1]
     if user_id == request_user_id:
         return make_response(json.jsonify(
             message = "You cannot translate your request. Request ID: %d" % request_id
