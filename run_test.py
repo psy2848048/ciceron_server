@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, run, unittest, tempfile, datetime, time, json, hashlib, io
 from flask import url_for
 
@@ -16,7 +17,6 @@ class CiceronTestCase(unittest.TestCase):
         hasher = hashlib.sha256()
         hasher.update(password)
         password = hasher.hexdigest()
-        print (password)
         return self.app.post('/signup', data=dict(
                 email=email,
                 password=password,
@@ -28,7 +28,6 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get('/login')
         salt = json.loads(rv.data)['identifier']
         salt = salt.encode('utf-8')
-        print ("SALT: " + salt)
 
         hasher = hashlib.sha256()
         hasher.update(password)
@@ -330,19 +329,47 @@ class CiceronTestCase(unittest.TestCase):
                 request_isPhoto=False,
                 request_isSound=False,
                 request_isFile=False,
-                request_words=len(text.split(' ')),
+                request_words=len(text2.split(' ')),
                 request_dueTime=datetime.datetime.now(),
         		request_points=0,
                 request_context="Wow!"
         		))
-        
+
         rv = self.app.get('/requests')
-        print "Posted list"
+        print rv.data
+
+        print "Unicode test"
+        text3 = u"Who somebody can test it?\n한국어\tsiol"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=2,
+                request_isSos=True,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text3,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text3.split(' ')),
+                request_dueTime=datetime.datetime.now(),
+        		request_points=0,
+                request_context="Korean request test"
+        		))
+
+        rv = self.app.get('/requests')
+        print rv.data
+
+        print "Delete request"
+        rv = self.app.delete('/requests/2')
+        rv = self.app.get('/requests')
         print rv.data
 
         print "Attempt to translate what he/she requested"
 
-        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
+        rv = self.app.post('/user/translations/pending/0')
         print rv.data
         
         self.signUp(email="jun.hang.lee@sap.com",
@@ -356,11 +383,28 @@ class CiceronTestCase(unittest.TestCase):
         self.app.post('/user/profile', data=dict(
             user_isTranslator=1))
 
-        rv = self.app.post('/user/translations/pending', data=dict(
-            request_id=0
-            ))
+        print "Line in the queue"
+        rv = self.app.post('/user/translations/pending/0')
+        print rv.data
+
+        print "Try to line in the double-queue"
+        rv = self.app.post('/user/translations/pending/0')
+        print rv.data
+
+        print "Dequeue"
+        rv = self.app.delete('/user/translations/pending/0')
+        print rv.data
         
         print "Queue list"
+        rv = self.app.get('/user/translations/pending')
+        print rv.data
+
+        print "Line in the queue"
+        rv = self.app.post('/user/translations/pending/0')
+        print rv.data
+
+        print "Queue list"
+        rv = self.app.get('/user/translations/pending')
         print rv.data
 
         rv = self.app.get('/user/translations/pending')
@@ -475,114 +519,6 @@ class CiceronTestCase(unittest.TestCase):
         print "No item in group #0: Client"
         rv = self.app.get('/user/requests/complete/groups/0')
         print rv.data
-
-    def test_paid_request(self):
-	print "================test-paid-request=============="
-	print "1. Post SOS request"
-        self.signUp(username="psy2848048@gmail.com",
-		    password="ciceron!",
-		    name="CiceronMaster",
-		    mother_language="Korean")
-	self.login(username="psy2848048@gmail.com",
-		    password="ciceron!"
-		    )
-        print "2. Charge USD 100"
-	rv = self.app.post('/charge', data=dict(
-		                                username="psy2848048@gmail.com", 
-		                                password="ciceron!",
-						point=100
-						)
-			  )
-
-	rv = self.app.post('/post', data=dict(
-			from_lang="Korean",
-			to_lang="English",
-			is_SOS=0,
-			main_text="English is too difficult to learn and use properly. I really need your help",
-			format="Formal",
-			subject="Announcement",
-			price=20.3
-			))
-        print rv.data
-	rv = self.app.get('/post_list')
-	print rv.data
-        print ""
-	print "3. Sign up another user and pick request"
-        self.signUp(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-		    name="CiceronUser",
-		    mother_language="Korean")
-	self.login(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-		    )
-
-	print "4. Add English as another language ability"
-	rv = self.app.post('/add_language', data=dict(language="English"))
-	try:
-	    assert "added for user" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
-
-        print "5. pick request"
-	rv = self.app.get('/pick_request/1')
-	try:
-	    assert "is picked by" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
-
-        rv = self.app.get('/post_list')
-	print rv.data
-
-        print "6. Print comment"
-	rv = self.app.get('/comment/1')
-	print rv.data
-
-	print "7. Add comment"
-	rv = self.app.post('/comment/1', data=dict(comment_text="BlahBlah", is_result=0))
-	try:
-	    assert "is posted in post" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
-
-	rv = self.app.get('/comment/1')
-	print rv.data
-
-	print "8. Comment from requester"
-	self.login(username="psy2848048@gmail.com",
-		    password="ciceron!"
-		    )
-	rv = self.app.post('/comment/1', data=dict(comment_text="It's not enough answer. Could you please check it again?", is_result=0))
-	try:
-	    assert "is posted in post" in rv.data
-	except:
-	    print rv.data
-	    raise AssertionError
-
-	rv = self.app.get('/comment/1')
-	print rv.data
-
-	print ""
-	print "9. Post another comment"
-	self.login(username="jun.hang.lee@sap.com",
-		    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-		    )
-	rv = self.app.post('/comment/1', data=dict(comment_text="Shut da fuck up", is_result=0))
-
-	rv = self.app.get('/comment/1')
-	print rv.data
-        print ""
-	print "10. Accept translator's result and close the request"
-	self.login(username="psy2848048@gmail.com",
-		    password="ciceron!"
-		    )
-	rv = self.app.get('/accept/1')
-	print rv.data
-
-	rv = self.app.get('/history_requester')
-	print rv.data
 
 if __name__ == "__main__":
     unittest.main()

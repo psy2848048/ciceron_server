@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response
 from contextlib import closing
 from datetime import datetime, timedelta
@@ -6,8 +7,6 @@ from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
 from ciceron_lib import *
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 DATABASE = '../db/ciceron.db'
 DEBUG = True
@@ -386,7 +385,7 @@ def user_profile():
 #            </form>
 #            '''
 
-@app.route('/requests', methods=["GET", "POST", "DELETE"])
+@app.route('/requests', methods=["GET", "POST"])
 @exception_detector
 def requests():
     if request.method == "GET":
@@ -396,10 +395,10 @@ def requests():
         #                  If this parameter is not provided, recent 20 posts from now are returned
         
         query = """SELECT * FROM V_REQUESTS WHERE
-            (ongoing_worker_id is null AND status_id = 0 isSos = 'False') OR (isSos = 'True')"""
+            (ongoing_worker_id is null AND status_id = 0 AND isSos = 'False') OR (isSos = 'True') """
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
-        query += "ORDER BY registered_time DESC LIMIT 20"
+        query += " ORDER BY registered_time DESC LIMIT 20"
 
         cursor = g.db.execute(query)
         rs = cursor.fetchall()
@@ -531,8 +530,12 @@ def requests():
             message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
             ), 200)
 
-    elif request.method == "DELETE":
-        request_id = int(request.form['request_id'])
+@app.route('/requests/<str_request_id>', methods=["DELETE"])
+@login_required
+@exception_detector
+def delete_requests(str_request_id):
+    if request.method == "DELETE":
+        request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
 
         # Check that somebody is translating this request.
@@ -553,7 +556,7 @@ def requests():
         return make_response(json.jsonify(
             message="Request #%d is successfully deleted!" % request_id), 200)
 
-@app.route('/user/translations/pending', methods=["GET", "DELETE"])
+@app.route('/user/translations/pending', methods=["GET"])
 @login_required
 @exception_detector
 @translator_checker
@@ -576,69 +579,70 @@ def show_queue():
 
         return make_response(json.jsonify(data=result), 200)
 
-    elif request.method == "DELETE":
-        request_id = int(request.form['request_id'])
-        my_user_id = get_user_id(g.db, session['useremail'])
-        g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?", [request_id, my_user_id])
-        update_user_record(g.db, translator_id=update_user_record)
-
-        return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
-
-@app.route('/user/translations/pending', methods=["POST"])
+@app.route('/user/translations/pending/<str_request_id>', methods=["POST", "DELETE"])
 @login_required
 @exception_detector
-def work_in_queue():
-    # In POST, it should be changed into /user/translations/pending/<request_id>
-    # But Error must be occurred because form data is not needed in the case of above.
+def work_in_queue(str_request_id):
+    if request.method == "POST":
+        # In POST, it should be changed into /user/translations/pending/<request_id>
+        # But Error must be occurred because form data is not needed in the case of above.
 
-    # Request method: POST
-    # Parameters
-    #     request_id: Integer
+        # Request method: POST
+        # Parameters
+        #     request_id: Integer
 
-    # Translators in queue
-    # Get request ID
-    request_id = int(request.form['request_id'])
-    translator_email = request.form.get('translator_email', None) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
-    cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
-    rs = cursor.fetchall()
+        # Translators in queue
+        # Get request ID
+        request_id = int(str_request_id)
+        translator_email = request.form.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
+        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
+        rs = cursor.fetchall()
 
-    if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 406)
+        if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 406)
 
-    if translator_email is None: user_id = get_user_id(g.db, session['useremail'])
-    else:                        user_id = get_user_id(g.db, translator_email)
+        if translator_email is None: user_id = get_user_id(g.db, session['useremail'])
+        else:                        user_id = get_user_id(g.db, translator_email)
+        request_user_id = rs[0][1]
 
-    cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE id = ?", [user_id])
-    rs = cursor.fetchall()
-    if len(rs) == 0 or rs[0][0] == 0: return make_response(json.jsonify( message = "This user is not a translator."), 403)
+        cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE id = ?", [user_id])
+        rs = cursor.fetchall()
+        if len(rs) == 0 or rs[0][0] == 0: return make_response(json.jsonify( message = "This user is not a translator."), 403)
 
-    request_user_id = rs[0][1]
-    if user_id == request_user_id:
+        if user_id == request_user_id:
+            return make_response(json.jsonify(
+                message = "You cannot translate your request. Request ID: %d" % request_id
+                ), 406)
+
+        queue_id = rs[0][0]
+        cursor.execute("SELECT user_id FROM D_QUEUE_LISTS WHERE id = ? AND user_id = ?", [queue_id, user_id])
+        rs = cursor.fetchall()
+        if len(rs) != 0:
+            return make_response(json.jsonify(
+                message = "You've already standed in queue. Request ID: %d" % request_id
+                ), 406)
+
+        query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
+
+        if queue_id is None:
+            queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
+            g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
+
+        g.db.execute(query, [queue_id, request_id, user_id])
+
+        update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
+        g.db.commit()
+
         return make_response(json.jsonify(
-            message = "You cannot translate your request. Request ID: %d" % request_id
-            ), 406)
+            message = "You are in queue for translating request #%d" % request_id
+            ), 200)
 
-    queue_id = rs[0][0]
-    cursor.execute("SELECT user_id FROM D_QUEUE_LISTS WHERE id = ? AND user_id = ?", [queue_id, user_id])
-    rs = cursor.fetchall()
-    if len(rs) != 0:
-        return make_response(json.jsonify(
-            message = "You've already standed in queue. Request ID: %d" % request_id
-            ), 406)
+    elif request.method == "DELETE":
+        request_id = int(str_request_id)
+        my_user_id = get_user_id(g.db, session['useremail'])
+        g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?", [request_id, my_user_id])
+        update_user_record(g.db, translator_id=my_user_id)
 
-    query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
-
-    if queue_id is None:
-        queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
-        g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
-
-    g.db.execute(query, [queue_id, request_id, user_id])
-
-    update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
-    g.db.commit()
-
-    return make_response(json.jsonify(
-        message = "You are in queue for translating request #%d" % request_id
-        ), 200)
+        return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
 
 @app.route('/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
