@@ -132,6 +132,18 @@ def login_required(f):
                ), 403)
     return decorated_function
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('useremail') is "admin@ciceron.me":
+            return f(*args, **kwargs)
+        else:
+            return make_response(json.jsonify(
+                       status_code = 403,
+                       message = "Admin only"
+               ), 403)
+    return decorated_function
+
 def exception_detector(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -273,10 +285,10 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
     return result
 
-def complete_groups(table, method):
+def complete_groups(conn, table, method, url_group_id=None):
     if method == "GET":
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
+        cursor = conn.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
         rs = cursor.fetchall()
 
         result = [ dict(id=row[0], name=str(row[1])) for row in rs ]
@@ -285,36 +297,36 @@ def complete_groups(table, method):
     elif method == "POST":
         group_name = request.form['group_name']
         if group_name == "Documents":
-            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+            return -1
 
         my_user_id = get_user_id(g.db, session['useremail'])
 
         new_group_id = get_new_id(g.db, table)
-        g.db.execute("INSERT INTO %s VALUES (?,?,?)" % table,
+        conn.execute("INSERT INTO %s VALUES (?,?,?)" % table,
             [new_group_id, my_user_id, buffer(group_name)])
-        g.db.commit()
+        conn.commit()
         return group_name
 
     elif method == "PUT":
-        group_id = int(request.form['group_id'])
+        group_id = int(url_group_id)
         group_name = request.form['group_name']
         if group_name == "Documents":
-            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
-        g.db.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
-        g.db.commit()
+            return -1
+        conn.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
+        conn.commit()
         return group_name
 
     elif method == 'DELETE':
-        group_id = int(request.form['group_id'])
+        group_id = int(url_group_id)
         group_text = get_text_from_id(g.db, group_id, table)
         if group_text == "Documents":
-            return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
-        g.db.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
+            return -1
+        conn.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
 
         default_group_id = get_group_id_from_user_and_text(g.db, session['useremail'], "Documents", table)
         if table.find("TRANSLATOR") >= 0: col = 'translator_completed_group_id'
         else:                             col = 'client_completed_group_id'
-        cursor.execute("UPDATE F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}, [default_group_id, group_id])
+        conn.execute("UPDATE F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}, [default_group_id, group_id])
 
         g.db.commit()
         return group_id

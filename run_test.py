@@ -520,5 +520,105 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get('/user/requests/complete/groups/0')
         print rv.data
 
+        print "Delete group #0"
+        rv = self.app.delete('/user/requests/complete/groups?group_id=0')
+        print rv.data
+
+        print "Create group #2: Client"
+        rv = self.app.post('/user/requests/complete/groups', data=dict(
+            group_name="Blah"))
+        rv = self.app.get('/user/requests/complete/groups')
+        print rv.data
+
+        print "Delete group #2"
+        rv = self.app.delete('/user/requests/complete/groups?group_id=2')
+        rv = self.app.get('/user/requests/complete/groups')
+        print rv.data
+
+    def test_expectedDate(self):
+        print "================test-expectedDate=============="
+        self.signUp(email="psy2848048@gmail.com",
+        	    password="ciceron!",
+        	    name="CiceronMaster",
+        	    mother_language_id=0)
+        self.login(email="psy2848048@gmail.com",
+        	    password="ciceron!"
+        	    )
+        
+        text = "This is test text\nAnd I donno how to deal with"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=1,
+                request_isSos=True,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text.split(' ')),
+                request_dueTime=datetime.datetime.now() + datetime.timedelta(days=5),
+        		request_points=0.50,
+                request_context=""
+        		))
+        text2 = "testtesttest\nChinese\na;eoifja;ef"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=2,
+                request_isSos=False,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text2,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text2.split(' ')),
+                request_dueTime=datetime.datetime.now() + datetime.timedelta(days=5),
+        		request_points=0,
+                request_context="Wow!"
+        		))
+        rv = self.app.get('/requests')
+        print rv.data
+
+        self.signUp(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
+        	    name="CiceronUser",
+        	    mother_language_id=2)
+        self.login(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+        	    )
+
+        self.app.post('/user/profile', data=dict(
+            user_isTranslator=1))
+
+        self.app.post('/user/translations/ongoing', data=dict(request_id=0))
+        self.app.post('/user/translations/ongoing', data=dict(request_id=1))
+        print "Preparation done"
+
+        print "1. Set expected time"
+        rv = self.app.get('/user/translations/ongoing/0/expected')
+        rv = self.app.post('/user/translations/ongoing/0/expected',data=dict(
+            expectedTime=datetime.datetime.now() + datetime.timedelta(days=5)))
+        print rv.data
+
+        print "2. Give up translating"
+        rv = self.app.delete('/user/translations/ongoing/1/expected')
+        print rv.data
+
+        print "Check the result"
+        print "1) My current job"
+        rv = self.app.get('/user/translations/ongoing')
+        print rv.data
+
+        print "2) Current newsfeed"
+        rv = self.app.get('/requests')
+        print rv.data
+
 if __name__ == "__main__":
     unittest.main()

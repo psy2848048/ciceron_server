@@ -327,7 +327,7 @@ def user_profile():
         # Get parameter value
         profileText = request.form.get('user_profileText', None)
         profile_pic = request.files.get('photo', None)
-        is_translator = request.form.get('user_isTranslator', None)
+        #is_translator = request.form.get('user_isTranslator', None)
 
         # Start logic
         # Get user number
@@ -347,8 +347,8 @@ def user_profile():
 
             g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
 
-        if is_translator:
-            g.db.execute("UPDATE D_USERS SET is_translator = ? WHERE email = ?", [is_translator, buffer(session['useremail'])])
+        #if is_translator:
+        #    g.db.execute("UPDATE D_USERS SET is_translator = ? WHERE email = ?", [is_translator, buffer(session['useremail'])])
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -546,7 +546,7 @@ def delete_requests(str_request_id):
         num_of_request = cursor.fetchall()[0][0]
         if num_of_request == 0:
             return make_response(json.jsonify(
-                message="If translator has taken the request, you cannot delete the request!"), 400)
+                message="If translator has taken the request, you cannot delete the request!"), 410)
 
         g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
                 [request_id, user_id])
@@ -556,7 +556,7 @@ def delete_requests(str_request_id):
         return make_response(json.jsonify(
             message="Request #%d is successfully deleted!" % request_id), 200)
 
-@app.route('/user/translations/pending', methods=["GET"])
+@app.route('/user/translations/pending', methods=["GET", "POST"])
 @login_required
 @exception_detector
 @translator_checker
@@ -579,11 +579,7 @@ def show_queue():
 
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/translations/pending/<str_request_id>', methods=["POST", "DELETE"])
-@login_required
-@exception_detector
-def work_in_queue(str_request_id):
-    if request.method == "POST":
+    elif request.method == "POST":
         # In POST, it should be changed into /user/translations/pending/<request_id>
         # But Error must be occurred because form data is not needed in the case of above.
 
@@ -636,9 +632,22 @@ def work_in_queue(str_request_id):
             message = "You are in queue for translating request #%d" % request_id
             ), 200)
 
-    elif request.method == "DELETE":
+@app.route('/user/translations/pending/<str_request_id>', methods=["DELETE"])
+@login_required
+@translator_checker
+@exception_detector
+def work_in_queue(str_request_id):
+    if request.method == "DELETE":
         request_id = int(str_request_id)
         my_user_id = get_user_id(g.db, session['useremail'])
+        cursor = g.db.execute("SELECT count(*) FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?",
+                [request_id, my_user_id])
+        rs = cursor.fetchall()
+        if len(rs) == 0 or rs[0][0] == 0:
+            return make_response(json.jsonify
+                       (message="You are not in the queue of request ID #%d" % request_id),
+                   204)
+            
         g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?", [request_id, my_user_id])
         update_user_record(g.db, translator_id=my_user_id)
 
@@ -714,6 +723,37 @@ def working_translate_item(str_request_id):
         return make_response(json.jsonify(
             message="Request id %d is auto saved." % request_id
             ), 200)
+
+@app.route('/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
+@exception_detector
+@translator_checker
+@login_required
+def expected_time(str_request_id):
+    if request.method == "GET":
+        request_id = int(str_request_id)
+        cursor = g.db.execute("SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ?", [request_id])
+        rs = cursor.fetchall()
+        return make_response(json.jsonify(default_dueTime=rs[0][0]), 200)
+
+    elif request.method == "POST":
+        request_id = int(str_request_id)
+        expected_time = request.form['expectedTime']
+        g.db.execute("UPDATE F_REQUESTS SET expected_time = ? WHERE status_id = 1 AND id = ?",
+                [expected_time, request_id])
+        g.db.commit()
+        return make_response(json.jsonify(message="Thank you for responding!"), 200)
+
+    elif request.method == "DELETE":
+        request_id = int(str_request_id)
+        g.db.execute("UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = ?",
+                [request_id])
+
+        cursor = g.db.execute("SELECT client_user_id FROM F_REQUESTS WHERE id = ?", [request_id])
+        client_user_id = cursor.fetchall()[0][0]
+        translator_user_id = get_user_id(g.db, session['useremail'])
+        update_user_record(g.db, client_id=client_user_id, translator_id=translator_user_id)
+        g.db.commit()
+        return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
 @app.route('/user/translations/complete/<str_request_id>', methods=["POST"])
 @exception_detector
@@ -818,20 +858,33 @@ def set_title_translator(str_request_id):
 @login_required
 def translators_complete_groups():
     if request.method == "GET":
-        result = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "GET")
+        result = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "GET")
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
-        group_name = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "POST")
-        return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+        group_name = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "POST")
+        if group_name == -1:
+            return make_response(json.jsonify(message="'Document' is reserved name"), 401)
+        else:
+            return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
+@app.route('/user/translations/complete/groups/<str_group_id>', methods = ["DELETE", "PUT"])
+@exception_detector
+@translator_checker
+@login_required
+def modify_translators_complete_groups(str_group_id):
+    if request.method == "DELETE":
+        group_id = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
+        if group_id == -1:
+            return make_response(json.jsonify(message="Group 'Document' is default. You cannot delete it!"), 401)
+        else:
+            return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
     elif request.method == "PUT":
-        group_name = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
-        return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
-
-    elif request.method == "DELETE":
-        group_id = complete_groups("D_TRANSLATOR_COMPLETED_GROUPS", "DELETE")
-        return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
+        group_name = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
+        if group_name == -1:
+            return make_response(json.jsonify(message="You cannot change the name of the group to 'Document'. It is default group name" % group_name), 401)
+        else:
+            return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector
@@ -889,20 +942,33 @@ def set_title_client(str_request_id):
 @login_required
 def client_complete_groups():
     if request.method == "GET":
-        result = complete_groups("D_CLIENT_COMPLETED_GROUPS", "GET")
+        result = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "GET")
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
-        group_name = complete_groups("D_CLIENT_COMPLETED_GROUPS", "POST")
-        return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+        group_name = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "POST")
+        if group_name != -1:
+            return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
+        else:
+            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
-    elif request.method == "PUT":
-        group_name = complete_groups("D_CLIENT_COMPLETED_GROUPS", "PUT")
-        return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
+@app.route('/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
+@exception_detector
+@login_required
+def modify_client_completed_groups(str_group_id):
+    if request.method == "PUT":
+        group_name = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "PUT", url_group_id=str_group_id)
+        if group_name != -1:
+            return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
+        else:
+            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
     elif request.method == "DELETE":
-        group_id = complete_groups("D_CLIENT_COMPLETED_GROUPS", "DELETE")
-        return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
+        group_id = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
+        if group_id != -1:
+            return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
+        else:
+            return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
 
 @app.route('/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector
@@ -935,6 +1001,43 @@ def client_completed_items_detail(str_request_id):
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
+
+################################################################################
+#########                        ADMIN TOOL                            #########
+################################################################################
+
+@app.route('/publicize', methods = ["GET"])
+@exception_detector
+@admin_required
+def publicize():
+    cursor = g.db.execute("""SELECT count(*) FROM F_REQUESTS WHERE status_id = 1
+                       AND expected_time is null AND submitted_time is null
+                       AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
+    num_of_publicize = cursor.fetchall()[0][0]
+    g.db.execute("""UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0
+                     WHERE status_id = 1 AND expected_time is null AND submitted_time is null
+                       AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
+    return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
+
+@app.route('/language_assigner', methods = ["GET"])
+@exception_detector
+@admin_required
+def language_assigner():
+    user_email = request.args['email']
+    language_id = int(request.args['language'])
+    user_id = get_user_id(g.db, user_email)
+    lang_id = get_id_from_text(g.db, language, "D_LANGUAGES")
+    new_translation_list_id = get_new_id(g.db, "D_TRANSLATABLE_LANGUAGES")
+
+    g.db.execute("UPDATE D_USERS SET is_translator = 1 WHERE id = ?", [user_id])
+    cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ? and language_id = ?",
+            [user_id, language_id])
+    rs = cursor.fetchall()
+    if len(rs) == 0:
+        g.db.execute("INSERT INTO D_TRANSLATABLE_LANGUAGES VALUES (?,?,?)"
+            [new_translation_list_id, user_id, language_id])
+    g.db.commit()
+    return make_response(json.jsonify(message=""), 200)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
