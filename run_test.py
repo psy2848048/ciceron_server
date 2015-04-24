@@ -620,5 +620,31 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get('/requests')
         print rv.data
 
+    def test_paypal(self):
+        self.signUp(email="psy2848048@gmail.com",
+        	    password="ciceron!",
+        	    name="CiceronMaster",
+        	    mother_language_id=0)
+        self.login(email="psy2848048@gmail.com",
+        	    password="ciceron!"
+        	    )
+
+        rv = self.app.post('/user/requests/payment',
+                data=dict(
+                    pay_amount='1.32',                   # Amount
+                    pay_cardType='Visa',     # Card brand := Visa, MasterCard, Discover, Amex, JCB
+                    pay_cardNumber='4032035569967870',              # Card number
+                    pay_cardExpDateMMYYYY='032020',    # Expire date MMYYYY
+                    pay_cardCVC='012',                 # CVC: 3 or 4 digits written in the back of the card
+                    pay_firstName='Buyer',          # First name
+                    pay_lastName='Lee',            # Last name
+                    pay_addressStreet='Baekjae',     # Address: Street and the rest of your address
+                    pay_addressCity='Seoul',         # Address: City
+                    pay_addressState='CA',       # Address: State
+                    pay_addressZipcode=15900,       # Address: Zipcode
+                    pay_countryCode='US'      # Address: Country code := US, KR, JP, CN, ...
+                    ))
+        print rv.data
+
 if __name__ == "__main__":
     unittest.main()

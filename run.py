@@ -1039,5 +1039,37 @@ def language_assigner():
     g.db.commit()
     return make_response(json.jsonify(message=""), 200)
 
+@app.route('/user/requests/payment', methods = ["POST"])
+@exception_detector
+@login_required
+def pay_for_request():
+    interface = get_paypal_interface_test()
+    charge = {
+                'amt': request.form['pay_amount'],                   # Amount
+                'creditcardtype': request.form['pay_cardType'],      # Card brand := Visa, MasterCard, Discover, Amex, JCB 
+                'acct': request.form['pay_cardNumber'],              # Card number
+                'expdate': request.form['pay_cardExpDateMMYYYY'],    # Expire date MMYYYY
+                'cvv2': request.form['pay_cardCVC'],                 # CVC: 3 or 4 digits written in the back of the card
+                'email': session['useremail'],
+                'firstname': request.form['pay_firstName'],          # First name
+                'lastname': request.form['pay_lastName'],            # Last name
+                'street': request.form['pay_addressStreet'],         # Address: Street
+                'street2': request.form.get('pay_addressStreet2'),   # Address: Rest of your address
+                'city': request.form['pay_addressCity'],             # Address: City
+                'state': request.form['pay_addressState'],           # Address: State
+                'zip': request.form['pay_addressZipcode'],           # Address: Zipcode
+                'countrycode': request.form['pay_countryCode'],      # Address: Country code := US, KR, JP, CN, ...
+                'currencycode': 'USD'                                # Currency: Fixed to USD
+            }
+    try:
+        rs = interface.do_direct_payment(**charge)
+    except paypal.PayPalAPIResponseError as e:
+        return make_response(json.jsonify(message=str(e)), 400)
+
+    if bool(rs) is True:
+        return make_response(json.jsonify(message="Payment complete!"), 200)
+    else:
+        return make_response(json.jsonify(message="Payment failed.."), 400)
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

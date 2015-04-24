@@ -1,0 +1,23 @@
+Metadata-Version: 1.1
+Name: paypal
+Version: 1.2.1
+Summary: PayPal API implementation in Python.
+Home-page: http://github.com/duointeractive/paypal-python/
+Author: Gregory Taylor
+Author-email: gtaylor@gc-taylor.com
+License: Apache Software License
+Download-URL: http://pypi.python.org/pypi/paypal/
+Description: An implementation of PayPal's API in Python.
+        Currently features Direct Payment (Guest), and PayPal Express checkouts.
+        
+Keywords: paypal nvp
+Platform: Platform Independent
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

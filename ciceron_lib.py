@@ -1,4 +1,4 @@
-import hashlib, codecs, os, random, string, sys
+import hashlib, codecs, os, random, string, sys, paypal
 from flask import make_response, json, g, session, request
 from datetime import datetime
 from functools import wraps
@@ -394,3 +394,12 @@ def update_user_record(conn, client_id=None, translator_id=None):
                 WHERE id = ?""", [translator_id, translator_id, translator_id, translator_id])
 
     conn.commit()
+
+def get_paypal_interface_test():
+    configOBJ = paypal.PayPalConfig(API_USERNAME="psy2848048-facilitator_api1.gmail.com",
+                                    API_PASSWORD="MGJRN5CXRPJ5HH3T",
+                                    API_SIGNATURE="AavIMtR3zJjSZoB3Y-H2AVPEwsxFA-yDLv6u.DjuJe4xTMt5W30scxl6")
+
+    interface = paypal.PayPalInterface(config=configOBJ)
+    return interface
+
