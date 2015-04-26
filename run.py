@@ -2,7 +2,7 @@
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response
 from contextlib import closing
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time, requests, sys
+import hashlib, sqlite3, os, time, requests, sys, paypalrestsdk, logging
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
@@ -179,6 +179,15 @@ def signup():
         #registration_id = request.form.get('registration_id', None)
         #client_os = request.form.get('client_os', None)
 
+        # Duplicate check
+        cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
+        check_data = cursor.fetchall()
+        if len(check_data) > 0:
+            # Status code 400 (BAD REQUEST)
+            # Description: Duplicate ID
+            return make_response(json.jsonify(
+                message="ID %s is duplicated. Please check the email." % email), 400)
+
         # Insert values to D_USERS
         user_id = get_new_id(g.db, "D_USERS")
 
@@ -225,12 +234,12 @@ def signup():
         </form>
         '''
 
-@app.route('/idCheck', methods=['GET'])
+@app.route('/idCheck', methods=['POST'])
 @exception_detector
 def idChecker():
     # Method: GET
     # Parameter: String id
-    email = request.args['email']
+    email = request.form['email']
     print "email_id: %s" % email
     cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
     check_data = cursor.fetchall()
@@ -395,7 +404,7 @@ def requests():
         #                  If this parameter is not provided, recent 20 posts from now are returned
         
         query = """SELECT * FROM V_REQUESTS WHERE
-            (ongoing_worker_id is null AND status_id = 0 AND isSos = 'False') OR (isSos = 'True') """
+            (ongoing_worker_id is null AND status_id = 0 AND isSos = 'False' AND is_paid = 'True') OR (isSos = 'True') """
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query += " ORDER BY registered_time DESC LIMIT 20"
@@ -491,8 +500,8 @@ def requests():
                 [new_context_id, buffer(context)])
 
         g.db.execute("""INSERT INTO F_REQUESTS
-            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", 
+            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", 
                    [request_id,           # id
                     client_user_id,       # client_user_id
                     original_lang_id,     # original_lang_id
@@ -521,10 +530,15 @@ def requests():
                     new_context_id,       # context_id
                     None,                 # comment_id
                     None,                 # tone_id
-                    None])                # translatedText_id
+                    None,                 # translatedText_id
+                    False])               # is_paid
 
         update_user_record(g.db, client_id=client_user_id)
         g.db.commit()
+
+        # Marking for payment
+        session['pending_reqeust'] = request_id
+        session['token'] = random_string_gen()
 
         return make_response(json.jsonify(
             message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
@@ -551,10 +565,14 @@ def delete_requests(str_request_id):
         g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
                 [request_id, user_id])
         update_user_record(g.db, client_id=user_id)
+
+        # INSERT REFUND PART!!!
+
         g.db.commit()
 
         return make_response(json.jsonify(
             message="Request #%d is successfully deleted!" % request_id), 200)
+
 
 @app.route('/user/translations/pending', methods=["GET", "POST"])
 @login_required
@@ -926,6 +944,31 @@ def set_title_client(str_request_id):
                 [new_title_id, buffer(title_text)])
 
         g.db.execute("UPDATE F_REQUESTS SET client_title_id = ? WHERE id = ?", [new_title_id, request_id])
+
+        # Pay back part
+        cursor = g.db.execute("SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ?", [request_id])
+        rs = cursor.fetchall()
+        translator_id = rs[0][0]
+
+        cursor = g.db.execute("SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND submitted_time BETWEEN date('now', '-1 month') AND date('now')", [translator_id])
+        rs = cursor.fetchall()
+        translator_performance = rs[0][0]
+
+        # Back rate
+        back_rate = 0.0
+        if translator_performance >= 80:
+            back_rate = 0.8
+        elif translator_performance >= 60:
+            back_rate = 0.7
+        elif translator_performance >= 45:
+            back_rate = 0.65
+        elif translator_performance >= 30:
+            back_rate = 0.6
+        else:
+            back_rate = 0.55
+
+        g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=pay_amount*? WHERE request_id = ?",
+                [translator_id, False, back_rate, request_id])
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -1002,6 +1045,99 @@ def client_completed_items_detail(str_request_id):
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
 
+@app.route('/user/requests/<str_request_id>/payment/start', methods = ["POST"])
+@exception_detector
+@login_required
+def pay_for_request(str_request_id):
+    pay_via = request.args.get('pay_via')
+    request_id = int(str_request_id)
+
+    if pay_via == 'paypal':
+        # SANDBOX
+        paypalrestsdk.configure(
+                mode="sandbox",
+                client_id="Acoic-FJwf_Eiq6fkHC0NzHEnc0pBJ4ZHywiE_zXjQWtPXtrsLzQGfOaf0zAnYE30UmISe2KwIj4aWsy",
+                client_secret="ECevFP6ONiBY3vpFcVYqxxAwtBqtau4X6x96JtLxbgzK45QAWQZFfgeoKSMp5HTKPfggtLfFiMkNY9vk"
+                )
+
+        # LIVE
+        #paypalrestsdk.configure(
+        #        mode="live",
+        #        client_id="AaMMC_CcUAx4rM1NwvmJNVZf-I9xxZlyDNLmVtIxk8fqU-j-NAtqpePm7Jf6BXKzLDQuX-prHuCxxd6T",
+        #        client_secret="EDKrvTx3Y42SVEJYxbih4NZ__rohsu-YDC7njq4x8-_6Fck_fdzJBRx_bh1rB0csSBUzisicO3P_mF7l"
+        #        )
+
+        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.ERROR)
+
+        payment = paypalrestsdk.Payment({
+          "intent": "sale",
+          "payer": {
+            "payment_method": "paypal"},
+          "redirect_urls":{
+            "return_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), request.form['pay_amount']),
+            "cancel_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), request.form['pay_amount'])},
+          "transactions": [{
+            "amount": {
+            "total": request.form['pay_amount'],
+            "currency": "USD",
+            "details": {
+              "subtotal": request.form['pay_amount'],}
+            },
+          "description": "Ciceron translation request fee" }]})
+        rs = payment.create()  # return True or False
+        paypal_link = None
+        for item in payment.links:
+            if item['method'] == 'REDIRECT':
+                paypal_link = item['href']
+                break
+
+        if bool(rs) is True:
+            return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link), 200)
+        else:
+            return make_response(json.jsonify(message="Something wrong in paypal"), 400)
+
+@app.route('/user/requests/<str_reqeust_id>/payment/postprocess', methods = ["GET"])
+@exception_detector
+@login_required
+def pay_for_request_process(str_request_id):
+    request_id = int(str_request_id)
+    pay_via = request.args['pay_via']
+    is_success = True if request.args['status'] == "success" else False
+    payment_id = request.args['paymentId']
+    payer_id = request.args['PayerID']
+    token = request.args['token']
+    amount = float(request.args['pay_amt'])
+
+    if pay_via == 'paypal':
+        if token == session.get('token') and request_id == session.get('pending_reqeust') and is_success:
+            session.pop('token')
+            session.pop('pending_reqeust')
+
+            payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
+
+            g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
+
+            # Paypal payment exeuction
+            payment = paypalrestsdk.Payment.find(payment_id)
+            payment.execute({"payer_id": payer_id})
+
+            # Payment information update
+            g.db.execute("INSERT PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)",
+                    [payment_info_id, request_id, buffer(session['useremail']), buffer("paypal"), buffer(payment_id), amount])
+
+            return redirect("success")
+
+        elif token == session.get('token') and request_id == session.get('pending_reqeust') and not is_success:
+            # REDIRECT TO FAIL PAGE
+            # PAYMENT FAIL
+            return redirect("page_provided_with /user/requests/%d/payment" % request_id)
+
+        elif token != session.get('token') or request_id != session.get('pending_reqeust'):
+            # REDIRECT TO WARNING PAGE
+            # PLEASE DO NOT HACK!!!!!!!!!!!!!
+            return redirect("do_not_hack")
+
 ################################################################################
 #########                        ADMIN TOOL                            #########
 ################################################################################
@@ -1038,38 +1174,6 @@ def language_assigner():
             [new_translation_list_id, user_id, language_id])
     g.db.commit()
     return make_response(json.jsonify(message=""), 200)
-
-@app.route('/user/requests/payment', methods = ["POST"])
-@exception_detector
-@login_required
-def pay_for_request():
-    interface = get_paypal_interface_test()
-    charge = {
-                'amt': request.form['pay_amount'],                   # Amount
-                'creditcardtype': request.form['pay_cardType'],      # Card brand := Visa, MasterCard, Discover, Amex, JCB 
-                'acct': request.form['pay_cardNumber'],              # Card number
-                'expdate': request.form['pay_cardExpDateMMYYYY'],    # Expire date MMYYYY
-                'cvv2': request.form['pay_cardCVC'],                 # CVC: 3 or 4 digits written in the back of the card
-                'email': session['useremail'],
-                'firstname': request.form['pay_firstName'],          # First name
-                'lastname': request.form['pay_lastName'],            # Last name
-                'street': request.form['pay_addressStreet'],         # Address: Street
-                'street2': request.form.get('pay_addressStreet2'),   # Address: Rest of your address
-                'city': request.form['pay_addressCity'],             # Address: City
-                'state': request.form['pay_addressState'],           # Address: State
-                'zip': request.form['pay_addressZipcode'],           # Address: Zipcode
-                'countrycode': request.form['pay_countryCode'],      # Address: Country code := US, KR, JP, CN, ...
-                'currencycode': 'USD'                                # Currency: Fixed to USD
-            }
-    try:
-        rs = interface.do_direct_payment(**charge)
-    except paypal.PayPalAPIResponseError as e:
-        return make_response(json.jsonify(message=str(e)), 400)
-
-    if bool(rs) is True:
-        return make_response(json.jsonify(message="Payment complete!"), 200)
-    else:
-        return make_response(json.jsonify(message="Payment failed.."), 400)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

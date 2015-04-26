@@ -630,19 +630,35 @@ class CiceronTestCase(unittest.TestCase):
         	    )
 
         rv = self.app.post('/user/requests/payment',
+                #data=dict(
+                #    pay_amount='1.32',                   # Amount
+                #    pay_cardType='visa',     # Card brand := Visa, MasterCard, Discover, Amex, JCB
+                #    pay_cardNumber='4032035569967870',              # Card number
+                #    pay_cardExpDateMM='03',    # Expire date MMYYYY
+                #    pay_cardExpDateYYYY='2020',
+                #    pay_cardCVC='012',                 # CVC: 3 or 4 digits written in the back of the card
+                #    pay_firstName='Buyer',          # First name
+                #    pay_lastName='Lee',            # Last name
+                #    pay_addressStreet='Baekjae',     # Address: Street and the rest of your address
+                #    pay_addressCity='Seoul',         # Address: City
+                #    pay_addressState='CA',       # Address: State
+                #    pay_addressZipcode=15900,       # Address: Zipcode
+                #    pay_countryCode='US'      # Address: Country code := US, KR, JP, CN, ...
+                #    ))
                 data=dict(
                     pay_amount='1.32',                   # Amount
-                    pay_cardType='Visa',     # Card brand := Visa, MasterCard, Discover, Amex, JCB
-                    pay_cardNumber='4032035569967870',              # Card number
-                    pay_cardExpDateMMYYYY='032020',    # Expire date MMYYYY
-                    pay_cardCVC='012',                 # CVC: 3 or 4 digits written in the back of the card
-                    pay_firstName='Buyer',          # First name
+                    pay_cardType='visa',     # Card brand := Visa, MasterCard, Discover, Amex, JCB
+                    pay_cardNumber='4902208202303251',              # Card number
+                    pay_cardExpDateMM='03',    # Expire date MMYYYY
+                    pay_cardExpDateYYYY='2019',
+                    pay_cardCVC='213',                 # CVC: 3 or 4 digits written in the back of the card
+                    pay_firstName='Jun hang',          # First name
                     pay_lastName='Lee',            # Last name
-                    pay_addressStreet='Baekjae',     # Address: Street and the rest of your address
+                    pay_addressStreet='Baejaegobun 19th Room302',     # Address: Street and the rest of your address
                     pay_addressCity='Seoul',         # Address: City
-                    pay_addressState='CA',       # Address: State
-                    pay_addressZipcode=15900,       # Address: Zipcode
-                    pay_countryCode='US'      # Address: Country code := US, KR, JP, CN, ...
+                    pay_addressState='N/A',       # Address: State
+                    pay_addressZipcode='138864',       # Address: Zipcode
+                    pay_countryCode='KR'      # Address: Country code := US, KR, JP, CN, ...
                     ))
         print rv.data
 

@@ -177,6 +177,20 @@ id INT, -- D_USER
 amount DECIMAL(10,2)
 );
 
+CREATE TABLE PAYMENT_INFO (
+    id INT,
+    request_id INT,
+    client_id INT,
+    payed_via STRING,
+    order_no STRING,
+    pay_amount DOUBLE,
+    payed_time TIMESTAMP,
+    translator_id INT,
+    is_payed_back BOOL,
+    back_amount DOUBLE,
+    back_time TIMESTAMP
+);
+
 CREATE VIEW V_REQUESTS as
   SELECT
     -- Client
