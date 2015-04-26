@@ -78,8 +78,8 @@ class CiceronTestCase(unittest.TestCase):
     def test_idChecker(self):
         print ("=================test-nickchecker====================")
         
-        rv = self.app.get('/idCheck?email=psy2848048@gmail.com')
-        print (rv)
+        rv = self.app.post('/idCheck', data=dict(email='psy2848048@gmail.com'))
+        print rv.data
         assert 'You may use' in  rv.data
         
         self.signUp(email="psy2848048@gmail.com",
@@ -87,8 +87,8 @@ class CiceronTestCase(unittest.TestCase):
         	    name="CiceronMaster",
         	    mother_language_id=0)
         
-        rv = self.app.get('/idCheck?email=psy2848048@gmail.com')
-        print (rv)
+        rv = self.app.post('/idCheck', data=dict(email='psy2848048@gmail.com'))
+        print rv.data
         assert 'Duplicated' in  rv.data
 
     def test_login_decorator(self):
@@ -271,6 +271,18 @@ class CiceronTestCase(unittest.TestCase):
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
         	    name="CiceronUser",
         	    mother_language_id=2)
+
+        self.signUp(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$",
+        	    name="AdminCiceron",
+        	    mother_language_id=0)
+        self.login(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$"
+        	    )
+        rv = self.app.post('/language_assigner', data=dict(email='jun.hang.lee@sap.com', language=0))
+        print rv.data
+        self.app.get('/logout')
+
         self.login(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
@@ -369,13 +381,28 @@ class CiceronTestCase(unittest.TestCase):
 
         print "Attempt to translate what he/she requested"
 
-        rv = self.app.post('/user/translations/pending/0')
+        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
+        print rv.data
+
+        rv = self.app.get('/user/requests/pending')
+        print rv.data
+
+        rv = self.app.get('/user/requests/pending/0')
         print rv.data
         
         self.signUp(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
         	    name="CiceronUser",
         	    mother_language_id=2)
+        self.signUp(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$",
+        	    name="AdminCiceron",
+        	    mother_language_id=0)
+        self.login(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$"
+        	    )
+        rv = self.app.post('/language_assigner', data=dict(email='jun.hang.lee@sap.com', language=0))
+        print rv.data
         self.login(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
@@ -384,11 +411,11 @@ class CiceronTestCase(unittest.TestCase):
             user_isTranslator=1))
 
         print "Line in the queue"
-        rv = self.app.post('/user/translations/pending/0')
+        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
         print rv.data
 
         print "Try to line in the double-queue"
-        rv = self.app.post('/user/translations/pending/0')
+        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
         print rv.data
 
         print "Dequeue"
@@ -400,7 +427,7 @@ class CiceronTestCase(unittest.TestCase):
         print rv.data
 
         print "Line in the queue"
-        rv = self.app.post('/user/translations/pending/0')
+        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
         print rv.data
 
         print "Queue list"
@@ -521,7 +548,7 @@ class CiceronTestCase(unittest.TestCase):
         print rv.data
 
         print "Delete group #0"
-        rv = self.app.delete('/user/requests/complete/groups?group_id=0')
+        rv = self.app.delete('/user/requests/complete/groups/0')
         print rv.data
 
         print "Create group #2: Client"
@@ -531,7 +558,7 @@ class CiceronTestCase(unittest.TestCase):
         print rv.data
 
         print "Delete group #2"
-        rv = self.app.delete('/user/requests/complete/groups?group_id=2')
+        rv = self.app.delete('/user/requests/complete/groups/2')
         rv = self.app.get('/user/requests/complete/groups')
         print rv.data
 
@@ -569,7 +596,7 @@ class CiceronTestCase(unittest.TestCase):
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
                 request_targetLang=2,
-                request_isSos=False,
+                request_isSos=True,
                 request_format=0,
                 request_subject=0,
                 request_registeredTime=datetime.datetime.now(),
@@ -590,6 +617,14 @@ class CiceronTestCase(unittest.TestCase):
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
         	    name="CiceronUser",
         	    mother_language_id=2)
+        self.signUp(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$",
+        	    name="AdminCiceron",
+        	    mother_language_id=0)
+        self.login(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$"
+        	    )
+        rv = self.app.post('/language_assigner', data=dict(email='jun.hang.lee@sap.com', language=0))
         self.login(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
@@ -628,38 +663,41 @@ class CiceronTestCase(unittest.TestCase):
         self.login(email="psy2848048@gmail.com",
         	    password="ciceron!"
         	    )
+        text = "This is test text\nAnd I donno how to deal with"
+        rv = self.app.post('/requests', data=dict(
+        		request_clientId="psy2848048@gmail.com",
+                request_originalLang=0,
+                request_targetLang=1,
+                request_isSos=False,
+                request_format=0,
+                request_subject=0,
+                request_registeredTime=datetime.datetime.now(),
+                request_isText=True,
+                request_text = text,
+                request_isPhoto=False,
+                request_isSound=False,
+                request_isFile=False,
+                request_words=len(text.split(' ')),
+                request_dueTime=datetime.datetime.now() + datetime.timedelta(days=5),
+        		request_points=0.50,
+                request_context=""
+        		))
+        print "Before payment"
+        rv = self.app.get('/requests')
+        print rv.data
 
-        rv = self.app.post('/user/requests/payment',
-                #data=dict(
-                #    pay_amount='1.32',                   # Amount
-                #    pay_cardType='visa',     # Card brand := Visa, MasterCard, Discover, Amex, JCB
-                #    pay_cardNumber='4032035569967870',              # Card number
-                #    pay_cardExpDateMM='03',    # Expire date MMYYYY
-                #    pay_cardExpDateYYYY='2020',
-                #    pay_cardCVC='012',                 # CVC: 3 or 4 digits written in the back of the card
-                #    pay_firstName='Buyer',          # First name
-                #    pay_lastName='Lee',            # Last name
-                #    pay_addressStreet='Baekjae',     # Address: Street and the rest of your address
-                #    pay_addressCity='Seoul',         # Address: City
-                #    pay_addressState='CA',       # Address: State
-                #    pay_addressZipcode=15900,       # Address: Zipcode
-                #    pay_countryCode='US'      # Address: Country code := US, KR, JP, CN, ...
-                #    ))
+        rv = self.app.post('/user/requests/0/payment/start',
                 data=dict(
-                    pay_amount='1.32',                   # Amount
-                    pay_cardType='visa',     # Card brand := Visa, MasterCard, Discover, Amex, JCB
-                    pay_cardNumber='4902208202303251',              # Card number
-                    pay_cardExpDateMM='03',    # Expire date MMYYYY
-                    pay_cardExpDateYYYY='2019',
-                    pay_cardCVC='213',                 # CVC: 3 or 4 digits written in the back of the card
-                    pay_firstName='Jun hang',          # First name
-                    pay_lastName='Lee',            # Last name
-                    pay_addressStreet='Baejaegobun 19th Room302',     # Address: Street and the rest of your address
-                    pay_addressCity='Seoul',         # Address: City
-                    pay_addressState='N/A',       # Address: State
-                    pay_addressZipcode='138864',       # Address: Zipcode
-                    pay_countryCode='KR'      # Address: Country code := US, KR, JP, CN, ...
+                    pay_amount=1.32,                   # Amount
+                    pay_via='paypal'
                     ))
+        print rv.data
+        response_temp = json.loads(rv.data)
+
+        print response_temp['redirect_url']
+
+        rv = self.app.get(response_temp['redirect_url'])
+        rv = self.app.get('/requests')
         print rv.data
 
 if __name__ == "__main__":

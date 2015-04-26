@@ -1,5 +1,5 @@
 import hashlib, codecs, os, random, string, sys, paypalrestsdk
-from flask import make_response, json, g, session, request
+from flask import make_response, json, g, session, request, current_app
 from datetime import datetime
 from functools import wraps
 
@@ -120,6 +120,25 @@ def get_group_id_from_user_and_text(conn, user_id, text, table):
     else:
         return rs[0][0]
 
+def parameter_to_bool(value):
+    if value in ['True', 'true', 1, '1', True]:
+        return True
+    else:
+        return False
+
+def bool_value_converter(array):
+    new_list = []
+    for item in array:
+        if type(item) == 'bool':
+            if item == True:
+                new_list.append(1)
+            else:
+                new_list.append(0)
+        else:
+            new_list.append(item)
+
+    return new_list
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -135,7 +154,7 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('useremail') is "admin@ciceron.me":
+        if session.get('useremail') == "admin@ciceron.me":
             return f(*args, **kwargs)
         else:
             return make_response(json.jsonify(
@@ -152,12 +171,8 @@ def exception_detector(f):
         except Exception as e:
             print e
             g.db.rollback()
-            return make_response(
-                    json.jsonify(
-                       message = e
-                       ),
-                    500
-                   )
+            return make_response(json.jsonify(message=str(e)),500)
+
     return decorated_function
 
 def translator_checker(f):
@@ -185,14 +200,37 @@ def word_counter(filePathName):
 
     return words
 
+def crossdomain(f, origin='*', methods=None, headers=None,
+                max_age=21600, attach_to_all=True,
+                automatic_options=True):
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        if automatic_options and request.method == 'OPTIONS':
+            resp = current_app.make_default_options_response()
+        else:
+            resp = make_response(f(*args, **kwargs))
+        if not attach_to_all and request.method != 'OPTIONS':
+            return resp
+
+        h = resp.headers
+
+        h['Access-Control-Allow-Origin'] = origin
+        h['Access-Control-Max-Age'] = str(max_age)
+        if headers is not None:
+            h['Access-Control-Allow-Headers'] = headers
+        return resp
+
+        return f(*args, **kwargs)
+    return decorator
+
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     result = []
 
     for row in rs:
+        request_id = row[0]
         # For fetching translators in queue
-        queue_id = row[23]
-        cursor2 = conn.execute("SELECT * FROM V_QUEUE_LISTS WHERE id = ? ORDER BY user_id",
-                [queue_id])
+        cursor2 = conn.execute("SELECT * FROM V_QUEUE_LISTS WHERE request_id = ? ORDER BY user_id",
+                [request_id])
 
         queue_list = []
         for q_item in cursor2.fetchall():
@@ -211,7 +249,6 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         else:
             num_of_words = word_counter(list_txt[0][0])
 
-
         item = dict(
                 request_id=row[0],
                 request_clientId=str(row[2]),
@@ -219,67 +256,74 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_clientPicPath=str(row[4]) if row[4] is not None else None,
                 request_originalLang=row[13],
                 request_targetLang=row[15],
-                request_isSos= True if row[17] == "True" else False,
+                request_isSos= True if row[17] == 1 else False,
                 request_format=row[19],
                 request_subject=row[21],
-                request_translatorsInQueue=queue_list,
-                request_isTransOngoing=row[18],
-                request_ongoingWorkerId=str(row[6]) if row[6] is not None else None,
-                request_ongoingWorkerName=str(row[7]) if row[7] is not None else None,
-                request_ongoingWorkerPicPath=str(row[8]) if row[8] is not None else None,
+                request_isText= True if row[29] == 1 else False,
+                request_text=get_main_text(g.db, row[30], "D_REQUEST_TEXTS"),
+                request_isPhoto= True if row[31] == 1 else False,
+                request_photoPath=get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS"),
+                request_isSound= True if row[33] == 1 else False,
+                request_soundPath=get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS"),
+                request_isFile= True if row[35] == 1 else False,
+                request_filePath=get_path_from_id(g.db, row[34], "D_REQUEST_FILES"),
+                request_context=None, # For marking
+                request_status=row[18],
                 request_registeredTime=row[24],
-                request_isText= True if row[29] == "True" else False,
-                request_isPhoto= True if row[31] == "True" else False,
-                request_isSound= True if row[33] == "True" else False,
-                request_isFile= True if row[35] == "True" else False,
-                reqeust_words=num_of_words,
                 request_dueTime=row[27],
-                request_points=row[28]
+                request_expectedTime=row[25],
+                reqeust_words=num_of_words,
+                request_points=row[28],
+                request_translatorsInQueue=queue_list,
+                request_translatorId=str(row[6]) if row[6] is not None else None,
+                request_translatorName=str(row[7]) if row[7] is not None else None,
+                request_translatorPicPath=str(row[8]) if row[8] is not None else None,
+                request_translatorBadgeList=None,  # For marking
+                request_translatedText=None, # For marking
+                request_translatorComment=str(row[40]) if row[40] is not None else None,
+                request_translatedTone= str(row[42]) if row[42] is not None else None,
+                request_submittedTime=row[26],
+                request_feedbackScore=row[54],
+                request_title=None # For marking
             )
 
         if purpose == "newsfeed":
             # Show context if normal request, or show main text
-            text_appear = None
-            if row[17] == "True":
-                item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+            if row[17] == 1: # True
+                item['request_context'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
                 item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
             else:
-                item['request_text'] = str(row[38]) if row[38] is not None else None
+                item['request_context']=str(row[38]) if row[38] is not None else None
+                item['request_text']=None
+
+            item['request_photoPath']=None
+            item['request_soundPath']=None
+            item['request_filePath']=None
+
+        elif purpose == "pending_client":
+            # Show context if normal request, or show main text
+            if row[17] == 1: # True
+                item['request_context'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+                item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
+            else:
+                item['request_context']=str(row[38]) if row[38] is not None else None
+                item['request_text']=None
 
         elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
-            item.pop('request_translatorsInQueue')
-            item.pop('request_isTransOngoing')
-            item.pop('request_ongoingWorkerId')
-            item.pop('request_ongoingWorkerName')
-            item.pop('request_ongoingWorkerPicPath')
-
-            if row[17] == "False":
+            if row[17] == 0: # False
                 item['request_context'] = str(row[38]) if row[38] is not None else None
-            item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
-            item['request_comment'] = str(row[40]) if row[40] is not None else None
-            item['request_tone'] = str(row[42]) if row[42] is not None else None
             item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
-
-            item['request_photoPath'] = get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS")
-            item['request_soundPath'] = get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS")
-            item['request_filePath']  = get_path_from_id(g.db, row[34], "D_REQUEST_FILES")
             item['request_title']=str(row[46]) if row[46] is not None else None
-            item['request_submittedTime'] = row[26]
 
         elif purpose == "ongoing_client":
-            if row[17] == "False":
+            if row[17] == 0: # False
                 item['request_context'] = str(row[38]) if row[38] is not None else None
-            item['request_text'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
-
-            item['request_photoPath'] = get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS")
-            item['request_soundPath'] = get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS")
-            item['request_filePath']  = get_path_from_id(g.db, row[34], "D_REQUEST_FILES")
 
         if purpose.startswith('complete') or purpose.startswith('ongoing'):
             # For getting translator's badges
             cursor2 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM D_USERS WHERE email = ? LIMIT 1)", [buffer(row[6])])
             badge_list = [ row[0] for row in cursor2.fetchall() ]
-            item['translator_achievement'] = badge_list
+            item['request_translatorBadgeList'] = badge_list
 
         result.append(item)
 

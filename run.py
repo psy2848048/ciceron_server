@@ -6,6 +6,7 @@ import hashlib, sqlite3, os, time, requests, sys, paypalrestsdk, logging
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
+from gcm import GCM
 from ciceron_lib import *
 
 DATABASE = '../db/ciceron.db'
@@ -55,6 +56,7 @@ def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
 @app.route('/')
+@crossdomain
 @exception_detector
 def loginCheck():
     if 'useremail' in session:
@@ -79,6 +81,7 @@ def loginCheck():
 
 @app.route('/login', methods=['POST', 'GET'])
 @exception_detector
+@crossdomain
 def login():
     if request.method == "POST":
         # Parameter
@@ -138,6 +141,7 @@ def login():
         return make_response(json.jsonify(identifier=salt), 200)
 
 @app.route('/logout')
+@crossdomain
 @exception_detector
 def logout():
     # No parameter needed
@@ -158,6 +162,7 @@ def logout():
                ), 403)
 
 @app.route('/signup', methods=['POST', 'GET'])
+@crossdomain
 @exception_detector
 def signup():
     # Request method: POST
@@ -176,8 +181,6 @@ def signup():
         facebook_id = request.form.get('facebook_id', None)
         name = request.form['name']
         mother_language_id = int(request.form['mother_language_id'])
-        #registration_id = request.form.get('registration_id', None)
-        #client_os = request.form.get('client_os', None)
 
         # Duplicate check
         cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
@@ -192,7 +195,7 @@ def signup():
         user_id = get_new_id(g.db, "D_USERS")
 
         print "New user id: %d" % user_id
-        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [user_id,
                  buffer(email),
                  buffer(name),
@@ -206,7 +209,6 @@ def signup():
                  0,
                  0,
                  0,
-                 None,
                  None,
                  buffer("nothing")])
 
@@ -235,6 +237,7 @@ def signup():
         '''
 
 @app.route('/idCheck', methods=['POST'])
+@crossdomain
 @exception_detector
 def idChecker():
     # Method: GET
@@ -255,6 +258,7 @@ def idChecker():
             message="Duplicated ID '%s'" % email), 400)
 
 @app.route('/user/profile', methods = ['GET', 'POST'])
+@crossdomain
 @login_required
 @exception_detector
 def user_profile():
@@ -317,8 +321,8 @@ def user_profile():
             user_numOfTranslationOngoing=   userinfo[0][11],
             user_numOfTranslationCompleted= userinfo[0][12],
             user_badgeList=                 badgeList,
-            user_isTranslator=              userinfo[0][4],
-            user_profileText=               str(userinfo[0][15])
+            user_isTranslator=              True if userinfo[0][4] == 1 else False,
+            user_profileText=               str(userinfo[0][14])
             )
 
         if is_your_profile == True:
@@ -336,7 +340,6 @@ def user_profile():
         # Get parameter value
         profileText = request.form.get('user_profileText', None)
         profile_pic = request.files.get('photo', None)
-        #is_translator = request.form.get('user_isTranslator', None)
 
         # Start logic
         # Get user number
@@ -395,6 +398,7 @@ def user_profile():
 #            '''
 
 @app.route('/requests', methods=["GET", "POST"])
+@crossdomain
 @exception_detector
 def requests():
     if request.method == "GET":
@@ -404,7 +408,7 @@ def requests():
         #                  If this parameter is not provided, recent 20 posts from now are returned
         
         query = """SELECT * FROM V_REQUESTS WHERE
-            (ongoing_worker_id is null AND status_id = 0 AND isSos = 'False' AND is_paid = 'True') OR (isSos = 'True') """
+            (ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1) """
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query += " ORDER BY registered_time DESC LIMIT 20"
@@ -423,19 +427,19 @@ def requests():
         client_user_id = get_user_id(g.db, request.form['request_clientId'])
         original_lang_id = request.form['request_originalLang']
         target_lang_id = request.form['request_targetLang']
-        isSos = request.form['request_isSos']
+        isSos = parameter_to_bool(request.form['request_isSos'])
         format_id = request.form.get('request_format')
         subject_id = request.form.get('request_subject')
         registered_time = request.form['request_registeredTime']
-        is_text = request.form.get('request_isText', False)
-        text_string = request.form.get('request_text', False)
-        is_photo = request.form.get('request_isPhoto', False)
+        is_text = parameter_to_bool(request.form.get('request_isText', False))
+        text_string = request.form.get('request_text')
+        is_photo = parameter_to_bool(request.form.get('request_isPhoto', False))
         #photo_binary
-        is_sound = request.form.get('request_isSound', False)
+        is_sound = parameter_to_bool(request.form.get('request_isSound', False))
         #sound_binary
-        is_file = request.form.get('request_isFile', False)
+        is_file = parameter_to_bool(request.form.get('request_isFile', False))
         #file_binary
-        words = request.form.get('reqeust_words')
+        words = request.form.get('reqeust_words', 0)
         due_time = request.form['request_dueTime']
         point = request.form.get('request_points')
         context = request.form.get('request_context')
@@ -444,6 +448,7 @@ def requests():
         new_sound_id = None
         new_file_id = None
         new_text_id = None
+        is_paid = True if isSos == True else False
 
         # Upload binaries into file and update each dimension table
         if (request.files.get('request_photo') is not None):
@@ -502,17 +507,18 @@ def requests():
         g.db.execute("""INSERT INTO F_REQUESTS
             (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", 
-                   [request_id,           # id
-                    client_user_id,       # client_user_id
-                    original_lang_id,     # original_lang_id
-                    target_lang_id,       # target_lang_id
-                    isSos,                # isSOS
+            bool_value_converter([
+                    request_id,                       # id
+                    client_user_id,                   # client_user_id
+                    original_lang_id,                 # original_lang_id
+                    target_lang_id,                   # target_lang_id
+                    isSos,                            # isSOS
                     0,                    # status_id
                     format_id,            # format_id
                     subject_id,           # subject_id
                     None,                 # queue_id
                     None,                 # ongoing_worker_id
-                    is_text,              # is_text
+                    is_text,     # is_text
                     new_text_id,          # text_id
                     is_photo,             # is_photo
                     new_photo_id,         # photo_id
@@ -531,7 +537,7 @@ def requests():
                     None,                 # comment_id
                     None,                 # tone_id
                     None,                 # translatedText_id
-                    False])               # is_paid
+                    is_paid]))               # is_paid
 
         update_user_record(g.db, client_id=client_user_id)
         g.db.commit()
@@ -545,6 +551,7 @@ def requests():
             ), 200)
 
 @app.route('/requests/<str_request_id>', methods=["DELETE"])
+@crossdomain
 @login_required
 @exception_detector
 def delete_requests(str_request_id):
@@ -575,6 +582,7 @@ def delete_requests(str_request_id):
 
 
 @app.route('/user/translations/pending', methods=["GET", "POST"])
+@crossdomain
 @login_required
 @exception_detector
 @translator_checker
@@ -586,7 +594,7 @@ def show_queue():
 
         my_user_id = get_user_id(g.db, session['useremail'])
         query_pending = """SELECT * FROM V_REQUESTS 
-            WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
+            WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1 """
         if 'since' in request.args.keys():
             query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query_pending += "ORDER BY registered_time DESC LIMIT 20"
@@ -607,9 +615,9 @@ def show_queue():
 
         # Translators in queue
         # Get request ID
-        request_id = int(str_request_id)
+        request_id = int(request.form['request_id'])
         translator_email = request.form.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
-        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
+        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
         rs = cursor.fetchall()
 
         if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 406)
@@ -651,6 +659,7 @@ def show_queue():
             ), 200)
 
 @app.route('/user/translations/pending/<str_request_id>', methods=["DELETE"])
+@crossdomain
 @login_required
 @translator_checker
 @exception_detector
@@ -658,7 +667,7 @@ def work_in_queue(str_request_id):
     if request.method == "DELETE":
         request_id = int(str_request_id)
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT count(*) FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?",
+        cursor = g.db.execute("SELECT count(*) FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ? ",
                 [request_id, my_user_id])
         rs = cursor.fetchall()
         if len(rs) == 0 or rs[0][0] == 0:
@@ -666,12 +675,13 @@ def work_in_queue(str_request_id):
                        (message="You are not in the queue of request ID #%d" % request_id),
                    204)
             
-        g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ?", [request_id, my_user_id])
+        g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ? ", [request_id, my_user_id])
         update_user_record(g.db, translator_id=my_user_id)
 
         return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
 
 @app.route('/user/translations/ongoing', methods=['GET', 'POST'])
+@crossdomain
 @login_required
 @translator_checker
 @exception_detector
@@ -711,7 +721,7 @@ def pick_request():
         # Parameters
         #     since (optional): Timestamp integer
 
-        query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? """
+        query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND is_paid = 1 """
         if 'since' in request.args.keys():
             query_ongoing += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query_ongoing += "ORDER BY registered_time DESC LIMIT 20"
@@ -724,13 +734,14 @@ def pick_request():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
+@crossdomain
 @exception_detector
 @translator_checker
 @login_required
 def working_translate_item(str_request_id):
     if request.method == "GET":
         request_id = int(str_request_id)
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ?", [request_id])
+        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? AND is_paid = 1 ", [request_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
@@ -743,13 +754,14 @@ def working_translate_item(str_request_id):
             ), 200)
 
 @app.route('/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
+@crossdomain
 @exception_detector
 @translator_checker
 @login_required
 def expected_time(str_request_id):
     if request.method == "GET":
         request_id = int(str_request_id)
-        cursor = g.db.execute("SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ?", [request_id])
+        cursor = g.db.execute("SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 ", [request_id])
         rs = cursor.fetchall()
         return make_response(json.jsonify(default_dueTime=rs[0][0]), 200)
 
@@ -766,7 +778,7 @@ def expected_time(str_request_id):
         g.db.execute("UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = ?",
                 [request_id])
 
-        cursor = g.db.execute("SELECT client_user_id FROM F_REQUESTS WHERE id = ?", [request_id])
+        cursor = g.db.execute("SELECT client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
         client_user_id = cursor.fetchall()[0][0]
         translator_user_id = get_user_id(g.db, session['useremail'])
         update_user_record(g.db, client_id=client_user_id, translator_id=translator_user_id)
@@ -774,6 +786,7 @@ def expected_time(str_request_id):
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
 @app.route('/user/translations/complete/<str_request_id>', methods=["POST"])
+@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -782,7 +795,7 @@ def post_translate_item(str_request_id):
     save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
-    cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
+    cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 ", [request_id])
     rs = cursor.fetchall()
 
     requester_id = rs[0][0]
@@ -811,18 +824,20 @@ def post_translate_item(str_request_id):
         ), 200)
 
 @app.route('/user/translations/complete/<str_request_id>', methods = ["GET"])
+@crossdomain
 @exception_detector
 @login_required
 @translator_checker
 def translation_completed_items_detail(str_request_id):
     request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? LIMIT 1", [request_id, user_id])
+    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1", [request_id, user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/translations/complete', methods = ["GET"])
+@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -830,7 +845,7 @@ def translation_completed_items_all():
     since = request.args.get('since', None)
     user_id = get_user_id(g.db, session['useremail'])
 
-    query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? "
+    query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? AND is_paid = 1 "
     if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
     query += " ORDER BY request_id LIMIT 20"
 
@@ -840,6 +855,7 @@ def translation_completed_items_all():
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/translations/complete/<str_request_id>/title', methods = ["POST"])
+@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -871,6 +887,7 @@ def set_title_translator(str_request_id):
             405)
 
 @app.route('/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
+@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -887,6 +904,7 @@ def translators_complete_groups():
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["DELETE", "PUT"])
+@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -905,6 +923,7 @@ def modify_translators_complete_groups(str_group_id):
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
+@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -921,13 +940,68 @@ def translation_completed_items_in_group(str_group_id):
     elif request.method == "GET":
         group_id = int(str_group_id)
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? ",
+        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? AND is_paid = 1 ",
             [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
         return make_response(json.jsonify(data=result), 200)
 
+@app.route('/user/requests/pending', methods=["GET"])
+@crossdomain
+@exception_detector
+@login_required
+def show_pending_list_client():
+    if request.method == "GET":
+        user_id = get_user_id(g.db, session['useremail'])
+        query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0"
+        cursor = g.db.execute(query, [user_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
+        return make_response(json.jsonify(data=result), 200)
+
+@app.route('/user/requests/pending/<str_request_id>', methods=["GET"])
+@crossdomain
+@exception_detector
+@login_required
+def show_pending_item_client(str_request_id):
+    if request.method == "GET":
+        user_id = get_user_id(g.db, session['useremail'])
+        request_id = int(str_request_id)
+        query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+        cursor = g.db.execute(query, [request_id, user_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
+        return make_response(json.jsonify(data=result), 200)
+
+@app.route('/user/requests/ongoing', methods=["GET"])
+@crossdomain
+@exception_detector
+@login_required
+def show_ongoing_list_client():
+    if request.method == "GET":
+        user_id = get_user_id(g.db, session['useremail'])
+        query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 is_paid = 1 "
+        cursor = g.db.execute(query, [user_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
+        return make_response(json.jsonify(data=result), 200)
+
+@app.route('/user/requests/ongoing/<str_request_id>', methods=["GET"])
+@crossdomain
+@exception_detector
+@login_required
+def show_ongoing_item_client(str_request_id):
+    if request.method == "GET":
+        user_id = get_user_id(g.db, session['useremail'])
+        request_id = int(str_request_id)
+        query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 AND is_paid = 1 "
+        cursor = g.db.execute(query, [request_id, user_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
+        return make_response(json.jsonify(data=result), 200)
+
 @app.route('/user/requests/complete/<str_request_id>/title', methods=["POST"])
+@crossdomain
 @exception_detector
 @login_required
 def set_title_client(str_request_id):
@@ -946,11 +1020,11 @@ def set_title_client(str_request_id):
         g.db.execute("UPDATE F_REQUESTS SET client_title_id = ? WHERE id = ?", [new_title_id, request_id])
 
         # Pay back part
-        cursor = g.db.execute("SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ?", [request_id])
+        cursor = g.db.execute("SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
         rs = cursor.fetchall()
         translator_id = rs[0][0]
 
-        cursor = g.db.execute("SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND submitted_time BETWEEN date('now', '-1 month') AND date('now')", [translator_id])
+        cursor = g.db.execute("SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND is_paid = 1 AND submitted_time BETWEEN date('now', '-1 month') AND date('now')", [translator_id])
         rs = cursor.fetchall()
         translator_performance = rs[0][0]
 
@@ -981,6 +1055,7 @@ def set_title_client(str_request_id):
             405)
 
 @app.route('/user/requests/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
+@crossdomain
 @exception_detector
 @login_required
 def client_complete_groups():
@@ -996,6 +1071,7 @@ def client_complete_groups():
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
 @app.route('/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
+@crossdomain
 @exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
@@ -1014,6 +1090,7 @@ def modify_client_completed_groups(str_group_id):
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
 
 @app.route('/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
+@crossdomain
 @exception_detector
 @login_required
 def client_completed_items_in_group(str_group_id):
@@ -1029,28 +1106,31 @@ def client_completed_items_in_group(str_group_id):
     elif request.method == "GET":
         group_id = int(str_group_id)
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? ORDER BY request_id DESC",
+        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? AND is_paid = 1 ORDER BY request_id DESC",
             [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/complete/<str_request_id>', methods = ["GET"])
+@crossdomain
 @exception_detector
 @login_required
 def client_completed_items_detail(str_request_id):
     request_id = int(str_request_id)
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? LIMIT 1", [request_id])
+    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND is_paid = 1 ", [request_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/<str_request_id>/payment/start', methods = ["POST"])
+@crossdomain
 @exception_detector
 @login_required
 def pay_for_request(str_request_id):
-    pay_via = request.args.get('pay_via')
+    pay_via = request.form.get('pay_via')
     request_id = int(str_request_id)
+    amount = float(request.form['pay_amount'])
 
     if pay_via == 'paypal':
         # SANDBOX
@@ -1075,16 +1155,16 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), request.form['pay_amount']),
-            "cancel_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), request.form['pay_amount'])},
+            "return_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount),
+            "cancel_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)},
           "transactions": [{
             "amount": {
-            "total": request.form['pay_amount'],
+            "total": amount,
             "currency": "USD",
             "details": {
-              "subtotal": request.form['pay_amount'],}
-            },
-          "description": "Ciceron translation request fee" }]})
+              "subtotal": amount
+            }},
+          "description": "Ciceron translation request fee USD: %f" % amount }]})
         rs = payment.create()  # return True or False
         paypal_link = None
         for item in payment.links:
@@ -1092,12 +1172,14 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
+        red_link = "/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)
         if bool(rs) is True:
-            return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link), 200)
+            return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
             return make_response(json.jsonify(message="Something wrong in paypal"), 400)
 
-@app.route('/user/requests/<str_reqeust_id>/payment/postprocess', methods = ["GET"])
+@app.route('/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
+@crossdomain
 @exception_detector
 @login_required
 def pay_for_request_process(str_request_id):
@@ -1107,7 +1189,7 @@ def pay_for_request_process(str_request_id):
     payment_id = request.args['paymentId']
     payer_id = request.args['PayerID']
     token = request.args['token']
-    amount = float(request.args['pay_amt'])
+    amount = float(request.args.get('pay_amt'))
 
     if pay_via == 'paypal':
         if token == session.get('token') and request_id == session.get('pending_reqeust') and is_success:
@@ -1126,7 +1208,9 @@ def pay_for_request_process(str_request_id):
             g.db.execute("INSERT PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)",
                     [payment_info_id, request_id, buffer(session['useremail']), buffer("paypal"), buffer(payment_id), amount])
 
-            return redirect("success")
+            g.db.commit()
+            #return redirect("success")
+            return make_response("success", 200)
 
         elif token == session.get('token') and request_id == session.get('pending_reqeust') and not is_success:
             # REDIRECT TO FAIL PAGE
@@ -1138,11 +1222,35 @@ def pay_for_request_process(str_request_id):
             # PLEASE DO NOT HACK!!!!!!!!!!!!!
             return redirect("do_not_hack")
 
+@app.route('/user/device', methods = ["POST"])
+@crossdomain
+@exception_detector
+@login_required
+def register_or_update_register_id():
+    device_os = request.form['user_deviceOS']
+    reg_key = request.form['user_regKey']
+    user_id = get_user_id(g.db, session['useremail'])
+
+    record_id = get_new_id(g.db, "D_MACHINES")
+    cursor = g.db.execute("SELECT count(*) FROM D_MACHINES WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?"
+            [buffer(device_os), user_id])
+    num = cursor.fetchall()[0][0]
+
+    if num == 0:
+        g.db.execute("INSERT INTO D_MACHINES VALUES (?, ?, (SELECT id FROM D_MACHINE_OSS WHERE text = ?), ?)",
+            [record_id, user_id, buffer(device_os), buffer(reg_key)])
+    else:
+        g.db.execute("UPDATE D_MACHINES SET reg_key = ? WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?",
+            [buffer(reg_key), buffer(device_os), user_id])
+
+    return make_response(json.jsonify(message="Succefully updated/inserted"), 200)
+
 ################################################################################
 #########                        ADMIN TOOL                            #########
 ################################################################################
 
 @app.route('/publicize', methods = ["GET"])
+@crossdomain
 @exception_detector
 @admin_required
 def publicize():
@@ -1155,14 +1263,14 @@ def publicize():
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
-@app.route('/language_assigner', methods = ["GET"])
+@app.route('/language_assigner', methods = ["POST"])
+@crossdomain
 @exception_detector
 @admin_required
 def language_assigner():
-    user_email = request.args['email']
-    language_id = int(request.args['language'])
+    user_email = request.form['email']
+    language_id = int(request.form['language'])
     user_id = get_user_id(g.db, user_email)
-    lang_id = get_id_from_text(g.db, language, "D_LANGUAGES")
     new_translation_list_id = get_new_id(g.db, "D_TRANSLATABLE_LANGUAGES")
 
     g.db.execute("UPDATE D_USERS SET is_translator = 1 WHERE id = ?", [user_id])
@@ -1170,10 +1278,11 @@ def language_assigner():
             [user_id, language_id])
     rs = cursor.fetchall()
     if len(rs) == 0:
-        g.db.execute("INSERT INTO D_TRANSLATABLE_LANGUAGES VALUES (?,?,?)"
+        g.db.execute("INSERT INTO D_TRANSLATABLE_LANGUAGES VALUES (?,?,?)",
             [new_translation_list_id, user_id, language_id])
     g.db.commit()
-    return make_response(json.jsonify(message=""), 200)
+    return make_response(json.jsonify(message="Language added successfully"), 200)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
+    

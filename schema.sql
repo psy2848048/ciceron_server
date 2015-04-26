@@ -16,7 +16,6 @@ CREATE TABLE D_USERS (
     numOfTranslationOngoing INT,
     numOfTranslationCompleted INT,
     badgeList_id INT, -- D_AWARDED_BADGES
-    machine_id INT, -- D_MACHINES
     profile_text TEXT
 );
 
@@ -30,6 +29,10 @@ CREATE TABLE D_LANGUAGES (
     id INT,
     text STRING
 );
+
+INSERT INTO D_LANGUAGES VALUES (0, 'Korean');
+INSERT INTO D_LANGUAGES VALUES (1, 'English');
+INSERT INTO D_LANGUAGES VALUES (2, 'Chinese');
 
 CREATE TABLE D_FORMATS (
     id INT,
@@ -126,8 +129,14 @@ CREATE TABLE D_MACHINE_OSS(
     text STRING
 );
 
+INSERT INTO D_MACHINE_OSS VALUES (0, 'android_phone');
+INSERT INTO D_MACHINE_OSS VALUES (1, 'android_tab');
+INSERT INTO D_MACHINE_OSS VALUES (2, 'ios_phone');
+INSERT INTO D_MACHINE_OSS VALUES (3, 'ios_tab');
+
 CREATE TABLE D_MACHINES (
     id INT,
+    user_id INT,
     os_id INT, -- D_MACHINE_OSS
     reg_key STRING
 );
@@ -141,7 +150,7 @@ CREATE TABLE F_REQUESTS (
     status_id INT, -- 0: pending, 1: ongoing, 2: completed
     format_id INT, -- D_FORMATS
     subject_id INT, -- D_SUBJECTS
-    queue_id INT, -- D_QUEUE_LISTS
+    queue_id INT, -- Useless
     ongoing_worker_id INT, -- D_USERS
     is_text BOOL,
     text_id INT, -- D_REQUEST_TEXTS
@@ -164,7 +173,8 @@ CREATE TABLE F_REQUESTS (
     context_id INT, -- D_CONTEXTS
     comment_id INT, -- D_COMMENTS
     tone_id INT, -- D_TONES
-    translatedText_id INT -- D_TRANSLATED_TEXT
+    translatedText_id INT, -- D_TRANSLATED_TEXT
+    feedback_score INT
 );
 
 CREATE TABLE PASSWORDS (
@@ -255,7 +265,8 @@ CREATE VIEW V_REQUESTS as
     -- Result
     fact.translatedText_id translatedText_id,
     result.path translatedText,
-    fact.is_paid is_paid
+    fact.is_paid is_paid,
+    fact.feedback_score feedback_score
 
   FROM
     F_REQUESTS fact
