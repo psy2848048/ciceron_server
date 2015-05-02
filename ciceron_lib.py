@@ -205,7 +205,7 @@ def crossdomain(f, origin='*', methods=None, headers=None,
                 automatic_options=True):
     @wraps(f)
     def decorator(*args, **kwargs):
-        resp = make_response(f(*args, **kwargs))
+        resp = f(*args, **kwargs)
         h = resp.headers
 
         h['Access-Control-Allow-Origin'] = origin
