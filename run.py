@@ -8,6 +8,7 @@ from werkzeug import secure_filename
 from decimal import Decimal
 from gcm import GCM
 from ciceron_lib import *
+from flask.ext.cors import CORS
 
 DATABASE = '../db/ciceron.db'
 DEBUG = True
@@ -26,6 +27,7 @@ ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 
 VERSION= "2014.12.28"
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.config.from_object(__name__)
 app.secret_key = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
 app.project_number = 1021873337108
@@ -57,7 +59,6 @@ def doc_allowed_file(filename):
 
 @app.route('/', methods=['GET'])
 @exception_detector
-@crossdomain
 def loginCheck():
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
@@ -81,7 +82,6 @@ def loginCheck():
 
 @app.route('/login', methods=['POST', 'GET'])
 @exception_detector
-@crossdomain
 def login():
     if request.method == "POST":
         # Parameter
@@ -142,7 +142,6 @@ def login():
 
 @app.route('/logout', methods=["GET"])
 @exception_detector
-@crossdomain
 def logout():
     # No parameter needed
     if session['logged_in'] == True:
@@ -163,7 +162,6 @@ def logout():
 
 @app.route('/signup', methods=['POST', 'GET'])
 @exception_detector
-@crossdomain
 def signup():
     # Request method: POST
     # Parameters
@@ -238,7 +236,6 @@ def signup():
 
 @app.route('/idCheck', methods=['POST'])
 @exception_detector
-@crossdomain
 def idChecker():
     # Method: GET
     # Parameter: String id
@@ -260,7 +257,6 @@ def idChecker():
 @app.route('/user/profile', methods = ['GET', 'POST'])
 @login_required
 @exception_detector
-@crossdomain
 def user_profile():
     if request.method == 'GET':
         # Method: GET
@@ -399,7 +395,6 @@ def user_profile():
 
 @app.route('/requests', methods=["GET", "POST"])
 @exception_detector
-@crossdomain
 def requests():
     if request.method == "GET":
         # Request method: GET
@@ -553,7 +548,6 @@ def requests():
 @app.route('/requests/<str_request_id>', methods=["DELETE"])
 @login_required
 @exception_detector
-@crossdomain
 def delete_requests(str_request_id):
     if request.method == "DELETE":
         request_id = int(str_request_id)
@@ -582,7 +576,6 @@ def delete_requests(str_request_id):
 
 
 @app.route('/user/translations/pending', methods=["GET", "POST"])
-@crossdomain
 @login_required
 @exception_detector
 @translator_checker
@@ -659,7 +652,6 @@ def show_queue():
             ), 200)
 
 @app.route('/user/translations/pending/<str_request_id>', methods=["DELETE"])
-@crossdomain
 @login_required
 @translator_checker
 @exception_detector
@@ -681,7 +673,6 @@ def work_in_queue(str_request_id):
         return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
 
 @app.route('/user/translations/ongoing', methods=['GET', 'POST'])
-@crossdomain
 @login_required
 @translator_checker
 @exception_detector
@@ -734,7 +725,6 @@ def pick_request():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
-@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -754,7 +744,6 @@ def working_translate_item(str_request_id):
             ), 200)
 
 @app.route('/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
-@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -786,7 +775,6 @@ def expected_time(str_request_id):
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
 @app.route('/user/translations/complete/<str_request_id>', methods=["POST"])
-@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -824,7 +812,6 @@ def post_translate_item(str_request_id):
         ), 200)
 
 @app.route('/user/translations/complete/<str_request_id>', methods = ["GET"])
-@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -837,7 +824,6 @@ def translation_completed_items_detail(str_request_id):
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/translations/complete', methods = ["GET"])
-@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -855,7 +841,6 @@ def translation_completed_items_all():
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/translations/complete/<str_request_id>/title', methods = ["POST"])
-@crossdomain
 @exception_detector
 @login_required
 @translator_checker
@@ -887,7 +872,6 @@ def set_title_translator(str_request_id):
             405)
 
 @app.route('/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
-@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -904,7 +888,6 @@ def translators_complete_groups():
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["DELETE", "PUT"])
-@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -923,7 +906,6 @@ def modify_translators_complete_groups(str_group_id):
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
 @app.route('/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
-@crossdomain
 @exception_detector
 @translator_checker
 @login_required
@@ -947,7 +929,6 @@ def translation_completed_items_in_group(str_group_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/pending', methods=["GET"])
-@crossdomain
 @exception_detector
 @login_required
 def show_pending_list_client():
@@ -960,7 +941,6 @@ def show_pending_list_client():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/pending/<str_request_id>', methods=["GET"])
-@crossdomain
 @exception_detector
 @login_required
 def show_pending_item_client(str_request_id):
@@ -974,7 +954,6 @@ def show_pending_item_client(str_request_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/ongoing', methods=["GET"])
-@crossdomain
 @exception_detector
 @login_required
 def show_ongoing_list_client():
@@ -987,7 +966,6 @@ def show_ongoing_list_client():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/ongoing/<str_request_id>', methods=["GET"])
-@crossdomain
 @exception_detector
 @login_required
 def show_ongoing_item_client(str_request_id):
@@ -1001,7 +979,6 @@ def show_ongoing_item_client(str_request_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/complete/<str_request_id>/title', methods=["POST"])
-@crossdomain
 @exception_detector
 @login_required
 def set_title_client(str_request_id):
@@ -1055,7 +1032,6 @@ def set_title_client(str_request_id):
             405)
 
 @app.route('/user/requests/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
-@crossdomain
 @exception_detector
 @login_required
 def client_complete_groups():
@@ -1071,7 +1047,6 @@ def client_complete_groups():
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
 @app.route('/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
-@crossdomain
 @exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
@@ -1090,7 +1065,6 @@ def modify_client_completed_groups(str_group_id):
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
 
 @app.route('/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
-@crossdomain
 @exception_detector
 @login_required
 def client_completed_items_in_group(str_group_id):
@@ -1113,7 +1087,6 @@ def client_completed_items_in_group(str_group_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/complete/<str_request_id>', methods = ["GET"])
-@crossdomain
 @exception_detector
 @login_required
 def client_completed_items_detail(str_request_id):
@@ -1124,7 +1097,6 @@ def client_completed_items_detail(str_request_id):
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/user/requests/<str_request_id>/payment/start', methods = ["POST"])
-@crossdomain
 @exception_detector
 @login_required
 def pay_for_request(str_request_id):
@@ -1179,7 +1151,6 @@ def pay_for_request(str_request_id):
             return make_response(json.jsonify(message="Something wrong in paypal"), 400)
 
 @app.route('/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
-@crossdomain
 @exception_detector
 @login_required
 def pay_for_request_process(str_request_id):
@@ -1223,7 +1194,6 @@ def pay_for_request_process(str_request_id):
             return redirect("do_not_hack")
 
 @app.route('/user/device', methods = ["POST"])
-@crossdomain
 @exception_detector
 @login_required
 def register_or_update_register_id():
@@ -1250,7 +1220,6 @@ def register_or_update_register_id():
 ################################################################################
 
 @app.route('/publicize', methods = ["GET"])
-@crossdomain
 @exception_detector
 @admin_required
 def publicize():
@@ -1264,7 +1233,6 @@ def publicize():
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
 @app.route('/language_assigner', methods = ["POST"])
-@crossdomain
 @exception_detector
 @admin_required
 def language_assigner():
