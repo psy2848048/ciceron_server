@@ -56,8 +56,8 @@ def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
 @app.route('/', methods=['GET'])
-@crossdomain
 @exception_detector
+@crossdomain
 def loginCheck():
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
@@ -141,8 +141,8 @@ def login():
         return make_response(json.jsonify(identifier=salt), 200)
 
 @app.route('/logout', methods=["GET"])
-@crossdomain
 @exception_detector
+@crossdomain
 def logout():
     # No parameter needed
     if session['logged_in'] == True:
@@ -162,8 +162,8 @@ def logout():
                ), 403)
 
 @app.route('/signup', methods=['POST', 'GET'])
-@crossdomain
 @exception_detector
+@crossdomain
 def signup():
     # Request method: POST
     # Parameters
@@ -237,8 +237,8 @@ def signup():
         '''
 
 @app.route('/idCheck', methods=['POST'])
-@crossdomain
 @exception_detector
+@crossdomain
 def idChecker():
     # Method: GET
     # Parameter: String id
@@ -258,9 +258,9 @@ def idChecker():
             message="Duplicated ID '%s'" % email), 400)
 
 @app.route('/user/profile', methods = ['GET', 'POST'])
-@crossdomain
 @login_required
 @exception_detector
+@crossdomain
 def user_profile():
     if request.method == 'GET':
         # Method: GET
@@ -398,8 +398,8 @@ def user_profile():
 #            '''
 
 @app.route('/requests', methods=["GET", "POST"])
-@crossdomain
 @exception_detector
+@crossdomain
 def requests():
     if request.method == "GET":
         # Request method: GET
@@ -551,9 +551,9 @@ def requests():
             ), 200)
 
 @app.route('/requests/<str_request_id>', methods=["DELETE"])
-@crossdomain
 @login_required
 @exception_detector
+@crossdomain
 def delete_requests(str_request_id):
     if request.method == "DELETE":
         request_id = int(str_request_id)
