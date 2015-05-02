@@ -205,13 +205,7 @@ def crossdomain(f, origin='*', methods=None, headers=None,
                 automatic_options=True):
     @wraps(f)
     def decorator(*args, **kwargs):
-        if automatic_options and request.method == 'OPTIONS':
-            resp = current_app.make_default_options_response()
-        else:
-            resp = make_response(f(*args, **kwargs))
-        if not attach_to_all and request.method != 'OPTIONS':
-            return resp
-
+        resp = make_response(f(*args, **kwargs))
         h = resp.headers
 
         h['Access-Control-Allow-Origin'] = origin
@@ -220,7 +214,6 @@ def crossdomain(f, origin='*', methods=None, headers=None,
             h['Access-Control-Allow-Headers'] = headers
         return resp
 
-        return f(*args, **kwargs)
     return decorator
 
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
