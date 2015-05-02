@@ -351,7 +351,7 @@ def complete_groups(conn, table, method, url_group_id=None):
 
     elif method == 'DELETE':
         group_id = int(url_group_id)
-        group_text = get_text_from_id(g.db, group_id, table)
+        group_text = (get_text_from_id(g.db, group_id, table)).encode('utf-8')
         if group_text == "Documents":
             return -1
         conn.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])

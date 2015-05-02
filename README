@@ -15,6 +15,8 @@ Ciceron server code
   - pip install virtualenv
   - virtualenv venv
   - apt-get install libssl-dev libffi-dev
+  - pip install paypalrestsdk
+  - pip install flask-cors
 
   - For activate virtual env: execute shell '. venv/bin/activate'
       # DO NOT FORGET DOT!!! DOT MEANS current folder in GNU/UNIX

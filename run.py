@@ -27,7 +27,7 @@ ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 
 VERSION= "2014.12.28"
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
+cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})
 app.config.from_object(__name__)
 app.secret_key = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
 app.project_number = 1021873337108
