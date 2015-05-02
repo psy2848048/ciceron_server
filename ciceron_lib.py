@@ -206,12 +206,8 @@ def crossdomain(f, origin='*', methods=None, headers=None,
     @wraps(f)
     def decorator(*args, **kwargs):
         resp = f(*args, **kwargs)
-        h = resp.headers
-
-        h['Access-Control-Allow-Origin'] = origin
-        h['Access-Control-Max-Age'] = str(max_age)
-        if headers is not None:
-            h['Access-Control-Allow-Headers'] = headers
+        resp.headers['Access-Control-Allow-Origin'] = origin
+        resp.headers['Access-Control-Max-Age'] = str(max_age)
         return resp
 
     return decorator
