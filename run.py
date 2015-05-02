@@ -55,7 +55,7 @@ def pic_allowed_file(filename):
 def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 @crossdomain
 @exception_detector
 def loginCheck():
@@ -140,7 +140,7 @@ def login():
         session['salt'] = salt
         return make_response(json.jsonify(identifier=salt), 200)
 
-@app.route('/logout')
+@app.route('/logout', methods=["GET"])
 @crossdomain
 @exception_detector
 def logout():
