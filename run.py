@@ -177,7 +177,7 @@ def signup():
         email = request.form['email']
         hashed_password = request.form['password']
         facebook_id = request.form.get('facebook_id', None)
-        name = request.form['name']
+        name = (request.form['name']).encode('utf-8')
         mother_language_id = int(request.form['mother_language_id'])
 
         # Duplicate check
@@ -334,7 +334,7 @@ def user_profile():
         #     user_profilePic: binary
 
         # Get parameter value
-        profileText = request.form.get('user_profileText', None)
+        profileText = (request.form.get('user_profileText', None)).encode('utf-8')
         profile_pic = request.files.get('photo', None)
 
         # Start logic
@@ -427,7 +427,7 @@ def requests():
         subject_id = request.form.get('request_subject')
         registered_time = request.form['request_registeredTime']
         is_text = parameter_to_bool(request.form.get('request_isText', False))
-        text_string = request.form.get('request_text')
+        text_string = (request.form.get('request_text')).encode('utf-8')
         is_photo = parameter_to_bool(request.form.get('request_isPhoto', False))
         #photo_binary
         is_sound = parameter_to_bool(request.form.get('request_isSound', False))
@@ -437,7 +437,7 @@ def requests():
         words = request.form.get('reqeust_words', 0)
         due_time = request.form['request_dueTime']
         point = request.form.get('request_points')
-        context = request.form.get('request_context')
+        context = (request.form.get('request_context')).encode('utf-8')
 
         new_photo_id = None
         new_sound_id = None
@@ -847,7 +847,7 @@ def translation_completed_items_all():
 def set_title_translator(str_request_id):
     if request.method == "POST":
         request_id = int(str_request_id)
-        title_text = request.form['title_text']
+        title_text = (request.form['title_text']).encode('utf-8')
 
         my_user_id = get_user_id(g.db, session['useremail'])
         default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
@@ -984,7 +984,7 @@ def show_ongoing_item_client(str_request_id):
 def set_title_client(str_request_id):
     if request.method == "POST":
         request_id = int(str_request_id)
-        title_text = request.form['title_text']
+        title_text = (request.form['title_text']).encode('utf-8')
 
         my_user_id = get_user_id(g.db, session['useremail'])
         default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
@@ -1031,7 +1031,7 @@ def set_title_client(str_request_id):
                 message="Inappropriate method of this request. POST only"),
             405)
 
-@app.route('/user/requests/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
+@app.route('/user/requests/complete/groups', methods = ["GET"])
 @exception_detector
 @login_required
 def client_complete_groups():

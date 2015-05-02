@@ -328,7 +328,7 @@ def complete_groups(conn, table, method, url_group_id=None):
         return result
 
     elif method == "POST":
-        group_name = request.form['group_name']
+        group_name = (request.form['group_name']).encode('utf-8')
         if group_name == "Documents":
             return -1
 
@@ -342,7 +342,7 @@ def complete_groups(conn, table, method, url_group_id=None):
 
     elif method == "PUT":
         group_id = int(url_group_id)
-        group_name = request.form['group_name']
+        group_name = (request.form['group_name']).encode('utf-8')
         if group_name == "Documents":
             return -1
         conn.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
@@ -366,8 +366,8 @@ def complete_groups(conn, table, method, url_group_id=None):
 
 def save_request(conn, str_request_id, result_folder):
     request_id = int(str_request_id)
-    new_translatedText = request.form.get("request_translatedText", None)
-    new_comment = request.form.get("request_comment", None)
+    new_translatedText = (request.form.get("request_translatedText", None)).encode('utf-8')
+    new_comment = (request.form.get("request_comment", None)).encode('utf-8')
     new_tone = request.form.get("request_tone", None)
 
     cursor = conn.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
