@@ -191,6 +191,39 @@ def translator_checker(f):
 
     return decorated_function
 
+def strict_translator_checker(conn, user_id, request_id):
+    cursor = conn.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM D_USERS WHERE email = ?", [buffer(session['useremail'])])
+    rs = cursor.fetchall()
+    if len(rs) == 0 or rs[0][0] == 0 or rs[0][0] == 'False' or rs[0][0] == 'false':
+        return False
+
+    # Get language list
+    other_language_list_id = rs[0][2]
+    mother_language_id = rs[0][1]
+
+    cursor = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE id = ?",
+                 [other_language_list_id])
+    language_list = [ item[0] for item in cursor.fetchall() ]
+    language_list.append(mother_language_id)
+
+    # Check request language
+
+    cursor = conn.execute("SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? AND is_paid IN (1, 'True', 'true')"
+            , [request_id])
+    rs = cursor.fetchall()[0]
+    original_lang_id = rs[0][0]
+    target_lang_id = rs[0][1]
+
+    if original_lang_id in language_list and target_lang_id in language_list:
+        return True
+    else:
+        return False
+
+        #return make_response(
+        #        json.jsonify(
+        #           message = "You are not translator. This API is only for translators."
+        #           ), 401)
+
 def word_counter(filePathName):
     f = open(filePathName, 'r')
     words=0

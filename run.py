@@ -106,7 +106,7 @@ def login():
         if len(rs) > 1:
             # Status code 500 (ERROR)
             # Description: Same e-mail address tried to be inserted into DB
-            return make_response (json.jsonify(message='Constraint violation error!'), 500)
+            return make_response (json.jsonify(message='Constraint violation error!'), 501)
 
         elif len(rs) == 0:
             # Status code 403 (ERROR)
@@ -188,7 +188,7 @@ def signup():
             # Status code 400 (BAD REQUEST)
             # Description: Duplicate ID
             return make_response(json.jsonify(
-                message="ID %s is duplicated. Please check the email." % email), 400)
+                message="ID %s is duplicated. Please check the email." % email), 412)
 
         # Insert values to D_USERS
         user_id = get_new_id(g.db, "D_USERS")
@@ -619,11 +619,17 @@ def show_queue():
         cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
         rs = cursor.fetchall()
 
-        if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 406)
+        if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 400)
 
         if translator_email is None: user_id = get_user_id(g.db, session['useremail'])
         else:                        user_id = get_user_id(g.db, translator_email)
         request_user_id = rs[0][1]
+
+        if strict_translator_checker(g.db, user_id, request_id) == False:
+            return make_response(
+                json.jsonify(
+                   message = "You have no translate permission of given language."
+                   ), 401)
 
         cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE id = ?", [user_id])
         rs = cursor.fetchall()
@@ -639,8 +645,8 @@ def show_queue():
         rs = cursor.fetchall()
         if len(rs) != 0:
             return make_response(json.jsonify(
-                message = "You've already standed in queue. Request ID: %d" % request_id
-                ), 406)
+                message = "You've already stood in queue. Request ID: %d" % request_id
+                ), 204)
 
         query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
 
@@ -693,6 +699,13 @@ def pick_request():
         g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [my_user_id, request_id])
 
         user_id = get_user_id(g.db, session['useremail'])
+
+        if strict_translator_checker(g.db, my_user_id, request_id) == False:
+            return make_response(
+                json.jsonify(
+                   message = "You have no translate permission of given language."
+                   ), 401)
+
 
         cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
         rs = cursor.fetchall()
@@ -780,12 +793,12 @@ def expected_time(str_request_id):
         g.db.commit()
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
-@app.route('/api/user/translations/complete/<str_request_id>', methods=["POST"])
+@app.route('/api/user/translations/complete', methods=["POST"])
 @exception_detector
 @login_required
 @translator_checker
-def post_translate_item(str_request_id):
-    request_id = int(str_request_id)
+def post_translate_item():
+    request_id = int(request.form['request_id'])
     save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
@@ -984,6 +997,28 @@ def show_ongoing_item_client(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
+@app.route('/api/user/requests/complete', methods = ["GET"])
+@exception_detector
+@login_required
+def client_completed_items():
+    request_id = int(str_request_id)
+    user_id = get_user_id(g.db, session['useremail'])
+    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND is_paid = 1 ", [user_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
+    return make_response(json.jsonify(data=result), 200)
+
+@app.route('/api/user/requests/complete/<str_request_id>', methods = ["GET"])
+@exception_detector
+@login_required
+def client_completed_items_detail(str_request_id):
+    request_id = int(str_request_id)
+    user_id = get_user_id(g.db, session['useremail'])
+    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? AND is_paid = 1 ", [user_id, request_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
+    return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
 @exception_detector
 @login_required
@@ -1091,16 +1126,6 @@ def client_completed_items_in_group(str_group_id):
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
-
-@app.route('/api/user/requests/complete/<str_request_id>', methods = ["GET"])
-@exception_detector
-@login_required
-def client_completed_items_detail(str_request_id):
-    request_id = int(str_request_id)
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND is_paid = 1 ", [request_id])
-    rs = cursor.fetchall()
-    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
-    return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 @exception_detector
