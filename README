@@ -14,6 +14,7 @@ Ciceron server code
   - apt-get install python-virtualenv
   - pip install virtualenv
   - virtualenv venv
+  - pip install requests
   - apt-get install libssl-dev libffi-dev
   - pip install paypalrestsdk
   - pip install flask-cors

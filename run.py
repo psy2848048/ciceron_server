@@ -11,6 +11,7 @@ from ciceron_lib import *
 from flask.ext.cors import CORS
 
 DATABASE = '../db/ciceron.db'
+VERSION = '1.0'
 DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_PROFILE_PIC = "profile_pic"
@@ -57,7 +58,7 @@ def pic_allowed_file(filename):
 def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
-@app.route('/', methods=['GET'])
+@app.route('/api', methods=['GET'])
 @exception_detector
 def loginCheck():
     if 'useremail' in session:
@@ -80,7 +81,7 @@ def loginCheck():
             message="No user is logged in")
             , 403)
 
-@app.route('/login', methods=['POST', 'GET'])
+@app.route('/api/login', methods=['POST', 'GET'])
 @exception_detector
 def login():
     if request.method == "POST":
@@ -140,7 +141,7 @@ def login():
         session['salt'] = salt
         return make_response(json.jsonify(identifier=salt), 200)
 
-@app.route('/logout', methods=["GET"])
+@app.route('/api/logout', methods=["GET"])
 @exception_detector
 def logout():
     # No parameter needed
@@ -160,7 +161,7 @@ def logout():
                    message = "You've never logged in"
                ), 403)
 
-@app.route('/signup', methods=['POST', 'GET'])
+@app.route('/api/signup', methods=['POST', 'GET'])
 @exception_detector
 def signup():
     # Request method: POST
@@ -234,7 +235,7 @@ def signup():
         </form>
         '''
 
-@app.route('/idCheck', methods=['POST'])
+@app.route('/api/idCheck', methods=['POST'])
 @exception_detector
 def idChecker():
     # Method: GET
@@ -254,7 +255,7 @@ def idChecker():
         return make_response(json.jsonify(
             message="Duplicated ID '%s'" % email), 400)
 
-@app.route('/user/profile', methods = ['GET', 'POST'])
+@app.route('/api/user/profile', methods = ['GET', 'POST'])
 @login_required
 @exception_detector
 def user_profile():
@@ -393,7 +394,7 @@ def user_profile():
 #            </form>
 #            '''
 
-@app.route('/requests', methods=["GET", "POST"])
+@app.route('/api/requests', methods=["GET", "POST"])
 @exception_detector
 def requests():
     if request.method == "GET":
@@ -444,6 +445,11 @@ def requests():
         new_file_id = None
         new_text_id = None
         is_paid = True if isSos == True else False
+
+        if isSos == False and (original_lang_id == 500 or target_lang_id == 500):
+            return make_response(json.jsonify(
+                message="The language you requested is not yet registered. SOS request only"
+                ), 204)
 
         # Upload binaries into file and update each dimension table
         if (request.files.get('request_photo') is not None):
@@ -545,7 +551,7 @@ def requests():
             message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
             ), 200)
 
-@app.route('/requests/<str_request_id>', methods=["DELETE"])
+@app.route('/api/requests/<str_request_id>', methods=["DELETE"])
 @login_required
 @exception_detector
 def delete_requests(str_request_id):
@@ -575,7 +581,7 @@ def delete_requests(str_request_id):
             message="Request #%d is successfully deleted!" % request_id), 200)
 
 
-@app.route('/user/translations/pending', methods=["GET", "POST"])
+@app.route('/api/user/translations/pending', methods=["GET", "POST"])
 @login_required
 @exception_detector
 @translator_checker
@@ -651,7 +657,7 @@ def show_queue():
             message = "You are in queue for translating request #%d" % request_id
             ), 200)
 
-@app.route('/user/translations/pending/<str_request_id>', methods=["DELETE"])
+@app.route('/api/user/translations/pending/<str_request_id>', methods=["DELETE"])
 @login_required
 @translator_checker
 @exception_detector
@@ -672,7 +678,7 @@ def work_in_queue(str_request_id):
 
         return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
 
-@app.route('/user/translations/ongoing', methods=['GET', 'POST'])
+@app.route('/api/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
 @translator_checker
 @exception_detector
@@ -724,7 +730,7 @@ def pick_request():
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator") # PLEASE REVISE
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
+@app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
 @exception_detector
 @translator_checker
 @login_required
@@ -743,7 +749,7 @@ def working_translate_item(str_request_id):
             message="Request id %d is auto saved." % request_id
             ), 200)
 
-@app.route('/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
+@app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
 @exception_detector
 @translator_checker
 @login_required
@@ -774,7 +780,7 @@ def expected_time(str_request_id):
         g.db.commit()
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
-@app.route('/user/translations/complete/<str_request_id>', methods=["POST"])
+@app.route('/api/user/translations/complete/<str_request_id>', methods=["POST"])
 @exception_detector
 @login_required
 @translator_checker
@@ -811,7 +817,7 @@ def post_translate_item(str_request_id):
         message="Request id %d is submitted." % request_id
         ), 200)
 
-@app.route('/user/translations/complete/<str_request_id>', methods = ["GET"])
+@app.route('/api/user/translations/complete/<str_request_id>', methods = ["GET"])
 @exception_detector
 @login_required
 @translator_checker
@@ -823,7 +829,7 @@ def translation_completed_items_detail(str_request_id):
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/translations/complete', methods = ["GET"])
+@app.route('/api/user/translations/complete', methods = ["GET"])
 @exception_detector
 @login_required
 @translator_checker
@@ -840,7 +846,7 @@ def translation_completed_items_all():
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/translations/complete/<str_request_id>/title', methods = ["POST"])
+@app.route('/api/user/translations/complete/<str_request_id>/title', methods = ["POST"])
 @exception_detector
 @login_required
 @translator_checker
@@ -871,7 +877,7 @@ def set_title_translator(str_request_id):
                 message="Inappropriate method of this request. POST only"),
             405)
 
-@app.route('/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
+@app.route('/api/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
 @exception_detector
 @translator_checker
 @login_required
@@ -887,7 +893,7 @@ def translators_complete_groups():
         else:
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
-@app.route('/user/translations/complete/groups/<str_group_id>', methods = ["DELETE", "PUT"])
+@app.route('/api/user/translations/complete/groups/<str_group_id>', methods = ["DELETE", "PUT"])
 @exception_detector
 @translator_checker
 @login_required
@@ -905,7 +911,7 @@ def modify_translators_complete_groups(str_group_id):
         else:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
-@app.route('/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
+@app.route('/api/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector
 @translator_checker
 @login_required
@@ -928,7 +934,7 @@ def translation_completed_items_in_group(str_group_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/pending', methods=["GET"])
+@app.route('/api/user/requests/pending', methods=["GET"])
 @exception_detector
 @login_required
 def show_pending_list_client():
@@ -940,7 +946,7 @@ def show_pending_list_client():
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/pending/<str_request_id>', methods=["GET"])
+@app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
 @exception_detector
 @login_required
 def show_pending_item_client(str_request_id):
@@ -953,7 +959,7 @@ def show_pending_item_client(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/ongoing', methods=["GET"])
+@app.route('/api/user/requests/ongoing', methods=["GET"])
 @exception_detector
 @login_required
 def show_ongoing_list_client():
@@ -965,7 +971,7 @@ def show_ongoing_list_client():
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/ongoing/<str_request_id>', methods=["GET"])
+@app.route('/api/user/requests/ongoing/<str_request_id>', methods=["GET"])
 @exception_detector
 @login_required
 def show_ongoing_item_client(str_request_id):
@@ -978,7 +984,7 @@ def show_ongoing_item_client(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/complete/<str_request_id>/title', methods=["POST"])
+@app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
 @exception_detector
 @login_required
 def set_title_client(str_request_id):
@@ -1031,7 +1037,7 @@ def set_title_client(str_request_id):
                 message="Inappropriate method of this request. POST only"),
             405)
 
-@app.route('/user/requests/complete/groups', methods = ["GET"])
+@app.route('/api/user/requests/complete/groups', methods = ["GET"])
 @exception_detector
 @login_required
 def client_complete_groups():
@@ -1046,7 +1052,7 @@ def client_complete_groups():
         else:
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
-@app.route('/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
+@app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
 @exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
@@ -1064,7 +1070,7 @@ def modify_client_completed_groups(str_group_id):
         else:
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
 
-@app.route('/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
+@app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 @exception_detector
 @login_required
 def client_completed_items_in_group(str_group_id):
@@ -1086,7 +1092,7 @@ def client_completed_items_in_group(str_group_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/complete/<str_request_id>', methods = ["GET"])
+@app.route('/api/user/requests/complete/<str_request_id>', methods = ["GET"])
 @exception_detector
 @login_required
 def client_completed_items_detail(str_request_id):
@@ -1096,7 +1102,7 @@ def client_completed_items_detail(str_request_id):
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/user/requests/<str_request_id>/payment/start', methods = ["POST"])
+@app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 @exception_detector
 @login_required
 def pay_for_request(str_request_id):
@@ -1127,8 +1133,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount),
-            "cancel_url": "http://localhost:5000/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)},
+            "return_url": "http://localhost:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount),
+            "cancel_url": "http://localhost:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)},
           "transactions": [{
             "amount": {
             "total": amount,
@@ -1144,13 +1150,13 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)
+        red_link = "/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
             return make_response(json.jsonify(message="Something wrong in paypal"), 400)
 
-@app.route('/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
+@app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
 @exception_detector
 @login_required
 def pay_for_request_process(str_request_id):
@@ -1193,7 +1199,7 @@ def pay_for_request_process(str_request_id):
             # PLEASE DO NOT HACK!!!!!!!!!!!!!
             return redirect("do_not_hack")
 
-@app.route('/user/device', methods = ["POST"])
+@app.route('/api/user/device', methods = ["POST"])
 @exception_detector
 @login_required
 def register_or_update_register_id():
@@ -1219,7 +1225,7 @@ def register_or_update_register_id():
 #########                        ADMIN TOOL                            #########
 ################################################################################
 
-@app.route('/publicize', methods = ["GET"])
+@app.route('/admin/publicize', methods = ["GET"])
 @exception_detector
 @admin_required
 def publicize():
@@ -1232,7 +1238,7 @@ def publicize():
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
-@app.route('/language_assigner', methods = ["POST"])
+@app.route('/admin/language_assigner', methods = ["POST"])
 @exception_detector
 @admin_required
 def language_assigner():
