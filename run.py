@@ -694,8 +694,23 @@ def pick_request():
         # Parameters
         #    request_id: requested post id
         request_id = int(request.form['request_id'])
-
         my_user_id = get_user_id(g.db, session['useremail'])
+
+        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND status_id = 0", [request_id])
+        rs = cursor.fetchall()
+        if len(rs) == 0:
+            return make_response(
+                json.jsonify(
+                    message = "Request %d has already benn taken by other translator, or deleted." % request_id
+                    ), 410)
+
+        queue_id = rs[0][0]
+        request_user_id = rs[0][1]
+        if user_id == request_user_id:
+            return make_response(json.jsonify(
+                message = "You cannot translate your request. Request ID: %d" % request_id
+                ), 406)
+
         g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [my_user_id, request_id])
 
         user_id = get_user_id(g.db, session['useremail'])
@@ -705,16 +720,6 @@ def pick_request():
                 json.jsonify(
                    message = "You have no translate permission of given language."
                    ), 401)
-
-
-        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? ", [request_id])
-        rs = cursor.fetchall()
-        queue_id = rs[0][0]
-        request_user_id = rs[0][1]
-        if user_id == request_user_id:
-            return make_response(json.jsonify(
-                message = "You cannot translate your request. Request ID: %d" % request_id
-                ), 406)
 
         g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE id = ? and request_id = ? and user_id = ?",
                 [queue_id, request_id, my_user_id])
@@ -802,8 +807,12 @@ def post_translate_item():
     save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
-    cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 ", [request_id])
+    cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 AND status_id = 1 ", [request_id])
     rs = cursor.fetchall()
+    if len(rs) == 0:
+        return make_response(
+            json.jsonify(
+                message="Already completed request %d" % request_id), 410)
 
     requester_id = rs[0][0]
     translator_id = rs[0][1]
