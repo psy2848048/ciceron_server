@@ -9,6 +9,7 @@ from decimal import Decimal
 from gcm import GCM
 from ciceron_lib import *
 from flask.ext.cors import CORS
+from flask.ext.session import Session
 
 DATABASE = '../db/ciceron.db'
 VERSION = '1.0'
@@ -19,6 +20,8 @@ UPLOAD_FOLDER_REQUEST_PIC = "request_pic"
 UPLOAD_FOLDER_REQUEST_SOUND = "sounds"
 UPLOAD_FOLDER_REQUEST_DOC = "request_doc"
 UPLOAD_FOLDER_REQUEST_TEXT =  "request_text"
+SESSION_TYPE = 'redis'
+SESSION_COOKIE_NAME = "CiceronCookie"
 
 UPLOAD_FOLDER_RESULT = "translate_result"
 
@@ -29,9 +32,10 @@ VERSION= "2014.12.28"
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})
-app.config.from_object(__name__)
 app.secret_key = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
+app.config.from_object(__name__)
 app.project_number = 1021873337108
+Session(app)
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
