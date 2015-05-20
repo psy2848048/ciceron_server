@@ -143,7 +143,7 @@ def login():
     else:
         salt = random_string_gen()
         session['salt'] = salt
-        return make_response(json.jsonify(identifier=salt), 200)
+        return make_response(json.jsonify(identifier=salt, session_id=session.sid), 200)
 
 @app.route('/api/logout', methods=["GET"])
 @exception_detector
