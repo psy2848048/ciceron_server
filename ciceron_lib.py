@@ -408,8 +408,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
             # Add profile for translator
 
-            translator_info = getProfile(conn, row[1])
-            item['translatorInfo'] = translator_info
+            translator_info = getProfile(conn, row[5])
+            item['translatorInfo'] = translator_info if translator_info != None else ""
 
         result.append(item)
 
