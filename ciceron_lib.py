@@ -269,6 +269,45 @@ def crossdomain(f, origin='*', methods=None, headers=None,
 
     return decorator
 
+def getProfile(conn, user_id):
+    cursor = conn.execute("SELECT * FROM D_USERS WHERE id = ?", [user_id])
+    userinfo = cursor.fetchone()
+
+    cursor2 = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
+        [user_id])
+    other_language_list = ",".join( [ str(item[0]) for item in cursor2.fetchall() ] )
+    cursor3 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
+        [user_id])
+    badgeList = (',').join([ str(item[0]) for item in cursor3.fetchall() ])
+
+    # GET list: user's keywords
+    cursor4 = conn.execute("SELECT key.text FROM D_USER_KEYWORDS ids JOIN D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = ?", [user_id])
+    keywords = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
+
+    result=dict(
+        user_email=                     str(userinfo[1]),
+        user_name=                      str(userinfo[2]),
+        user_motherLang=                userinfo[3],
+        user_profilePicPath=            str(userinfo[6]) if userinfo[6] != None else None,
+        user_translatableLang=          other_language_list,
+        user_numOfRequestsPending=       userinfo[7],
+        user_numOfRequestsOngoing=       userinfo[8],
+        user_numOfRequestsCompleted=     userinfo[9],
+        user_numOfTranslationsPending=   userinfo[10],
+        user_numOfTranslationsOngoing=   userinfo[11],
+        user_numOfTranslationsCompleted= userinfo[12],
+        user_badgeList=                 badgeList,
+        user_isTranslator=              True if userinfo[4] == 1 else False,
+        user_profileText=               str(userinfo[14]),
+        user_revenue=                   -65535,
+        user_keywords=                   keywords,
+        user_transRequestState=         userinfo[15],
+        user_nationality=                 userinfo[16],
+        user_residence=                 userinfo[17]
+        )
+
+    return result
+
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     result = []
 
@@ -280,36 +319,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
         queue_list = []
         for q_item in cursor2.fetchall():
-            cursor3 = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
-                [q_item[2]])
-            other_language_list = ",".join( [ str(item[0]) for item in cursor3.fetchall() ] )
-            cursor4 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
-                [q_item[2]])
-            badgeList = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
-
-            # GET list: user's keywords
-            cursor5 = g.db.execute("SELECT key.text FROM D_USER_KEYWORDS ids JOIN D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = ?", [q_item[2]])
-            keywords = (',').join([ str(item[0]) for item in cursor5.fetchall() ])
-
-            temp_item=dict(
-                user_email=                     str(q_item[3]),
-                user_name=                      str(q_item[4]),
-                user_motherLang=                q_item[5],
-                user_profilePicPath=            str(q_item[8]) if q_item[8] != None else None,
-                user_translatableLang=          other_language_list,
-                user_numOfRequestsPending=       q_item[9],
-                user_numOfRequestsOngoing=       q_item[10],
-                user_numOfRequestsCompleted=     q_item[11],
-                user_numOfTranslationsPending=   q_item[12],
-                user_numOfTranslationsOngoing=   q_item[13],
-                user_numOfTranslationsCompleted= q_item[14],
-                user_badgeList=                 badgeList,
-                user_isTranslator=              True if q_item[6] == 1 else False,
-                user_profileText=               str(q_item[16]),
-                user_revenue=                   -65535,
-                user_keywords=                   keywords
-                )
-            queue_list.append(temp_item)
+            profile = getProfile(conn, q_item[2])
+            queue_list.append(profile)
 
         # For getting word count of the request
         cursor2 = conn.execute("SELECT path FROM D_REQUEST_TEXTS  WHERE id = ?", [row[30]])
@@ -394,6 +405,11 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             cursor2 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM D_USERS WHERE email = ? LIMIT 1)", [buffer(row[6])])
             badge_list = (",").join([ str(row[0]) for row in cursor2.fetchall() ])
             item['request_translatorBadgeList'] = badge_list
+
+            # Add profile for translator
+
+            translator_info = getProfile(conn, row[1])
+            item['translatorInfo'] = translator_info
 
         result.append(item)
 

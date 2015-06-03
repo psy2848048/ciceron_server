@@ -595,9 +595,10 @@ def user_profile():
         #     user_email: String, text
         # Get value
         email = request.args.get('user_email', session['useremail'])
+        user_id = get_user_id(g.db, email)
 
         # Start logic
-        cursor = g.db.execute("SELECT * FROM D_USERS WHERE email = ?", [buffer(email)])
+        cursor = g.db.execute("SELECT * FROM D_USERS WHERE id = ?", [user_id])
         userinfo = cursor.fetchall()
 
         # Unique constraint check
@@ -619,45 +620,10 @@ def user_profile():
         if email == session['useremail']: is_your_profile = True
         else:                             is_your_profile = False
 
-        # Gather IDs of list form information
-        user_id = userinfo[0][0]
-        badgeList_id = userinfo[0][13]
-
         # Update statistics
         update_user_record(g.db, client_id=user_id, translator_id=user_id)
 
-        # Get list: other languages translatable
-        cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?", [user_id])
-        other_language_list = (',').join( [ str(item[0]) for item in cursor.fetchall() ] )
-
-        # Get list: badges list
-        cursor = g.db.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = ?",
-                [badgeList_id])
-        badgeList = (',').join([ str(item[0]) for item in cursor.fetchall() ])
-
-        # GET list: user's keywords
-        cursor = g.db.execute("SELECT key.text FROM D_USER_KEYWORDS ids JOIN D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = ?", [user_id])
-        keywords = (',').join([ str(item[0]) for item in cursor.fetchall() ])
-
-        profile = dict(
-            user_email=                     email,
-            user_name=                      str(userinfo[0][2]),
-            user_motherLang=                userinfo[0][3],
-            user_profilePicPath=            str(userinfo[0][6]) if userinfo[0][6] is not None else None,
-            user_translatableLang=          other_language_list,
-            user_numOfRequestsPending=       userinfo[0][7],
-            user_numOfRequestsOngoing=       userinfo[0][8],
-            user_numOfRequestsCompleted=     userinfo[0][9],
-            user_numOfTranslationsPending=   userinfo[0][10],
-            user_numOfTranslationsOngoing=   userinfo[0][11],
-            user_numOfTranslationsCompleted= userinfo[0][12],
-            user_badgeList=                 badgeList,
-            user_isTranslator=              True if userinfo[0][4] == 1 else False,
-            user_profileText=               str(userinfo[0][14]),
-            user_keywords=                  keywords,
-            user_transRequestState=         userinfo[0][15]
-            )
-
+        profile = getProfile(g.db, user_id)
         if is_your_profile == True:
             cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?",  [user_id])
             profile['user_revenue'] = cursor.fetchall()[0][0]
@@ -1031,6 +997,7 @@ def show_queue():
         cursor = g.db.execute(query_pending, [my_user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs)
+        print result
 
         return make_response(json.jsonify(data=result), 200)
 
@@ -2348,9 +2315,9 @@ def register_payback():
     if request.method == "GET":
         # GET payback list
         user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("""SELECT id, order_no, bank_name, account_no, request_time, amount
+        cursor = g.db.execute("""SELECT id, order_no, bank_name, account_no, request_time, amount, is_returned
             FROM RETURN_MONEY_BANK_ACCOUNT
-            WHERE is_returned=0 AND user_id=?
+            WHERE user_id=?
             ORDER BY id DESC""", [user_id])
 
         rs = cursor.fetchall()
@@ -2362,7 +2329,8 @@ def register_payback():
                     'bankName': str(item[2]),
                     'accountNo': item[3],
                     'requestTime': item[4],
-                    'amount': item[5]
+                    'amount': item[5],
+                    'isReturned': True if item[6] == 1 else False
                     }
             result.append(item)
 
@@ -2384,7 +2352,7 @@ def register_payback():
 
         if revenue_amount < amount:
             return make_response(json.jsonify(
-                message="User cannot paid back. Revenue: %f, Requested amount: %f" % (revenue_amount, amount)), 402)
+                message="User cannot request paid back. Revenue: %f, Requested amount: %f" % (revenue_amount, amount)), 402)
 
         new_id = get_new_id(g.db, "RETURN_MONEY_BANK_ACCOUNT")
         order_no = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
@@ -2395,6 +2363,47 @@ def register_payback():
         return make_response(json.jsonify(
             message="Payback request is successfully received"), 200)
         
+@app.route('/api/user/payback_email', methods = ["GET"])
+@login_required
+#@exception_detector
+def register_paybacki_email():
+    mail_to = session['useremail']
+    user_id = get_user_id(g.db, mail_to)
+    cursor = g.db.execute("SELECT name FROM D_USERS WHERE id = ?", [user_id])
+    name = cursor.fetchone()[0]
+
+    subject = 'Please reply for your refund request'
+
+    doc_no = random_string_gen(size=12)
+    message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>Dear %(name)s,</h1></span><br>
+                 <br>
+                 Thank you for being with Ciceron!<br>
+                 Is it fun to work with us? We wish that it had been, and would be good time!<br>
+                 If there is any problem with our system, don'y hesitate to contact us by <a href="contact@ciceron.me">this mail!</a><br>
+                 <br>
+                 For your refund request, please fill out the information below and reply to us!<br>
+                 <br>
+                 <b>Name of the bank</b>:<br>
+                 <b>Account no.</b>:<br>
+                 <b>Amount</b>:<br>
+                 <br>
+                 Have a wonderful day! :)<br>
+                 We are looking for your reply!<br>
+                 <br>
+                 Best regards,<br>
+                 Ciceron team<br>
+                 <br>
+                 <br>
+                 ##### PLEASE DO NOT DELETE THE TEXT BELOW #####<br>
+                 %(doc_no)s<br>
+                 ##### PLEASE DO NOT DELETE THE TEXT ABOVE #####""" % {'doc_no': doc_no, 'name': name, 'host': HOST}
+
+    send_mail(mail_to, subject, message, mail_from='contact@ciceron.me')
+
+    return make_response(json.jsonify(
+        message='Request mail is sent!'), 200)
+                
 @app.route('/api/user/payback/<str_id>/<order_no>', methods = ["PUT", "DELETE"])
 @login_required
 #@exception_detector
