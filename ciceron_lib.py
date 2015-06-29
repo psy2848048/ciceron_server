@@ -460,3 +460,20 @@ def update_user_record(conn, client_id=None, translator_id=None):
                 WHERE id = ?""", [translator_id, translator_id, translator_id, translator_id])
 
     conn.commit()
+
+def parse_request(req):
+    if req.headers["Content-Type"] == "application/json":
+        parameter_list = req.get_json()
+        result = dict()
+
+        for key, value in parameter_list.iteritems():
+            result[key] = value
+
+        return result
+
+    elif req.headers["Content-Type"] == "application/x-www-urlencode" or req.headers["Content-Type"] == "multipart/form-data":
+        result = dict()
+        for key, value in req.form.iteritems():
+            result[key] = value
+
+        return result

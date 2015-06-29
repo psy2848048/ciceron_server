@@ -32,7 +32,7 @@ VERSION= "2014.12.28"
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})
-app.secret_key = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
+app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
 app.config.from_object(__name__)
 app.project_number = 1021873337108
 Session(app)
@@ -96,10 +96,13 @@ def login():
         #     machine_id:   machine_id of client phone device (OPTIONAL)
 
         # Get parameters
-        email = request.form['email']
-        hashed_password = request.form['password']
-        machine_id = request.form.get('machine_id', None)
-        client_os = request.form.get('client_os', None)
+        paramters = parse_request(request)
+        #email = request.form['email']
+        #hashed_password = request.form['password']
+        #machine_id = request.form.get('machine_id', None)
+        #client_os = request.form.get('client_os', None)
+        email = parameters['email']
+        hashed_password = parameters['password']
         user_id = get_user_id(g.db, email)
 
         # Get hashed_password using user_id for comparing
