@@ -96,7 +96,7 @@ def login():
         #     machine_id:   machine_id of client phone device (OPTIONAL)
 
         # Get parameters
-        paramters = parse_request(request)
+        parameters = parse_request(request)
         #email = request.form['email']
         #hashed_password = request.form['password']
         #machine_id = request.form.get('machine_id', None)

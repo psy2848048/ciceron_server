@@ -462,7 +462,7 @@ def update_user_record(conn, client_id=None, translator_id=None):
     conn.commit()
 
 def parse_request(req):
-    if req.headers["Content-Type"] == "application/json":
+    if req.form == None or len(req.form) == 0:
         parameter_list = req.get_json()
         result = dict()
 
@@ -471,7 +471,7 @@ def parse_request(req):
 
         return result
 
-    elif req.headers["Content-Type"] == "application/x-www-urlencode" or req.headers["Content-Type"] == "multipart/form-data":
+    else:
         result = dict()
         for key, value in req.form.iteritems():
             result[key] = value
