@@ -279,7 +279,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_originalLang=row[13],
                 request_targetLang=row[15],
                 request_isSos= True if row[17] == 1 else False,
-                request_format=row[19],
+                parametersat=row[19],
                 request_subject=row[21],
                 request_isText= True if row[29] == 1 else False,
                 request_text=get_main_text(g.db, row[30], "D_REQUEST_TEXTS"),
@@ -351,7 +351,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
     return result
 
-def complete_groups(conn, table, method, url_group_id=None):
+def complete_groups(conn, parameters, table, method, url_group_id=None):
     if method == "GET":
         my_user_id = get_user_id(g.db, session['useremail'])
         cursor = conn.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
@@ -361,7 +361,7 @@ def complete_groups(conn, table, method, url_group_id=None):
         return result
 
     elif method == "POST":
-        group_name = (request.form['group_name']).encode('utf-8')
+        group_name = (parameters['group_name']).encode('utf-8')
         if group_name == "Documents":
             return -1
 
@@ -375,7 +375,7 @@ def complete_groups(conn, table, method, url_group_id=None):
 
     elif method == "PUT":
         group_id = int(url_group_id)
-        group_name = (request.form['group_name']).encode('utf-8')
+        group_name = (parameters['group_name']).encode('utf-8')
         if group_name == "Documents":
             return -1
         conn.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
@@ -397,11 +397,11 @@ def complete_groups(conn, table, method, url_group_id=None):
         g.db.commit()
         return group_id
 
-def save_request(conn, str_request_id, result_folder):
+def save_request(conn, parameters, str_request_id, result_folder):
     request_id = int(str_request_id)
-    new_translatedText = (request.form.get("request_translatedText", None)).encode('utf-8')
-    new_comment = (request.form.get("request_comment", None)).encode('utf-8')
-    new_tone = request.form.get("request_tone", None)
+    new_translatedText = (parameters.get("request_translatedText", None)).encode('utf-8')
+    new_comment = (parameters.get("request_comment", None)).encode('utf-8')
+    new_tone = parameters.get("request_tone", None)
 
     cursor = conn.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
     rs = cursor.fetchall()

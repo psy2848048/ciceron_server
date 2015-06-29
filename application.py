@@ -97,12 +97,10 @@ def login():
 
         # Get parameters
         parameters = parse_request(request)
-        #email = request.form['email']
-        #hashed_password = request.form['password']
-        #machine_id = request.form.get('machine_id', None)
-        #client_os = request.form.get('client_os', None)
         email = parameters['email']
         hashed_password = parameters['password']
+        #machine_id = parameters.get('machine_id', None)
+        #client_os = parameters.get('client_os', None)
         user_id = get_user_id(g.db, email)
 
         # Get hashed_password using user_id for comparing
@@ -182,11 +180,12 @@ def signup():
 
     if request.method == 'POST':
         # Get parameter values
-        email = request.form['email']
-        hashed_password = request.form['password']
-        facebook_id = request.form.get('facebook_id', None)
-        name = (request.form['name']).encode('utf-8')
-        mother_language_id = int(request.form['mother_language_id'])
+        parameters = parse_request(request)
+        email = parameters['email']
+        hashed_password = parameters['password']
+        facebook_id = parameters.get('facebook_id', None)
+        name = (parameters['name']).encode('utf-8')
+        mother_language_id = int(parameters['mother_language_id'])
 
         # Duplicate check
         cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
@@ -247,7 +246,8 @@ def signup():
 def idChecker():
     # Method: GET
     # Parameter: String id
-    email = request.form['email']
+    parameters = parse_request(request)
+    email = parameters['email']
     print "email_id: %s" % email
     cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
     check_data = cursor.fetchall()
@@ -270,7 +270,6 @@ def user_profile():
         # Method: GET
         # Parameters
         #     user_email: String, text
-
         # Get value
         email = request.args.get('user_email', session['useremail'])
 
@@ -342,7 +341,9 @@ def user_profile():
         #     user_profilePic: binary
 
         # Get parameter value
-        profileText = (request.form.get('user_profileText', None)).encode('utf-8')
+        parameters = parse_request(request)
+
+        profileText = (parameters.get('user_profileText', None)).encode('utf-8')
         profile_pic = request.files.get('photo', None)
 
         # Start logic
@@ -370,36 +371,43 @@ def user_profile():
         return make_response(json.jsonify(
             message="Your profile is susccessfully updated!"), 200)
 
-#@app.route('/user/profile/photo', methods=["POST", "GET"])
-#@exception_detector
-#@login_required
-#def user_profile_photo():
-#    if request.method == "POST":
-#        profile_pic = request.files['photo']
-#        filename = ""
-#        path = ""
-#        if profile_pic and pic_allowed_file(profile_pic.filename):
-#            pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
-#            profile_pic.save(pic_path)
-#
-#        g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
-#        g.db.commit()
-#
-#        return make_response(json.jsonify(
-#                message="Upload complete",
-#                path=pic_path),
-#            200)
-#
-#    else:
-#        return '''
-#            <!doctype html>
-#            <title>Upload test / Profile pic</title>
-#            <h1>Upload new File</h1>
-#            <form action="" method=post enctype=multipart/form-data>
-#              <p><input type=file name=file>
-#                 <input type=submit value=Upload>
-#            </form>
-#            '''
+@app.route('/user/profile/photo', methods=["POST", "GET"])
+@exception_detector
+@login_required
+def user_profile_photo():
+    if request.method == "POST":
+        try:
+            print "Only supports multipart/form-data"
+            profile_pic = request.files['photo']
+            filename = ""
+            path = ""
+            if profile_pic and pic_allowed_file(profile_pic.filename):
+                pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
+                profile_pic.save(pic_path)
+
+            g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
+            g.db.commit()
+
+            return make_response(json.jsonify(
+                    message="Upload complete",
+                    path=pic_path),
+                200)
+
+        except KeyError as e:
+            return make_response(json.jsonify(
+                message="Photo upload only supports multipart/form-data. And it takes data from the parameter named 'photo'. Please check your configuration.",
+                ), 400)
+
+    else:
+        return '''
+            <!doctype html>
+            <title>Upload test / Profile pic</title>
+            <h1>Upload new File</h1>
+            <form action="" method=post enctype=multipart/form-data>
+              <p><input type=file name=file>
+                 <input type=submit value=Upload>
+            </form>
+            '''
 
 @app.route('/api/requests', methods=["GET", "POST"])
 @exception_detector
@@ -430,8 +438,8 @@ def requests():
         client_user_id = get_user_id(g.db, request.form['request_clientId'])
         original_lang_id = request.form['request_originalLang']
         target_lang_id = request.form['request_targetLang']
-        isSos = parameter_to_bool(request.form['request_isSos'])
-        format_id = request.form.get('request_format')
+        isSos = parameter_to_bool(parameters['request_isSos'])
+        format_id = request.form.get('parametersat')
         subject_id = request.form.get('request_subject')
         registered_time = request.form['request_registeredTime']
         is_text = parameter_to_bool(request.form.get('request_isText', False))
@@ -555,7 +563,7 @@ def requests():
         session['token'] = random_string_gen()
 
         return make_response(json.jsonify(
-            message="Request ID %d  has been posted by %s" % (request_id, request.form['request_clientId'])
+            message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId'])
             ), 200)
 
 @app.route('/api/requests/<str_request_id>', methods=["DELETE"])
@@ -621,8 +629,10 @@ def show_queue():
 
         # Translators in queue
         # Get request ID
-        request_id = int(request.form['request_id'])
-        translator_email = request.form.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
+        parameters = parse_request(request)
+
+        request_id = int(parameters['request_id'])
+        translator_email = parameters.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
         cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
         rs = cursor.fetchall()
 
@@ -700,7 +710,9 @@ def pick_request():
         # Request method: POST
         # Parameters
         #    request_id: requested post id
-        request_id = int(request.form['request_id'])
+        parameters = parse_request(request)
+
+        request_id = int(parameters['request_id'])
         my_user_id = get_user_id(g.db, session['useremail'])
 
         cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND status_id = 0", [request_id])
@@ -768,8 +780,10 @@ def working_translate_item(str_request_id):
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "PUT":
+        parameters = parse_request(request)
+
         request_id = int(str_request_id)
-        save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
+        save_request(g.db, parameters, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
         return make_response(json.jsonify(
             message="Request id %d is auto saved." % request_id
             ), 200)
@@ -786,8 +800,10 @@ def expected_time(str_request_id):
         return make_response(json.jsonify(default_dueTime=rs[0][0]), 200)
 
     elif request.method == "POST":
+        parameters = parse_request(request)
+
         request_id = int(str_request_id)
-        expected_time = request.form['expectedTime']
+        expected_time = parameters['expectedTime']
         g.db.execute("UPDATE F_REQUESTS SET expected_time = ? WHERE status_id = 1 AND id = ?",
                 [expected_time, request_id])
         g.db.commit()
@@ -810,8 +826,10 @@ def expected_time(str_request_id):
 @login_required
 @translator_checker
 def post_translate_item():
-    request_id = int(request.form['request_id'])
-    save_request(g.db, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
+    parameters = parse_request(request)
+
+    request_id = int(parameters['request_id'])
+    save_request(g.db, parameters, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
     cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 AND status_id = 1 ", [request_id])
@@ -881,8 +899,10 @@ def translation_completed_items_all():
 @translator_checker
 def set_title_translator(str_request_id):
     if request.method == "POST":
+        parameters = parse_request(request)
+
         request_id = int(str_request_id)
-        title_text = (request.form['title_text']).encode('utf-8')
+        title_text = (parameters['title_text']).encode('utf-8')
 
         my_user_id = get_user_id(g.db, session['useremail'])
         default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
@@ -916,7 +936,8 @@ def translators_complete_groups():
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
-        group_name = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "POST")
+        parameters = parse_request(request)
+        group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "POST")
         if group_name == -1:
             return make_response(json.jsonify(message="'Document' is reserved name"), 401)
         else:
@@ -927,14 +948,16 @@ def translators_complete_groups():
 @translator_checker
 @login_required
 def modify_translators_complete_groups(str_group_id):
+    parameters = parse_request(request)
+
     if request.method == "DELETE":
-        group_id = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
+        group_id = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id == -1:
             return make_response(json.jsonify(message="Group 'Document' is default. You cannot delete it!"), 401)
         else:
             return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
     elif request.method == "PUT":
-        group_name = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
+        group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
         if group_name == -1:
             return make_response(json.jsonify(message="You cannot change the name of the group to 'Document'. It is default group name" % group_name), 401)
         else:
@@ -946,8 +969,10 @@ def modify_translators_complete_groups(str_group_id):
 @login_required
 def translation_completed_items_in_group(str_group_id):
     if request.method == "POST":
+        parameters = parse_request(request)
+
         group_id = int(str_group_id)
-        request_id = int(request.form['request_id'])
+        request_id = int(parameters['request_id'])
         g.db.execute("UPDATE F_REQUESTS SET translator_completed_group_id = ? WHERE id = ?", [group_id, request_id])
         group_name = get_text_from_id(g.db, group_id, "D_TRANSLATOR_COMPLETED_GROUPS")
         g.db.commit()
@@ -1040,8 +1065,10 @@ def client_completed_items_detail(str_request_id):
 @login_required
 def set_title_client(str_request_id):
     if request.method == "POST":
+        parameters = parse_request(request)
+
         request_id = int(str_request_id)
-        title_text = (request.form['title_text']).encode('utf-8')
+        title_text = (parameters['title_text']).encode('utf-8')
 
         my_user_id = get_user_id(g.db, session['useremail'])
         default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
@@ -1097,7 +1124,9 @@ def client_complete_groups():
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
-        group_name = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "POST")
+        parameters = parse_request(request)
+
+        group_name = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "POST")
         if group_name != -1:
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
         else:
@@ -1107,15 +1136,17 @@ def client_complete_groups():
 @exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
+    parameters = parse_request(request)
+
     if request.method == "PUT":
-        group_name = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "PUT", url_group_id=str_group_id)
+        group_name = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "PUT", url_group_id=str_group_id)
         if group_name != -1:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
         else:
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
     elif request.method == "DELETE":
-        group_id = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
+        group_id = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id != -1:
             return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
         else:
@@ -1125,9 +1156,11 @@ def modify_client_completed_groups(str_group_id):
 @exception_detector
 @login_required
 def client_completed_items_in_group(str_group_id):
+    parameters = parse_request(request)
+
     if request.method == "POST":
         group_id = int(str_group_id)
-        request_id = int(request.form['request_id'])
+        request_id = int(parameters['request_id'])
         g.db.execute("UPDATE F_REQUESTS SET client_completed_group_id = ? WHERE id = ?", [group_id, request_id])
         group_name = get_text_from_id(g.db, group_id, "D_CLIENT_COMPLETED_GROUPS")
         g.db.commit()
@@ -1147,9 +1180,11 @@ def client_completed_items_in_group(str_group_id):
 @exception_detector
 @login_required
 def pay_for_request(str_request_id):
-    pay_via = request.form.get('pay_via')
+    parameters = parse_request(request)
+
+    pay_via = parameters.get('pay_via')
     request_id = int(str_request_id)
-    amount = float(request.form['pay_amount'])
+    amount = float(parameters['pay_amount'])
 
     if pay_via == 'paypal':
         # SANDBOX
@@ -1244,8 +1279,10 @@ def pay_for_request_process(str_request_id):
 @exception_detector
 @login_required
 def register_or_update_register_id():
-    device_os = request.form['user_deviceOS']
-    reg_key = request.form['user_regKey']
+    parameters = parse_request(request)
+
+    device_os = parameters['user_deviceOS']
+    reg_key = parameters['user_regKey']
     user_id = get_user_id(g.db, session['useremail'])
 
     record_id = get_new_id(g.db, "D_MACHINES")
@@ -1283,8 +1320,10 @@ def publicize():
 @exception_detector
 @admin_required
 def language_assigner():
-    user_email = request.form['email']
-    language_id = int(request.form['language'])
+    parameters = parse_request(request)
+
+    user_email = parameters['email']
+    language_id = int(parameters['language'])
     user_id = get_user_id(g.db, user_email)
     new_translation_list_id = get_new_id(g.db, "D_TRANSLATABLE_LANGUAGES")
 
