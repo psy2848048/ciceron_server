@@ -307,12 +307,23 @@ CREATE VIEW V_TRANSLATABLE_LANGUAGES as
 
 CREATE VIEW V_QUEUE_LISTS as
   SELECT
-    fact.id id,
-    fact.request_id request_id,
-    fact.user_id user_id,
-    users.email user_email,
-    users.name user_name,
-    users.profile_pic_path profile_pic_path
+   fact.id id,
+   fact.request_id request_id,
+   fact.user_id user_id,
+   users.email user_email,
+   users.name user_name,
+   users.mother_language_id mother_language_id, -- D_LANGUAGES
+   users.is_translator is_translator,
+   users.other_language_list_id other_language_list_id,
+   users.profile_pic_path profile_pic_path,
+   users.numOfRequestPending numOfRequestPending,
+    users.numOfRequestOngoing numOfRequestOngoing,
+    users.numOfRequestCompleted numOfRequestCompleted,
+    users.numOfTranslationPending numOfTranslationPending,
+   users.numOfTranslationOngoing numOfTranslationOngoing,
+    users.numOfTranslationCompleted numOfTranslationCompleted,
+    users.badgeList_id badgeList_id, -- D_AWARDED_BADGES
+    users.profile_text profile_text
   FROM
     D_QUEUE_LISTS fact
   LEFT OUTER JOIN D_USERS users ON fact.user_id = users.id;

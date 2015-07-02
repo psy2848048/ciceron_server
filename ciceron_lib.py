@@ -256,11 +256,29 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
         queue_list = []
         for q_item in cursor2.fetchall():
+            cursor3 = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
+                [q_item[0]])
+            other_language_list = (',').join( [ item[0] for item in cursor3.fetchall() ] )
+            cursor4 = g.db.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
+                [q_item[0]])
+            badgeList = (',').join([ item[0] for item in cursor4.fetchall() ])
+
             temp_item=dict(
-                    user_email=      q_item[2],
-                    user_name=    str(q_item[4]),
-                    user_profilePicPath= str(q_item[5]) if q_item[5] is not None else None
-                    )
+                user_email=                     q_item[2],
+                user_name=                      str(q_item[4]),
+                user_motherLang=                q_item[5],
+                user_profilePicPath=            str(q_item[8]) if q_item[8] is not None else None,
+                user_translatableLang=          other_language_list,
+                user_numOfRequestPending=       q_item[9],
+                user_numOfRequestOngoing=       q_item[10],
+                user_numOfRequestCompleted=     q_item[11],
+                user_numOfTranslationPending=   q_item[12],
+                user_numOfTranslationOngoing=   q_item[13],
+                user_numOfTranslationCompleted= q_item[14],
+                user_badgeList=                 badgeList,
+                user_isTranslator=              True if q_item[6] == 1 else False,
+                user_profileText=               str(q_item[16])
+                )
             queue_list.append(temp_item)
 
         # For getting word count of the request
