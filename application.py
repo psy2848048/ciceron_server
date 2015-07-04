@@ -36,6 +36,7 @@ app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
 app.config.from_object(__name__)
 app.project_number = 1021873337108
 Session(app)
+date_format = "%Y-%m-%d %H:%M:%S.%f"
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -433,27 +434,30 @@ def requests():
     elif request.method == "POST":
         # Method: POST
         # Parameters -> Please check code
+        parameters = parse_request(request)
 
         request_id = get_new_id(g.db, "F_REQUESTS")
-        client_user_id = get_user_id(g.db, request.form['request_clientId'])
-        original_lang_id = request.form['request_originalLang']
-        target_lang_id = request.form['request_targetLang']
+        client_user_id = get_user_id(g.db, parameters['request_clientId'])
+        original_lang_id = parameters['request_originalLang']
+        target_lang_id = parameters['request_targetLang']
         isSos = parameter_to_bool(parameters['request_isSos'])
-        format_id = request.form.get('parametersat')
-        subject_id = request.form.get('request_subject')
-        registered_time = request.form['request_registeredTime']
-        is_text = parameter_to_bool(request.form.get('request_isText', False))
-        text_string = (request.form.get('request_text')).encode('utf-8')
-        is_photo = parameter_to_bool(request.form.get('request_isPhoto', False))
-        #photo_binary
-        is_sound = parameter_to_bool(request.form.get('request_isSound', False))
-        #sound_binary
-        is_file = parameter_to_bool(request.form.get('request_isFile', False))
-        #file_binary
-        words = request.form.get('reqeust_words', 0)
-        due_time = request.form['request_dueTime']
-        point = request.form.get('request_points')
-        context = (request.form.get('request_context')).encode('utf-8')
+        format_id = parameters.get('parametersat')
+        subject_id = parameters.get('request_subject')
+        registered_time = parameters['request_registeredTime']
+        is_text = parameter_to_bool(parameters.get('request_isText', False))
+        text_string = (parameters.get('request_text')).encode('utf-8')
+        is_photo = parameter_to_bool(parameters.get('request_isPhoto', False))
+        is_sound = parameter_to_bool(parameters.get('request_isSound', False))
+        is_file = parameter_to_bool(parameters.get('request_isFile', False))
+
+        if isSos == False:
+            due_time = parameters['request_dueTime']
+        else:
+            due_time = datetime.strptime(registered_time, date_format) + timedelta(minutes=30)
+
+        point = parameters.get('request_points') if isSos == False else 0
+
+        context = (parameters.get('request_context')).encode('utf-8')
 
         new_photo_id = None
         new_sound_id = None
@@ -576,6 +580,13 @@ def delete_requests(str_request_id):
 
         # Check that somebody is translating this request.
         # If yes, requester cannot delete this request
+        cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? ",
+                [request_id, user_id])
+        is_my_request = cursor.fetchall()[0][0]
+        if is_my_request == 0:
+            return make_response(json.jsonify(
+                message="This request is not yours!"), 409)
+
         cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
                 [request_id, user_id])
 
@@ -594,7 +605,6 @@ def delete_requests(str_request_id):
 
         return make_response(json.jsonify(
             message="Request #%d is successfully deleted!" % request_id), 200)
-
 
 @app.route('/api/user/translations/pending', methods=["GET", "POST"])
 @login_required

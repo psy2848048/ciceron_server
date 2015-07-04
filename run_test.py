@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
-import os, run, unittest, tempfile, datetime, time, json, hashlib, io
+import os, application, unittest, tempfile, datetime, time, json, hashlib, io
 from flask import url_for
 
 class CiceronTestCase(unittest.TestCase):
     def setUp(self):
-        self.db_fd, run.app.config['DATABASE'] = tempfile.mkstemp()
-        run.app.config['TESTING'] = True
-        self.app = run.app.test_client()
-        run.init_db()
+        self.db_fd, application.app.config['DATABASE'] = tempfile.mkstemp()
+        application.app.config['TESTING'] = True
+        self.app = application.app.test_client()
+        application.init_db()
 
     def tearDown(self):
         os.close(self.db_fd)
-        os.unlink(run.app.config['DATABASE'])
+        os.unlink(application.app.config['DATABASE'])
 
     def signUp(self, email, password, name, mother_language_id):
         hasher = hashlib.sha256()
         hasher.update(password)
         password = hasher.hexdigest()
-        return self.app.post('/signup', data=dict(
+        return self.app.post('/api/signup', data=dict(
                 email=email,
                 password=password,
                 name=name,
@@ -25,7 +25,7 @@ class CiceronTestCase(unittest.TestCase):
                 ), follow_redirects=True)
 
     def login(self, email, password):
-        rv = self.app.get('/login')
+        rv = self.app.get('/api/login')
         salt = json.loads(rv.data)['identifier']
         salt = salt.encode('utf-8')
 
@@ -36,7 +36,7 @@ class CiceronTestCase(unittest.TestCase):
         hasher2 = hashlib.sha256()
         hasher2.update(salt + temp_pass + salt)
         value = hasher2.hexdigest()
-        return self.app.post('/login', data=dict(
+        return self.app.post('/api/login', data=dict(
                email=email,
                password=value
            ), follow_redirects=True)
@@ -63,7 +63,7 @@ class CiceronTestCase(unittest.TestCase):
         	    )
         print (rv.data)
         assert 'Please check the password' in rv.data
-        rv = self.app.get('/')
+        rv = self.app.get('/api')
         print (rv.data)
         
         print ("Step 3: attempt to login with registered user, correct password")
@@ -72,13 +72,13 @@ class CiceronTestCase(unittest.TestCase):
         	    )
         print (rv.data)
         assert 'You\'re logged with user' in rv.data
-        rv = self.app.get('/')
+        rv = self.app.get('/api')
         print (rv.data)
 
     def test_idChecker(self):
         print ("=================test-nickchecker====================")
         
-        rv = self.app.post('/idCheck', data=dict(email='psy2848048@gmail.com'))
+        rv = self.app.post('/api/idCheck', data=dict(email='psy2848048@gmail.com'))
         print rv.data
         assert 'You may use' in  rv.data
         
@@ -87,13 +87,13 @@ class CiceronTestCase(unittest.TestCase):
         	    name="CiceronMaster",
         	    mother_language_id=0)
         
-        rv = self.app.post('/idCheck', data=dict(email='psy2848048@gmail.com'))
+        rv = self.app.post('/api/idCheck', data=dict(email='psy2848048@gmail.com'))
         print rv.data
         assert 'Duplicated' in  rv.data
 
     def test_login_decorator(self):
         print ("==============test-login-req-decorator==============")
-        rv = self.app.get("/user/profile")
+        rv = self.app.get("/api/user/profile")
         print (rv)
         print (rv.data)
         assert 'Login required' in rv.data
@@ -108,17 +108,17 @@ class CiceronTestCase(unittest.TestCase):
 
         print ("Login complete")
 
-        rv = self.app.get("/user/profile")
+        rv = self.app.get("/api/user/profile")
         print (rv)
         print (rv.data)
 
-        rv = self.app.post("/user/profile",
+        rv = self.app.post("/api/user/profile",
                 data=dict(
                     user_profileText="Test"
                     )
                 )
 
-        rv = self.app.get("/user/profile")
+        rv = self.app.get("/api/user/profile")
         print (rv.data)
 
     def test_request(self):
@@ -133,7 +133,7 @@ class CiceronTestCase(unittest.TestCase):
         
         text = "This is test text\nAnd I donno how to deal with"
         print ("Post normal request without money")
-        rv = self.app.post('/requests', data=dict(
+        rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
                 request_targetLang=1,
@@ -146,7 +146,6 @@ class CiceronTestCase(unittest.TestCase):
                 request_isPhoto=False,
                 request_isSound=False,
                 request_isFile=False,
-                request_words=len(text.split(' ')),
                 request_dueTime=datetime.datetime.now(),
         		request_points=0.50,
                 request_context=""
@@ -162,7 +161,7 @@ class CiceronTestCase(unittest.TestCase):
 
         text2 = "testtesttest\nChinese\na;eoifja;ef"
         
-        rv = self.app.post('/requests', data=dict(
+        rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
                 request_targetLang=2,
@@ -188,11 +187,11 @@ class CiceronTestCase(unittest.TestCase):
 
         print "Passed step 2"
         
-        rv = self.app.get('/requests')
+        rv = self.app.get('/api/requests')
         print "Posted list"
         print rv.data
         
-        rv = self.app.get('/requests?since=%f' % time.time())
+        rv = self.app.get('/api/requests?since=%f' % time.time())
         print "Posted list with last_post_time"
         print rv.data
         
@@ -205,7 +204,7 @@ class CiceronTestCase(unittest.TestCase):
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
         
-        rv = self.app.get('/requests')
+        rv = self.app.get('/api/requests')
         print "Posted list"
         print rv.data
 

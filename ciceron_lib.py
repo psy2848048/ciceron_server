@@ -224,11 +224,11 @@ def strict_translator_checker(conn, user_id, request_id):
         #           message = "You are not translator. This API is only for translators."
         #           ), 401)
 
-def word_counter(filePathName):
+def char_counter(filePathName):
     f = open(filePathName, 'r')
     words=0
     for lines in f.readlines():
-        words += len(lines.split(' '))
+        words += len(lines)
     f.close()
 
     return words
@@ -287,7 +287,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         if len(list_txt[0]) == 0:
             num_of_words = None
         else:
-            num_of_words = word_counter(list_txt[0][0])
+            num_of_words = char_counter(list_txt[0][0])
 
         item = dict(
                 request_id=row[0],
