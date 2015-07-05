@@ -318,12 +318,12 @@ def user_profile():
             user_motherLang=                userinfo[0][3],
             user_profilePicPath=            str(userinfo[0][5]) if userinfo[0][5] is not None else None,
             user_translatableLang=          other_language_list,
-            user_numOfRequestPending=       userinfo[0][7],
-            user_numOfRequestOngoing=       userinfo[0][8],
-            user_numOfRequestCompleted=     userinfo[0][9],
-            user_numOfTranslationPending=   userinfo[0][10],
-            user_numOfTranslationOngoing=   userinfo[0][11],
-            user_numOfTranslationCompleted= userinfo[0][12],
+            user_numOfRequestsPending=       userinfo[0][7],
+            user_numOfRequestsOngoing=       userinfo[0][8],
+            user_numOfRequestsCompleted=     userinfo[0][9],
+            user_numOfTranslationsPending=   userinfo[0][10],
+            user_numOfTranslationsOngoing=   userinfo[0][11],
+            user_numOfTranslationsCompleted= userinfo[0][12],
             user_badgeList=                 badgeList,
             user_isTranslator=              True if userinfo[0][4] == 1 else False,
             user_profileText=               str(userinfo[0][14])
@@ -825,7 +825,7 @@ def expected_time(str_request_id):
 
         request_id = int(str_request_id)
         expected_time = parameters['expectedTime']
-        g.db.execute("UPDATE F_REQUESTS SET expected_time = ? WHERE status_id = 1 AND id = ?",
+        g.db.execute("UPDATE F_REQUESTS SET expected_time = datetime('%%s', ?) WHERE status_id = 1 AND id = ?",
                 [expected_time, request_id])
         g.db.commit()
         return make_response(json.jsonify(message="Thank you for responding!"), 200)
@@ -877,7 +877,7 @@ def post_translate_item():
             [translator_default_group_id, translator_id, buffer("Documents")])
 
     # Change the state of the request
-    g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=? WHERE id = ?", [requester_default_group_id, translator_default_group_id, datetime.now(), request_id])
+    g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=datetime('now') WHERE id = ?", [requester_default_group_id, translator_default_group_id, request_id])
     update_user_record(g.db, client_id=requester_id, translator_id=translator_id)
     g.db.commit()
 

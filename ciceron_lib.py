@@ -297,7 +297,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_originalLang=row[13],
                 request_targetLang=row[15],
                 request_isSos= True if row[17] == 1 else False,
-                parametersat=row[19],
+                request_format=row[19],
                 request_subject=row[21],
                 request_isText= True if row[29] == 1 else False,
                 request_text=get_main_text(g.db, row[30], "D_REQUEST_TEXTS"),
