@@ -140,13 +140,12 @@ class CiceronTestCase(unittest.TestCase):
                 request_isSos=True,
                 request_format=0,
                 request_subject=0,
-                request_registeredTime=datetime.datetime.now(),
                 request_isText=True,
                 request_text = text,
                 request_isPhoto=False,
                 request_isSound=False,
                 request_isFile=False,
-                request_dueTime=datetime.datetime.now(),
+                request_deltaFromDue=3600,
         		request_points=0.50,
                 request_context=""
         		))
@@ -159,23 +158,23 @@ class CiceronTestCase(unittest.TestCase):
 
         print ("Pass step 1")
 
-        text2 = "testtesttest\nChinese\na;eoifja;ef"
+        text2 = "testtesttest\nChinese\n안녕하세요,おはようございます"
+        #text2 = "testtesttest\nChinese\\"
         
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
                 request_targetLang=2,
-                request_isSos=False,
+                request_isSos=True,
                 request_format=0,
                 request_subject=0,
-                request_registeredTime=datetime.datetime.now(),
                 request_isText=True,
                 request_text = text2,
                 request_isPhoto=False,
                 request_isSound=False,
                 request_isFile=False,
                 request_words=len(text.split(' ')),
-                request_dueTime=datetime.datetime.now(),
+                request_deltaFromDue=5500,
         		request_points=0,
                 request_context="Wow!"
         		))
@@ -191,7 +190,7 @@ class CiceronTestCase(unittest.TestCase):
         print "Posted list"
         print rv.data
         
-        rv = self.app.get('/api/requests?since=%f' % time.time())
+        rv = self.app.get('/api/requests?since=%s' % time.time())
         print "Posted list with last_post_time"
         print rv.data
         

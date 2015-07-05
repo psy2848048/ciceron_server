@@ -422,7 +422,7 @@ def requests():
         query = """SELECT * FROM V_REQUESTS WHERE
             (ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1) """
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+            query += "AND registered_time < strftime('%%s', '%s') " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
 
         cursor = g.db.execute(query)
@@ -443,21 +443,28 @@ def requests():
         isSos = parameter_to_bool(parameters['request_isSos'])
         format_id = parameters.get('parametersat')
         subject_id = parameters.get('request_subject')
-        registered_time = parameters['request_registeredTime']
         is_text = parameter_to_bool(parameters.get('request_isText', False))
-        text_string = (parameters.get('request_text')).encode('utf-8')
+
+        if parameters.get('request_text', None) != None:
+            text_string = parameters.get('request_text')
+        else:
+            text_string = None
+
         is_photo = parameter_to_bool(parameters.get('request_isPhoto', False))
         is_sound = parameter_to_bool(parameters.get('request_isSound', False))
         is_file = parameter_to_bool(parameters.get('request_isFile', False))
 
         if isSos == False:
-            due_time = parameters['request_dueTime']
+            delta_from_due = int(parameters['request_deltaFromDue'])
         else:
-            due_time = datetime.strptime(registered_time, date_format) + timedelta(minutes=30)
+            delta_from_due = 30 * 60
 
         point = parameters.get('request_points') if isSos == False else 0
 
-        context = (parameters.get('request_context')).encode('utf-8')
+        if parameters.get('request_context') != None:
+            context = parameters.get('request_context').encode('utf-8')
+        else:
+            context = None
 
         new_photo_id = None
         new_sound_id = None
@@ -510,9 +517,8 @@ def requests():
         if text_string:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_TEXT'], filename)
-            import codecs
-            f = codecs.open(path, 'w', "utf-8")
-            f.write(text_string)
+            f = open(path, 'wb')
+            f.write(bytearray(text_string.encode('utf-8')))
             f.close()
 
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
@@ -526,7 +532,13 @@ def requests():
 
         g.db.execute("""INSERT INTO F_REQUESTS
             (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", 
+                VALUES
+                (?,?,?,?,?,
+                 ?,?,?,?,?,
+                 ?,?,?,?,?,
+                 ?,?,?,?,?,
+                 ?,?, datetime('now'), datetime('now', '+%d seconds'), ?,
+                 ?,?,?,?,?)""" % delta_from_due, 
             bool_value_converter([
                     request_id,                       # id
                     client_user_id,                   # client_user_id
@@ -550,8 +562,7 @@ def requests():
                     None,                 # translator_completed_group_id
                     None,                 # client_title_id
                     None,                 # translator_title_id
-                    registered_time,      # registered_time
-                    due_time,             # due_time
+                    #delta_from_due,       # due_time
                     point,                # points
                     new_context_id,       # context_id
                     None,                 # comment_id
