@@ -37,6 +37,7 @@ app.config.from_object(__name__)
 app.project_number = 1021873337108
 Session(app)
 date_format = "%Y-%m-%d %H:%M:%S.%f"
+super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -418,9 +419,14 @@ def requests():
         # Parameters
         #     since(optional): Timestamp, take recent 20 post before the timestamp.
         #                  If this parameter is not provided, recent 20 posts from now are returned
-        
-        query = """SELECT * FROM V_REQUESTS WHERE
-            (ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1) """
+
+        query = None
+        if session['useremail'] in super_user:
+            query = """SELECT * FROM V_REQUESTS WHERE
+                (ongoing_worker_id is null AND status_id = 0 AND isSos = 0) OR (isSos = 1) """
+        else:
+            query = """SELECT * FROM V_REQUESTS WHERE
+                (ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1) """
         if 'since' in request.args.keys():
             query += "AND registered_time < strftime('%%s', '%s') " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
