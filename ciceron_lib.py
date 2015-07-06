@@ -2,6 +2,7 @@ import hashlib, codecs, os, random, string, sys, paypalrestsdk
 from flask import make_response, json, g, session, request, current_app
 from datetime import datetime, timedelta
 from functools import wraps
+super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
 # hashed ID maker for REVUNUE table
 def hashed_id_maker(conn):
@@ -154,7 +155,7 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('useremail') == "admin@ciceron.me":
+        if session.get('useremail') in super_user:
             return f(*args, **kwargs)
         else:
             return make_response(json.jsonify(
