@@ -229,7 +229,7 @@ def char_counter(filePathName):
     f = open(filePathName, 'r')
     words=0
     for lines in f.readlines():
-        words += len(lines)
+        words += len(lines.decode('utf-8'))
     f.close()
 
     return words
@@ -313,7 +313,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_registeredTime=row[24],
                 request_dueTime=row[27],
                 request_expectedTime=row[25],
-                reqeust_words=num_of_words,
+                request_words=num_of_words,
                 request_points=row[28],
                 request_translatorsInQueue=queue_list,
                 request_translatorId=str(row[6]) if row[6] is not None else None,
