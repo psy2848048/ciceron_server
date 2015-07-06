@@ -1330,7 +1330,7 @@ def register_or_update_register_id():
 #########                        ADMIN TOOL                            #########
 ################################################################################
 
-@app.route('/admin/publicize', methods = ["GET"])
+@app.route('/api/admin/publicize', methods = ["GET"])
 @exception_detector
 @admin_required
 def publicize():
@@ -1343,14 +1343,14 @@ def publicize():
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
-@app.route('/admin/language_assigner', methods = ["POST"])
+@app.route('/api/admin/language_assigner', methods = ["POST"])
 @exception_detector
 @admin_required
 def language_assigner():
     parameters = parse_request(request)
 
     user_email = parameters['email']
-    language_id = int(parameters['language'])
+    language_id = int(parameters['language_id'])
     user_id = get_user_id(g.db, user_email)
     new_translation_list_id = get_new_id(g.db, "D_TRANSLATABLE_LANGUAGES")
 
