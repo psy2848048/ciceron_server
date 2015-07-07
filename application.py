@@ -667,7 +667,13 @@ def show_queue():
 
         request_id = int(parameters['request_id'])
         translator_email = parameters.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
-        cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? "
+        else:
+            query = "SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
+
+        cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
 
         if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 400)
@@ -811,7 +817,13 @@ def pick_request():
 def working_translate_item(str_request_id):
     if request.method == "GET":
         request_id = int(str_request_id)
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? AND is_paid = 1 ", [request_id])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? AND is_paid = 1 "
+        cursor = g.db.execute(query, [request_id])
+
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
@@ -832,7 +844,12 @@ def working_translate_item(str_request_id):
 def expected_time(str_request_id):
     if request.method == "GET":
         request_id = int(str_request_id)
-        cursor = g.db.execute("SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 ", [request_id])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? "
+        else:
+            query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 "
+        cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
         return make_response(json.jsonify(default_dueTime=rs[0][0]), 200)
 
@@ -851,7 +868,13 @@ def expected_time(str_request_id):
         g.db.execute("UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = ?",
                 [request_id])
 
-        cursor = g.db.execute("SELECT client_user_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? "
+        else:
+            query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 "
+        cursor = g.db.execute(query, [request_id])
+
         client_user_id = cursor.fetchall()[0][0]
         translator_user_id = get_user_id(g.db, session['useremail'])
         update_user_record(g.db, client_id=client_user_id, translator_id=translator_user_id)
@@ -869,7 +892,12 @@ def post_translate_item():
     save_request(g.db, parameters, request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
-    cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 AND status_id = 1 ", [request_id])
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND status_id = 1 "
+    else:
+        query = "SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 AND status_id = 1 "
+    cursor = g.db.execute(query, [request_id])
     rs = cursor.fetchall()
     if len(rs) == 0:
         return make_response(
@@ -908,7 +936,12 @@ def post_translate_item():
 def translation_completed_items_detail(str_request_id):
     request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1", [request_id, user_id])
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? "
+    else:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1"
+    cursor = g.db.execute(query, [request_id, user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
     return make_response(json.jsonify(data=result), 200)
@@ -921,7 +954,11 @@ def translation_completed_items_all():
     since = request.args.get('since', None)
     user_id = get_user_id(g.db, session['useremail'])
 
-    query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? AND is_paid = 1 "
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? "
+    else:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? AND is_paid = 1 "
     if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
     query += " ORDER BY request_id LIMIT 20"
 
@@ -1020,8 +1057,12 @@ def translation_completed_items_in_group(str_group_id):
     elif request.method == "GET":
         group_id = int(str_group_id)
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? AND is_paid = 1 ",
-            [my_user_id, group_id])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? AND is_paid = 1 "
+        cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
         return make_response(json.jsonify(data=result), 200)
@@ -1045,7 +1086,11 @@ def show_pending_item_client(str_request_id):
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
         request_id = int(str_request_id)
-        query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -1057,7 +1102,11 @@ def show_pending_item_client(str_request_id):
 def show_ongoing_list_client():
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
-        query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 is_paid = 1 "
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 is_paid = 1 "
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1070,7 +1119,11 @@ def show_ongoing_item_client(str_request_id):
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
         request_id = int(str_request_id)
-        query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 AND is_paid = 1 "
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 AND is_paid = 1 "
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1082,7 +1135,12 @@ def show_ongoing_item_client(str_request_id):
 def client_completed_items():
     request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND is_paid = 1 ", [user_id])
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? "
+    else:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND is_paid = 1 "
+    cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
@@ -1093,7 +1151,12 @@ def client_completed_items():
 def client_completed_items_detail(str_request_id):
     request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
-    cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? AND is_paid = 1 ", [user_id, request_id])
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? "
+    else:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? AND is_paid = 1 "
+    cursor = g.db.execute(query, [user_id, request_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
@@ -1119,11 +1182,22 @@ def set_title_client(str_request_id):
         g.db.execute("UPDATE F_REQUESTS SET client_title_id = ? WHERE id = ?", [new_title_id, request_id])
 
         # Pay back part
-        cursor = g.db.execute("SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 ", [request_id])
+        query_getTranslator = None
+        if session['useremail'] in super_user:
+            query_getTranslator = "SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ? "
+        else:
+            query_getTranslator = "SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
+
+        cursor = g.db.execute(query_getTranslator, [request_id])
         rs = cursor.fetchall()
         translator_id = rs[0][0]
 
-        cursor = g.db.execute("SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND is_paid = 1 AND submitted_time BETWEEN date('now', '-1 month') AND date('now')", [translator_id])
+        query_getCounts = None
+        if session['useremail'] in super_user:
+            query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
+        else:
+            query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND is_paid = 1 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
+        cursor = g.db.execute(query_getCounts, [translator_id])
         rs = cursor.fetchall()
         translator_performance = rs[0][0]
 
@@ -1206,8 +1280,12 @@ def client_completed_items_in_group(str_group_id):
     elif request.method == "GET":
         group_id = int(str_group_id)
         my_user_id = get_user_id(g.db, session['useremail'])
-        cursor = g.db.execute("SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? AND is_paid = 1 ORDER BY request_id DESC",
-            [my_user_id, group_id])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? ORDER BY request_id DESC"
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? AND is_paid = 1 ORDER BY request_id DESC"
+        cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
