@@ -634,10 +634,17 @@ def show_queue():
         #     since(OPTIONAL): Timestamp integer, for paging
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        query_pending = """SELECT * FROM V_REQUESTS 
-            WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1 """
+
+        query_pending = None
+        if session['useremail'] in super_user:
+            query_pending = """SELECT * FROM V_REQUESTS 
+                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1 """
+        else:
+            query_pending = """SELECT * FROM V_REQUESTS 
+                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
+
         if 'since' in request.args.keys():
-            query_pending += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+            query_pending += "AND registered_time < datetime('%%s', '%s') " % request.args['since']
         query_pending += "ORDER BY registered_time DESC LIMIT 20"
 
         cursor = g.db.execute(query_pending, [my_user_id])

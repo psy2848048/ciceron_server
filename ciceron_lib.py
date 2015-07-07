@@ -193,17 +193,16 @@ def translator_checker(f):
     return decorated_function
 
 def strict_translator_checker(conn, user_id, request_id):
-    cursor = conn.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM D_USERS WHERE email = ?", [buffer(session['useremail'])])
+    cursor = conn.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM D_USERS WHERE id = ?", [user_id])
     rs = cursor.fetchall()
     if len(rs) == 0 or rs[0][0] == 0 or rs[0][0] == 'False' or rs[0][0] == 'false':
         return False
 
     # Get language list
-    other_language_list_id = rs[0][2]
     mother_language_id = rs[0][1]
 
-    cursor = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE id = ?",
-                 [other_language_list_id])
+    cursor = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
+                 [user_id])
     language_list = [ item[0] for item in cursor.fetchall() ]
     language_list.append(mother_language_id)
 
@@ -212,8 +211,8 @@ def strict_translator_checker(conn, user_id, request_id):
     cursor = conn.execute("SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? AND is_paid IN (1, 'True', 'true')"
             , [request_id])
     rs = cursor.fetchall()[0]
-    original_lang_id = rs[0][0]
-    target_lang_id = rs[0][1]
+    original_lang_id = rs[0]
+    target_lang_id = rs[1]
 
     if original_lang_id in language_list and target_lang_id in language_list:
         return True
@@ -258,17 +257,17 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         queue_list = []
         for q_item in cursor2.fetchall():
             cursor3 = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
-                [q_item[0]])
-            other_language_list = (',').join( [ item[0] for item in cursor3.fetchall() ] )
+                [q_item[2]])
+            other_language_list = ",".join( [ str(item[0]) for item in cursor3.fetchall() ] )
             cursor4 = g.db.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
-                [q_item[0]])
-            badgeList = (',').join([ item[0] for item in cursor4.fetchall() ])
+                [q_item[2]])
+            badgeList = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
 
             temp_item=dict(
                 user_email=                     q_item[2],
                 user_name=                      str(q_item[4]),
                 user_motherLang=                q_item[5],
-                user_profilePicPath=            str(q_item[8]) if q_item[8] is not None else None,
+                user_profilePicPath=            str(q_item[8]) if q_item[8] != None else None,
                 user_translatableLang=          other_language_list,
                 user_numOfRequestPending=       q_item[9],
                 user_numOfRequestOngoing=       q_item[10],

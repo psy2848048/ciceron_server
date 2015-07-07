@@ -218,57 +218,54 @@ class CiceronTestCase(unittest.TestCase):
         	    )
         
         text = "This is test text\nAnd I donno how to deal with"
-        rv = self.app.post('/requests', data=dict(
+        rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
                 request_targetLang=1,
                 request_isSos=True,
                 request_format=0,
                 request_subject=0,
-                request_registeredTime=datetime.datetime.now(),
                 request_isText=True,
                 request_text = text,
                 request_isPhoto=False,
                 request_isSound=False,
                 request_isFile=False,
-                request_words=len(text.split(' ')),
-                request_dueTime=datetime.datetime.now(),
+                request_words=len(text),
         		request_points=0.50,
                 request_context=""
         		))
         text2 = "testtesttest\nChinese\na;eoifja;ef"
-        rv = self.app.post('/requests', data=dict(
+        rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@gmail.com",
                 request_originalLang=0,
                 request_targetLang=2,
                 request_isSos=False,
                 request_format=0,
                 request_subject=0,
-                request_registeredTime=datetime.datetime.now(),
+                request_deltaFromDue=15020,
                 request_isText=True,
                 request_text = text2,
                 request_isPhoto=False,
                 request_isSound=False,
                 request_isFile=False,
-                request_words=len(text.split(' ')),
-                request_dueTime=datetime.datetime.now(),
+                request_words=len(text),
         		request_points=0,
                 request_context="Wow!"
         		))
         
-        rv = self.app.get('/requests')
+        rv = self.app.get('/api/requests')
         print "Posted list"
         print rv.data
 
         print "Attempt to translate what he/she requested"
 
-        rv = self.app.post('/user/translations/pending', data=dict(request_id=0))
+        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
         print rv.data
         
         self.signUp(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
         	    name="CiceronUser",
-        	    mother_language_id=2)
+        	    mother_language_id=1)
 
         self.signUp(email="admin@ciceron.me",
         	    password="!master@Of#Ciceron$",
@@ -277,22 +274,22 @@ class CiceronTestCase(unittest.TestCase):
         self.login(email="admin@ciceron.me",
         	    password="!master@Of#Ciceron$"
         	    )
-        rv = self.app.post('/language_assigner', data=dict(email='jun.hang.lee@sap.com', language=0))
+        rv = self.app.post('/api/admin/language_assigner', data=dict(email='jun.hang.lee@sap.com', language_id=0))
         print rv.data
-        self.app.get('/logout')
+        self.app.get('/api/logout')
 
         self.login(email="jun.hang.lee@sap.com",
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
 
-        rv = self.app.post('/user/translations/pending', data=dict(
+        rv = self.app.post('/api/user/translations/pending', data=dict(
             request_id=0
             ))
         
         print "Queue list"
         print rv.data
 
-        rv = self.app.get('/user/translations/pending')
+        rv = self.app.get('/api/user/translations/pending')
         print "Posted list"
         print rv.data
 
