@@ -747,7 +747,7 @@ def pick_request():
         parameters = parse_request(request)
 
         request_id = int(parameters['request_id'])
-        my_user_id = get_user_id(g.db, session['useremail'])
+        user_id = get_user_id(g.db, session['useremail'])
 
         cursor = g.db.execute("SELECT queue_id, client_user_id FROM F_REQUESTS WHERE id = ? AND status_id = 0", [request_id])
         rs = cursor.fetchall()
@@ -764,20 +764,18 @@ def pick_request():
                 message = "You cannot translate your request. Request ID: %d" % request_id
                 ), 406)
 
-        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [my_user_id, request_id])
+        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [user_id, request_id])
 
-        user_id = get_user_id(g.db, session['useremail'])
-
-        if strict_translator_checker(g.db, my_user_id, request_id) == False:
+        if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(
                 json.jsonify(
                    message = "You have no translate permission of given language."
                    ), 401)
 
         g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE id = ? and request_id = ? and user_id = ?",
-                [queue_id, request_id, my_user_id])
+                [queue_id, request_id, user_id])
 
-        update_user_record(g.db, client_id=request_user_id, translator_id=my_user_id)
+        update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -789,7 +787,12 @@ def pick_request():
         # Parameters
         #     since (optional): Timestamp integer
 
-        query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND is_paid = 1 """
+        query_ongoing = None
+        if session['useremail'] in super_user:
+            query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? """
+        else:
+            query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND is_paid = 1 """
+
         if 'since' in request.args.keys():
             query_ongoing += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
         query_ongoing += "ORDER BY registered_time DESC LIMIT 20"
@@ -863,7 +866,7 @@ def post_translate_item():
     parameters = parse_request(request)
 
     request_id = int(parameters['request_id'])
-    save_request(g.db, parameters, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
+    save_request(g.db, parameters, request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
     cursor = g.db.execute("SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 AND status_id = 1 ", [request_id])
@@ -966,7 +969,7 @@ def set_title_translator(str_request_id):
 @login_required
 def translators_complete_groups():
     if request.method == "GET":
-        result = complete_groups(g.db, "D_TRANSLATOR_COMPLETED_GROUPS", "GET")
+        result = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "GET")
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
@@ -985,12 +988,13 @@ def modify_translators_complete_groups(str_group_id):
     parameters = parse_request(request)
 
     if request.method == "DELETE":
-        group_id = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
+        group_id = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id == -1:
             return make_response(json.jsonify(message="Group 'Document' is default. You cannot delete it!"), 401)
         else:
             return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
     elif request.method == "PUT":
+        parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
         if group_name == -1:
             return make_response(json.jsonify(message="You cannot change the name of the group to 'Document'. It is default group name" % group_name), 401)
@@ -1149,12 +1153,12 @@ def set_title_client(str_request_id):
                 message="Inappropriate method of this request. POST only"),
             405)
 
-@app.route('/api/user/requests/complete/groups', methods = ["GET"])
+@app.route('/api/user/requests/complete/groups', methods = ["GET", "POST"])
 @exception_detector
 @login_required
 def client_complete_groups():
     if request.method == "GET":
-        result = complete_groups(g.db, "D_CLIENT_COMPLETED_GROUPS", "GET")
+        result = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "GET")
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
@@ -1170,9 +1174,8 @@ def client_complete_groups():
 @exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
-    parameters = parse_request(request)
-
     if request.method == "PUT":
+        parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "PUT", url_group_id=str_group_id)
         if group_name != -1:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
@@ -1180,7 +1183,7 @@ def modify_client_completed_groups(str_group_id):
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
     elif request.method == "DELETE":
-        group_id = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
+        group_id = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id != -1:
             return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
         else:
@@ -1190,9 +1193,8 @@ def modify_client_completed_groups(str_group_id):
 @exception_detector
 @login_required
 def client_completed_items_in_group(str_group_id):
-    parameters = parse_request(request)
-
     if request.method == "POST":
+        parameters = parse_request(request)
         group_id = int(str_group_id)
         request_id = int(parameters['request_id'])
         g.db.execute("UPDATE F_REQUESTS SET client_completed_group_id = ? WHERE id = ?", [group_id, request_id])

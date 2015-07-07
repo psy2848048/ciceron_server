@@ -259,7 +259,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             cursor3 = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
                 [q_item[2]])
             other_language_list = ",".join( [ str(item[0]) for item in cursor3.fetchall() ] )
-            cursor4 = g.db.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
+            cursor4 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
                 [q_item[2]])
             badgeList = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
 
@@ -300,7 +300,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_format=row[19],
                 request_subject=row[21],
                 request_isText= True if row[29] == 1 else False,
-                request_text=get_main_text(g.db, row[30], "D_REQUEST_TEXTS"),
+                request_text=get_main_text(conn, row[30], "D_REQUEST_TEXTS"),
                 request_isPhoto= True if row[31] == 1 else False,
                 request_photoPath=get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS"),
                 request_isSound= True if row[33] == 1 else False,
@@ -371,7 +371,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
 def complete_groups(conn, parameters, table, method, url_group_id=None):
     if method == "GET":
-        my_user_id = get_user_id(g.db, session['useremail'])
+        my_user_id = get_user_id(conn, session['useremail'])
         cursor = conn.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
         rs = cursor.fetchall()
 
@@ -383,9 +383,9 @@ def complete_groups(conn, parameters, table, method, url_group_id=None):
         if group_name == "Documents":
             return -1
 
-        my_user_id = get_user_id(g.db, session['useremail'])
+        my_user_id = get_user_id(conn, session['useremail'])
 
-        new_group_id = get_new_id(g.db, table)
+        new_group_id = get_new_id(conn, table)
         conn.execute("INSERT INTO %s VALUES (?,?,?)" % table,
             [new_group_id, my_user_id, buffer(group_name)])
         conn.commit()
@@ -394,7 +394,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None):
     elif method == "PUT":
         group_id = int(url_group_id)
         group_name = (parameters['group_name']).encode('utf-8')
-        if group_name == "Documents":
+        if group_name == u"Documents":
             return -1
         conn.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
         conn.commit()
@@ -402,7 +402,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None):
 
     elif method == 'DELETE':
         group_id = int(url_group_id)
-        group_text = (get_text_from_id(g.db, group_id, table)).encode('utf-8')
+        group_text = get_text_from_id(conn, group_id, table)
         if group_text == "Documents":
             return -1
         conn.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
@@ -412,7 +412,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None):
         else:                             col = 'client_completed_group_id'
         conn.execute("UPDATE F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}, [default_group_id, group_id])
 
-        g.db.commit()
+        conn.commit()
         return group_id
 
 def save_request(conn, parameters, str_request_id, result_folder):
