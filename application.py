@@ -304,12 +304,12 @@ def user_profile():
 
         # Get list: other languages translatable
         cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?", [user_id])
-        other_language_list = (',').join( [ item[0] for item in cursor.fetchall() ] )
+        other_language_list = (',').join( [ str(item[0]) for item in cursor.fetchall() ] )
 
         # Get list: badges list
         cursor = g.db.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = ?",
                 [badgeList_id])
-        badgeList = (',').join([ item[0] for item in cursor.fetchall() ])
+        badgeList = (',').join([ str(item[0]) for item in cursor.fetchall() ])
 
         profile = dict(
             user_email=                     email,
