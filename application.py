@@ -331,6 +331,8 @@ def user_profile():
         if is_your_profile == True:
             cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?",  [user_id])
             profile['user_revenue'] = cursor.fetchall()[0][0]
+        else:
+            profile['user_revenue'] = -65535
 
         return make_response(json.jsonify(profile), 200)
 

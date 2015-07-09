@@ -277,7 +277,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 user_numOfTranslationsCompleted= q_item[14],
                 user_badgeList=                 badgeList,
                 user_isTranslator=              True if q_item[6] == 1 else False,
-                user_profileText=               str(q_item[16])
+                user_profileText=               str(q_item[16]),
+                user_revenue=                   -65535
                 )
             queue_list.append(temp_item)
 
