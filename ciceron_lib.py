@@ -363,7 +363,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         if purpose.startswith('complete') or purpose.startswith('ongoing'):
             # For getting translator's badges
             cursor2 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM D_USERS WHERE email = ? LIMIT 1)", [buffer(row[6])])
-            badge_list = [ row[0] for row in cursor2.fetchall() ]
+            badge_list = [ str(row[0]) for row in cursor2.fetchall() ]
             item['request_translatorBadgeList'] = badge_list
 
         result.append(item)

@@ -447,7 +447,7 @@ def requests():
         original_lang_id = parameters['request_originalLang']
         target_lang_id = parameters['request_targetLang']
         isSos = parameter_to_bool(parameters['request_isSos'])
-        format_id = parameters.get('parametersat')
+        format_id = parameters.get('request_format')
         subject_id = parameters.get('request_subject')
         is_text = parameter_to_bool(parameters.get('request_isText', False))
 
