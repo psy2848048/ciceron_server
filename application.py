@@ -300,12 +300,10 @@ def user_profile():
 
         # Gather IDs of list form information
         user_id = userinfo[0][0]
-        other_language_list_id = userinfo[0][5]
         badgeList_id = userinfo[0][13]
 
         # Get list: other languages translatable
-        cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE id = ?",
-                [other_language_list_id])
+        cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?", [user_id])
         other_language_list = (',').join( [ item[0] for item in cursor.fetchall() ] )
 
         # Get list: badges list

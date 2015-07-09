@@ -8,22 +8,33 @@ Ciceron server code
 * Closed beta
 
 ### How do I get set up? ###
+* Prerequisites
+  - python-virtualenv
+  - libssl-dev
+  - libffi-dev
+  - redis-server
+
+* Package dependency (pip install)
+  - Flask
+  - requests
+  - paypalrestsdk
+  - flask-cors
+  - flask-redis
+  - flask-session
+  - Flask-Mail
 
 * Summary of set up
  1) Env
   - apt-get install python-virtualenv
   - pip install virtualenv
   - virtualenv venv
-  - pip install requests
   - apt-get install libssl-dev libffi-dev
-  - pip install paypalrestsdk
-  - pip install flask-cors
 
   - For activate virtual env: execute shell '. venv/bin/activate'
       # DO NOT FORGET DOT!!! DOT MEANS current folder in GNU/UNIX
   - Execute shell 'pip install Flask'
   - After then, you don't have to execute 'pip install Flask' every time when you execute 'git fetch; git rebase'.
-  - In virtual env, execute 'python run.py' and you may use server as localhost:5000
+  - In virtual env, execute 'python application.py' and you may use server as localhost:5000
 
 * Database configuration
   - Sqlite3
