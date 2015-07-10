@@ -65,7 +65,7 @@ def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
 @app.route('/api', methods=['GET'])
-@exception_detector
+#@exception_detector
 def loginCheck():
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
@@ -88,7 +88,7 @@ def loginCheck():
             , 403)
 
 @app.route('/api/login', methods=['POST', 'GET'])
-@exception_detector
+#@exception_detector
 def login():
     if request.method == "POST":
         # Parameter
@@ -149,7 +149,7 @@ def login():
         return make_response(json.jsonify(identifier=salt, session_id=session.sid), 200)
 
 @app.route('/api/logout', methods=["GET"])
-@exception_detector
+#@exception_detector
 def logout():
     # No parameter needed
     if session['logged_in'] == True:
@@ -169,7 +169,7 @@ def logout():
                ), 403)
 
 @app.route('/api/signup', methods=['POST', 'GET'])
-@exception_detector
+#@exception_detector
 def signup():
     # Request method: POST
     # Parameters
@@ -244,7 +244,7 @@ def signup():
         '''
 
 @app.route('/api/idCheck', methods=['POST'])
-@exception_detector
+#@exception_detector
 def idChecker():
     # Method: GET
     # Parameter: String id
@@ -266,7 +266,7 @@ def idChecker():
 
 @app.route('/api/user/profile', methods = ['GET', 'POST'])
 @login_required
-@exception_detector
+#@exception_detector
 def user_profile():
     if request.method == 'GET':
         # Method: GET
@@ -374,7 +374,7 @@ def user_profile():
             message="Your profile is susccessfully updated!"), 200)
 
 @app.route('/user/profile/photo', methods=["POST", "GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def user_profile_photo():
     if request.method == "POST":
@@ -412,7 +412,7 @@ def user_profile_photo():
             '''
 
 @app.route('/api/requests', methods=["GET", "POST"])
-@exception_detector
+#@exception_detector
 def requests():
     if request.method == "GET":
         # Request method: GET
@@ -589,7 +589,7 @@ def requests():
 
 @app.route('/api/requests/<str_request_id>', methods=["DELETE"])
 @login_required
-@exception_detector
+#@exception_detector
 def delete_requests(str_request_id):
     if request.method == "DELETE":
         request_id = int(str_request_id)
@@ -625,7 +625,7 @@ def delete_requests(str_request_id):
 
 @app.route('/api/user/translations/pending', methods=["GET", "POST"])
 @login_required
-@exception_detector
+#@exception_detector
 @translator_checker
 def show_queue():
     if request.method == "GET":
@@ -719,7 +719,7 @@ def show_queue():
 @app.route('/api/user/translations/pending/<str_request_id>', methods=["DELETE"])
 @login_required
 @translator_checker
-@exception_detector
+#@exception_detector
 def work_in_queue(str_request_id):
     if request.method == "DELETE":
         request_id = int(str_request_id)
@@ -740,7 +740,7 @@ def work_in_queue(str_request_id):
 @app.route('/api/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
 @translator_checker
-@exception_detector
+#@exception_detector
 def pick_request():
     if request.method == "POST":
         # Request method: POST
@@ -807,7 +807,7 @@ def pick_request():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
-@exception_detector
+#@exception_detector
 @translator_checker
 @login_required
 def working_translate_item(str_request_id):
@@ -834,7 +834,7 @@ def working_translate_item(str_request_id):
             ), 200)
 
 @app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
-@exception_detector
+#@exception_detector
 @translator_checker
 @login_required
 def expected_time(str_request_id):
@@ -878,7 +878,7 @@ def expected_time(str_request_id):
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
 @app.route('/api/user/translations/complete', methods=["POST"])
-@exception_detector
+#@exception_detector
 @login_required
 @translator_checker
 def post_translate_item():
@@ -926,7 +926,7 @@ def post_translate_item():
         ), 200)
 
 @app.route('/api/user/translations/complete/<str_request_id>', methods = ["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 @translator_checker
 def translation_completed_items_detail(str_request_id):
@@ -943,7 +943,7 @@ def translation_completed_items_detail(str_request_id):
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/translations/complete', methods = ["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 @translator_checker
 def translation_completed_items_all():
@@ -964,7 +964,7 @@ def translation_completed_items_all():
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/translations/complete/<str_request_id>/title', methods = ["POST"])
-@exception_detector
+#@exception_detector
 @login_required
 @translator_checker
 def set_title_translator(str_request_id):
@@ -997,7 +997,7 @@ def set_title_translator(str_request_id):
             405)
 
 @app.route('/api/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
-@exception_detector
+#@exception_detector
 @translator_checker
 @login_required
 def translators_complete_groups():
@@ -1014,7 +1014,7 @@ def translators_complete_groups():
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
 @app.route('/api/user/translations/complete/groups/<str_group_id>', methods = ["DELETE", "PUT"])
-@exception_detector
+#@exception_detector
 @translator_checker
 @login_required
 def modify_translators_complete_groups(str_group_id):
@@ -1035,7 +1035,7 @@ def modify_translators_complete_groups(str_group_id):
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
 @app.route('/api/user/translations/complete/groups/<str_group_id>', methods = ["POST", "GET"])
-@exception_detector
+#@exception_detector
 @translator_checker
 @login_required
 def translation_completed_items_in_group(str_group_id):
@@ -1064,7 +1064,7 @@ def translation_completed_items_in_group(str_group_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/pending', methods=["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def show_pending_list_client():
     if request.method == "GET":
@@ -1076,7 +1076,7 @@ def show_pending_list_client():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def show_pending_item_client(str_request_id):
     if request.method == "GET":
@@ -1093,7 +1093,7 @@ def show_pending_item_client(str_request_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/ongoing', methods=["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def show_ongoing_list_client():
     if request.method == "GET":
@@ -1109,7 +1109,7 @@ def show_ongoing_list_client():
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/ongoing/<str_request_id>', methods=["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def show_ongoing_item_client(str_request_id):
     if request.method == "GET":
@@ -1126,7 +1126,7 @@ def show_ongoing_item_client(str_request_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/complete', methods = ["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def client_completed_items():
     request_id = int(str_request_id)
@@ -1142,7 +1142,7 @@ def client_completed_items():
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/complete/<str_request_id>', methods = ["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def client_completed_items_detail(str_request_id):
     request_id = int(str_request_id)
@@ -1158,7 +1158,7 @@ def client_completed_items_detail(str_request_id):
     return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
-@exception_detector
+#@exception_detector
 @login_required
 def set_title_client(str_request_id):
     if request.method == "POST":
@@ -1224,7 +1224,7 @@ def set_title_client(str_request_id):
             405)
 
 @app.route('/api/user/requests/complete/groups', methods = ["GET", "POST"])
-@exception_detector
+#@exception_detector
 @login_required
 def client_complete_groups():
     if request.method == "GET":
@@ -1241,7 +1241,7 @@ def client_complete_groups():
             return make_response(json.jsonify(message="'Documents' is default group name"), 401)
 
 @app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
-@exception_detector
+#@exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
     if request.method == "PUT":
@@ -1260,7 +1260,7 @@ def modify_client_completed_groups(str_group_id):
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
 
 @app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def client_completed_items_in_group(str_group_id):
     if request.method == "POST":
@@ -1287,7 +1287,7 @@ def client_completed_items_in_group(str_group_id):
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
-@exception_detector
+#@exception_detector
 @login_required
 def pay_for_request(str_request_id):
     parameters = parse_request(request)
@@ -1343,7 +1343,7 @@ def pay_for_request(str_request_id):
             return make_response(json.jsonify(message="Something wrong in paypal"), 400)
 
 @app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
-@exception_detector
+#@exception_detector
 @login_required
 def pay_for_request_process(str_request_id):
     request_id = int(str_request_id)
@@ -1386,7 +1386,7 @@ def pay_for_request_process(str_request_id):
             return redirect("do_not_hack")
 
 @app.route('/api/user/device', methods = ["POST"])
-@exception_detector
+#@exception_detector
 @login_required
 def register_or_update_register_id():
     parameters = parse_request(request)
@@ -1414,7 +1414,7 @@ def register_or_update_register_id():
 ################################################################################
 
 @app.route('/api/admin/publicize', methods = ["GET"])
-@exception_detector
+#@exception_detector
 @admin_required
 def publicize():
     cursor = g.db.execute("""SELECT count(*) FROM F_REQUESTS WHERE status_id = 1
@@ -1427,7 +1427,7 @@ def publicize():
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
 @app.route('/api/admin/language_assigner', methods = ["POST"])
-@exception_detector
+#@exception_detector
 @admin_required
 def language_assigner():
     parameters = parse_request(request)
