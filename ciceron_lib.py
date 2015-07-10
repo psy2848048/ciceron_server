@@ -250,6 +250,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
     for row in rs:
         request_id = row[0]
+        print row[0]
         # For fetching translators in queue
         cursor2 = conn.execute("SELECT * FROM V_QUEUE_LISTS WHERE request_id = ? ORDER BY user_id",
                 [request_id])
