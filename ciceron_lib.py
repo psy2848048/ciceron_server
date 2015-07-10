@@ -285,10 +285,6 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         # For getting word count of the request
         cursor2 = conn.execute("SELECT path FROM D_REQUEST_TEXTS  WHERE id = ?", [row[30]])
         list_txt = cursor2.fetchall()
-        try:
-            print len(list_txt[0])
-        except:
-            print "here"
 
         if len(list_txt[0]) == 0:
             num_of_words = None
