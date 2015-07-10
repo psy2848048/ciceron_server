@@ -7,7 +7,7 @@ Ciceron server code
 * Ciceron server code written by python and Flask
 * Closed beta
 
-### How do I get set up? ###
+### How to set up? ###
 * Prerequisites
   - python-virtualenv
   - libssl-dev

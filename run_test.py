@@ -396,9 +396,6 @@ class CiceronTestCase(unittest.TestCase):
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
 
-        self.app.post('/api/user/profile', data=dict(
-            user_isTranslator=1))
-
         print "Line in the queue"
         rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
         print rv.data
@@ -406,6 +403,26 @@ class CiceronTestCase(unittest.TestCase):
         print "Try to line in the double-queue"
         rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
         print rv.data
+
+        print "Another user queuing"
+        self.signUp(email="jae.hong.park@sap.com",
+        	    password="meeToo",
+        	    name="CiceronUser2",
+        	    mother_language_id=1)
+        self.login(email="admin@ciceron.me",
+        	    password="!master@Of#Ciceron$"
+        	    )
+        rv = self.app.post('/api/admin/language_assigner', data=dict(email='jae.hong.park@sap.com', language_id=0))
+        self.login(email="jae.hong.park@sap.com",
+        	    password="meeToo"
+        	    )
+        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
+        print rv.data
+
+        print "Re-login"
+        self.login(email="jun.hang.lee@sap.com",
+        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
+        	    )
 
         print "Dequeue"
         rv = self.app.delete('/api/user/translations/pending/0')

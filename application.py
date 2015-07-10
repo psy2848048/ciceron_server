@@ -421,7 +421,7 @@ def requests():
         #                  If this parameter is not provided, recent 20 posts from now are returned
 
         query = None
-        if session['useremail'] in super_user:
+        if session.get('useremail') in super_user:
             query = """SELECT * FROM V_REQUESTS WHERE
                 (ongoing_worker_id is null AND status_id = 0 AND isSos = 0) OR (isSos = 1) """
         else:
@@ -638,10 +638,10 @@ def show_queue():
         query_pending = None
         if session['useremail'] in super_user:
             query_pending = """SELECT * FROM V_REQUESTS 
-                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1 """
+                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
         else:
             query_pending = """SELECT * FROM V_REQUESTS 
-                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
+                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1"""
 
         if 'since' in request.args.keys():
             query_pending += "AND registered_time < datetime('%%s', '%s') " % request.args['since']
@@ -678,7 +678,7 @@ def show_queue():
 
         if len(rs) == 0: return make_response(json.jsonify(message = "There is no request ID %d" % request_id), 400)
 
-        if translator_email is None: user_id = get_user_id(g.db, session['useremail'])
+        if translator_email == None: user_id = get_user_id(g.db, session['useremail'])
         else:                        user_id = get_user_id(g.db, translator_email)
         request_user_id = rs[0][1]
 
@@ -687,10 +687,6 @@ def show_queue():
                 json.jsonify(
                    message = "You have no translate permission of given language."
                    ), 401)
-
-        cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE id = ?", [user_id])
-        rs = cursor.fetchall()
-        if len(rs) == 0 or rs[0][0] == 0: return make_response(json.jsonify( message = "This user is not a translator."), 403)
 
         if user_id == request_user_id:
             return make_response(json.jsonify(
@@ -707,7 +703,7 @@ def show_queue():
 
         query="INSERT INTO D_QUEUE_LISTS VALUES (?,?,?)"
 
-        if queue_id is None:
+        if queue_id == None:
             queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
             g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
 
