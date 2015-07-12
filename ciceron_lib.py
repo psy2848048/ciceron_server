@@ -264,7 +264,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             badgeList = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
 
             temp_item=dict(
-                user_email=                     q_item[2],
+                user_email=                     str(q_item[3]),
                 user_name=                      str(q_item[4]),
                 user_motherLang=                q_item[5],
                 user_profilePicPath=            str(q_item[8]) if q_item[8] != None else None,
