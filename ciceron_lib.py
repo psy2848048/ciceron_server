@@ -435,9 +435,9 @@ def save_request(conn, parameters, str_request_id, result_folder):
     comment_id = rs[0][1]
     tone_id = rs[0][2]
 
-    if new_translatedText is not None:
+    if new_translatedText != None:
         # Save new translated text
-        if translatedText_path is None:
+        if translatedText_path == None:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             translatedText_path = os.path.join(result_folder, filename)
             new_result_id = get_new_id(conn, "D_TRANSLATED_TEXT")
@@ -449,8 +449,8 @@ def save_request(conn, parameters, str_request_id, result_folder):
         f.close()
 
     # Save new comment
-    if new_comment is not None:
-        if comment_id is not None:
+    if new_comment != None:
+        if comment_id != None:
             conn.execute("UPDATE D_COMMENTS SET text = ? WHERE id = ?", [buffer(new_comment), comment_id])
         else:
             comment_id = get_new_id(conn, "D_COMMENTS")
@@ -458,9 +458,10 @@ def save_request(conn, parameters, str_request_id, result_folder):
             conn.execute("UPDATE F_REQUESTS SET comment_id = ? WHERE id = ?", [comment_id, request_id])
 
     # Save new tone
-    if new_tone is not None:
-        if tone_id is not None:
+    if new_tone != None:
+        if tone_id != None:
             conn.execute("UPDATE D_TONES SET text = ? WHERE id = ?", [buffer(new_tone), tone_id])
+            conn.execute("UPDATE F_REQUESTS SET tone_id = ? WHERE id = ?", [tone_id, request_id])
         else:
             tone_id = get_new_id(conn, "D_TONES")
             conn.execute("INSERT INTO D_TONES VALUES (?,?)", [tone_id, buffer(new_tone)])

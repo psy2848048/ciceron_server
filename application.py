@@ -1129,7 +1129,6 @@ def show_ongoing_item_client(str_request_id):
 #@exception_detector
 @login_required
 def client_completed_items():
-    request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
