@@ -207,9 +207,12 @@ def strict_translator_checker(conn, user_id, request_id):
     language_list.append(mother_language_id)
 
     # Check request language
-
-    cursor = conn.execute("SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? AND is_paid IN (1, 'True', 'true')"
-            , [request_id])
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? "
+    else:
+        query = "SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? AND is_paid IN (1, 'True', 'true')"
+    cursor = conn.execute(query, [request_id])
     rs = cursor.fetchall()[0]
     original_lang_id = rs[0]
     target_lang_id = rs[1]
