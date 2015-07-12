@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response
+from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory
 from contextlib import closing
 from datetime import datetime, timedelta
 import hashlib, sqlite3, os, time, requests, sys, paypalrestsdk, logging
@@ -17,13 +17,14 @@ DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_PROFILE_PIC = "profile_pic"
 UPLOAD_FOLDER_REQUEST_PIC = "request_pic"
-UPLOAD_FOLDER_REQUEST_SOUND = "sounds"
+UPLOAD_FOLDER_REQUEST_SOUND = "request_sounds"
 UPLOAD_FOLDER_REQUEST_DOC = "request_doc"
 UPLOAD_FOLDER_REQUEST_TEXT =  "request_text"
+UPLOAD_FOLDER_RESULT = "translate_result"
+MAX_CONTENT_LENGTH = 4 * 1024 * 1024
+
 SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
-
-UPLOAD_FOLDER_RESULT = "translate_result"
 
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'gif', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
@@ -315,7 +316,7 @@ def user_profile():
             user_email=                     email,
             user_name=                      str(userinfo[0][2]),
             user_motherLang=                userinfo[0][3],
-            user_profilePicPath=            str(userinfo[0][5]) if userinfo[0][5] is not None else None,
+            user_profilePicPath=            str(userinfo[0][6]) if userinfo[0][6] is not None else None,
             user_translatableLang=          other_language_list,
             user_numOfRequestsPending=       userinfo[0][7],
             user_numOfRequestsOngoing=       userinfo[0][8],
@@ -345,7 +346,9 @@ def user_profile():
         # Get parameter value
         parameters = parse_request(request)
 
-        profileText = (parameters.get('user_profileText', None)).encode('utf-8')
+        profileText = parameters.get('user_profileText', None)
+        if profileText != None:
+            profileText = profileText.encode('utf-8')
         profile_pic = request.files.get('photo', None)
 
         # Start logic
@@ -362,9 +365,10 @@ def user_profile():
         path = ""
         if profile_pic and pic_allowed_file(profile_pic.filename):
             pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
+            print pic_path
             profile_pic.save(pic_path)
 
-            g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
+            g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(email)])
 
         #if is_translator:
         #    g.db.execute("UPDATE D_USERS SET is_translator = ? WHERE email = ?", [is_translator, buffer(session['useremail'])])
@@ -373,43 +377,43 @@ def user_profile():
         return make_response(json.jsonify(
             message="Your profile is susccessfully updated!"), 200)
 
-@app.route('/user/profile/photo', methods=["POST", "GET"])
-#@exception_detector
-@login_required
-def user_profile_photo():
-    if request.method == "POST":
-        try:
-            print "Only supports multipart/form-data"
-            profile_pic = request.files['photo']
-            filename = ""
-            path = ""
-            if profile_pic and pic_allowed_file(profile_pic.filename):
-                pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
-                profile_pic.save(pic_path)
-
-            g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
-            g.db.commit()
-
-            return make_response(json.jsonify(
-                    message="Upload complete",
-                    path=pic_path),
-                200)
-
-        except KeyError as e:
-            return make_response(json.jsonify(
-                message="Photo upload only supports multipart/form-data. And it takes data from the parameter named 'photo'. Please check your configuration.",
-                ), 400)
-
-    else:
-        return '''
-            <!doctype html>
-            <title>Upload test / Profile pic</title>
-            <h1>Upload new File</h1>
-            <form action="" method=post enctype=multipart/form-data>
-              <p><input type=file name=file>
-                 <input type=submit value=Upload>
-            </form>
-            '''
+#@app.route('/user/profile/photo', methods=["POST", "GET"])
+##@exception_detector
+#@login_required
+#def user_profile_photo():
+#    if request.method == "POST":
+#        try:
+#            print "Only supports multipart/form-data"
+#            profile_pic = request.files['photo']
+#            filename = ""
+#            path = ""
+#            if profile_pic and pic_allowed_file(profile_pic.filename):
+#                pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
+#                profile_pic.save(pic_path)
+#
+#            g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
+#            g.db.commit()
+#
+#            return make_response(json.jsonify(
+#                    message="Upload complete",
+#                    path=pic_path),
+#                200)
+#
+#        except KeyError as e:
+#            return make_response(json.jsonify(
+#                message="Photo upload only supports multipart/form-data. And it takes data from the parameter named 'photo'. Please check your configuration.",
+#                ), 400)
+#
+#    else:
+#        return '''
+#            <!doctype html>
+#            <title>Upload test / Profile pic</title>
+#            <h1>Upload new File</h1>
+#            <form action="" method=post enctype=multipart/form-data>
+#              <p><input type=file name=file>
+#                 <input type=submit value=Upload>
+#            </form>
+#            '''
 
 @app.route('/api/requests', methods=["GET", "POST"])
 #@exception_detector
@@ -1407,6 +1411,13 @@ def register_or_update_register_id():
             [buffer(reg_key), buffer(device_os), user_id])
 
     return make_response(json.jsonify(message="Succefully updated/inserted"), 200)
+
+@app.route('/api/access_file/<directory>/<filename>')
+@login_required
+def access_file(directory, filename):
+    print directory
+    print filename
+    return send_from_directory(directory, filename)
 
 ################################################################################
 #########                        ADMIN TOOL                            #########
