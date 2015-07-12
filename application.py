@@ -1447,6 +1447,22 @@ def language_assigner():
     g.db.commit()
     return make_response(json.jsonify(message="Language added successfully"), 200)
 
+@app.route('/api/admin/delete_sos', methods = ["GET"])
+#@exception_detector
+def delete_sos():
+    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
+                     WHERE status_id = 1 AND is_sos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+    return make_response(json.jsonify(message="Cleaned"), 200)
+
+@app.route('/api/location_record', methods = ["GET"])
+@login_required
+#@exception_detector
+def record_user_location():
+    user_id = get_user_id(g.db, session['useremail'])
+    lati = request.args.get('lat')
+    longi = request.args.get('long')
+    g.db.execute("INSERT INTO USER_LOCATIONS VALUES (?,?,?, CURRENT_TIMESTAMP)", [user_id, lati, longi])
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
     
