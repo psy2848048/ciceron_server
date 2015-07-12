@@ -209,71 +209,71 @@ CREATE TABLE PAYMENT_INFO (
 CREATE VIEW V_REQUESTS as
   SELECT
     -- Client
-    fact.id request_id,
-    fact.client_user_id client_user_id,
-    user_client.email client_email,
-    user_client.name client_name,
-    user_client.profile_pic_path client_profile_pic_path,
+    fact.id request_id, --0
+    fact.client_user_id client_user_id, --1
+    user_client.email client_email, --2
+    user_client.name client_name, --3
+    user_client.profile_pic_path client_profile_pic_path, --4
     -- Translator
-    fact.ongoing_worker_id ongoing_worker_id,
-    user_translator.email translator_email,
-    user_translator.name translator_name,
-    user_translator.profile_pic_path translator_profile_pic_path,
-    user_translator.numOfTranslationPending numOfTranslationPending,
-    user_translator.numOfTranslationOngoing numOfTranslationOngoing,
-    user_translator.numOfTranslationCompleted numOfTranslationCompleted,
-    user_translator.badgeList_id translator_badgeList_id,
+    fact.ongoing_worker_id ongoing_worker_id, --5
+    user_translator.email translator_email, --6
+    user_translator.name translator_name, --7
+    user_translator.profile_pic_path translator_profile_pic_path, --8
+    user_translator.numOfTranslationPending numOfTranslationPending, --9
+    user_translator.numOfTranslationOngoing numOfTranslationOngoing, --10
+    user_translator.numOfTranslationCompleted numOfTranslationCompleted, --11
+    user_translator.badgeList_id translator_badgeList_id, --12
     -- Language
-    fact.original_lang_id original_lang_id,
-    original_lang.text original_lang,
-    fact.target_lang_id target_lang_id,
-    target_lang.text target_lang,
+    fact.original_lang_id original_lang_id, --13
+    original_lang.text original_lang, --14
+    fact.target_lang_id target_lang_id, --15
+    target_lang.text target_lang, --16
     -- Request status
-    fact.isSos isSos,
-    fact.status_id status_id,
-    fact.format_id format_id,
-    format.text format,
-    fact.subject_id subject_id,
-    subject.text subject,
-    fact.queue_id queue_id,
+    fact.isSos isSos, --17
+    fact.status_id status_id, --18
+    fact.format_id format_id, --19
+    format.text format, --20
+    fact.subject_id subject_id, --21
+    subject.text subject, --22
+    fact.queue_id queue_id, --23
 
-    fact.registered_time registered_time,
-    fact.expected_time expected_time,
-    fact.submitted_time submitted_time,
-    fact.due_time due_time,
-    fact.points points,
+    fact.registered_time registered_time, --24
+    fact.expected_time expected_time, --25
+    fact.submitted_time submitted_time, --26
+    fact.due_time due_time, --27
+    fact.points points, --28
     -- Request type
-    fact.is_text is_text,
-    fact.text_id text_id,
-    fact.is_photo is_photo,
-    fact.photo_id photo_id,
-    fact.is_file is_file,
-    fact.file_id file_id,
-    fact.is_sound is_sound,
-    fact.sound_id sound_id,
+    fact.is_text is_text, --29
+    fact.text_id text_id, --30
+    fact.is_photo is_photo, --31
+    fact.photo_id photo_id, --32
+    fact.is_file is_file, --33
+    fact.file_id file_id, --34
+    fact.is_sound is_sound, --35
+    fact.sound_id sound_id, --36
     -- Request more info
-    fact.context_id context_id,
-    contexts.text context,
-    fact.comment_id comment_id,
-    comments.text comment,
-    fact.tone_id tone_id,
-    tones.text tone,
+    fact.context_id context_id, --37
+    contexts.text context, --38
+    fact.comment_id comment_id, --39
+    comments.text comment, --40
+    fact.tone_id tone_id, --41
+    tones.text tone, --42
     -- Grouping
-    fact.client_completed_group_id client_completed_group_id,
-    client_groups.text client_completed_group,
-    fact.client_title_id client_title_id,
-    client_titles.text client_title,
-    fact.translator_completed_group_id translator_completed_group_id,
-    translator_groups.text translator_completed_group,
-    fact.translator_title_id translator_title_id,
-    translator_title.text translator_title,
+    fact.client_completed_group_id client_completed_group_id, --43
+    client_groups.text client_completed_group, --44
+    fact.client_title_id client_title_id, --45
+    client_titles.text client_title, --46
+    fact.translator_completed_group_id translator_completed_group_id, --47
+    translator_groups.text translator_completed_group, --48
+    fact.translator_title_id translator_title_id, --49
+    translator_title.text translator_title, --50
     -- Result
-    fact.translatedText_id translatedText_id,
-    result.path translatedText,
-    fact.is_paid is_paid,
-    fact.feedback_score feedback_score,
+    fact.translatedText_id translatedText_id, --51
+    result.path translatedText, --52
+    fact.is_paid is_paid, --53
+    fact.feedback_score feedback_score, --54
 
-    fact.start_translating_time start_translating_time
+    fact.start_translating_time start_translating_time --55
 
   FROM
     F_REQUESTS fact

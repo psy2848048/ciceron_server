@@ -766,7 +766,7 @@ def pick_request():
                 message = "You cannot translate your request. Request ID: %d" % request_id
                 ), 406)
 
-        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? WHERE id = ? AND status_id = 0", [user_id, request_id])
+        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? , start_translating_time = datetime('now') WHERE id = ? AND status_id = 0", [user_id, request_id])
 
         if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(

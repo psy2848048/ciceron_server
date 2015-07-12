@@ -313,6 +313,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_status=row[18],
                 request_registeredTime=row[24],
                 request_dueTime=row[27],
+                request_transStartTime=row[55],
                 request_expectedTime=row[25],
                 request_words=num_of_words,
                 request_points=row[28],
