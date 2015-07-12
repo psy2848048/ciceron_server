@@ -349,7 +349,7 @@ def user_profile():
         profileText = parameters.get('user_profileText', None)
         if profileText != None:
             profileText = profileText.encode('utf-8')
-        profile_pic = request.files.get('photo', None)
+        profile_pic = request.files.get('user_profilePic', None)
 
         # Start logic
         # Get user number
