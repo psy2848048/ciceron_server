@@ -420,7 +420,9 @@ def complete_groups(conn, parameters, table, method, url_group_id=None):
 def save_request(conn, parameters, str_request_id, result_folder):
     request_id = int(str_request_id)
     new_translatedText = (parameters.get("request_translatedText", None)).encode('utf-8')
-    new_comment = (parameters.get("request_comment", None)).encode('utf-8')
+    new_comment = parameters.get("request_comment", None)
+    if new_comment != None:
+        new_comment = new_comment.encode('utf-8')
     new_tone = parameters.get("request_tone", None)
 
     cursor = conn.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
@@ -439,8 +441,7 @@ def save_request(conn, parameters, str_request_id, result_folder):
             conn.execute("INSERT INTO D_TRANSLATED_TEXT VALUES (?,?)", [new_result_id, buffer(translatedText_path)])
             conn.execute("UPDATE F_REQUESTS SET translatedText_id = ? WHERE id = ?", [new_result_id, request_id])
 
-        import codecs
-        f = codecs.open(translatedText_path, 'w', "utf-8")
+        f = open(translatedText_path, 'wb')
         f.write(new_translatedText)
         f.close()
 
