@@ -353,7 +353,6 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
             else:
                 item['request_context']=str(row[38]) if row[38] is not None else None
-                item['request_text']=None
 
         elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
             if row[17] == 0: # False

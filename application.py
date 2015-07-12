@@ -1102,7 +1102,7 @@ def show_ongoing_list_client():
         if session['useremail'] in super_user:
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 "
         else:
-            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 is_paid = 1 "
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 AND is_paid = 1 "
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
