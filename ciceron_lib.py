@@ -324,7 +324,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_translatorId=str(row[6]) if row[6] is not None else None,
                 request_translatorName=str(row[7]) if row[7] is not None else None,
                 request_translatorPicPath=str(row[8]) if row[8] is not None else None,
-                request_translatorBadgeList=None,  # For marking
+                request_translatorBadgeList="",  # For marking
                 request_translatedText=None, # For marking
                 request_translatorComment=str(row[40]) if row[40] is not None else None,
                 request_translatedTone= str(row[42]) if row[42] is not None else None,
@@ -367,7 +367,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         if purpose.startswith('complete') or purpose.startswith('ongoing'):
             # For getting translator's badges
             cursor2 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM D_USERS WHERE email = ? LIMIT 1)", [buffer(row[6])])
-            badge_list = [ str(row[0]) for row in cursor2.fetchall() ]
+            badge_list = (",").join([ str(row[0]) for row in cursor2.fetchall() ])
             item['request_translatorBadgeList'] = badge_list
 
         result.append(item)
