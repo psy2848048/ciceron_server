@@ -178,7 +178,8 @@ CREATE TABLE F_REQUESTS (
     comment_id INT, -- D_COMMENTS
     tone_id INT, -- D_TONES
     translatedText_id INT, -- D_TRANSLATED_TEXT
-    feedback_score INT
+    feedback_score INT,
+    start_translating_time TIMESTAMP
 );
 
 CREATE TABLE PASSWORDS (
@@ -270,7 +271,9 @@ CREATE VIEW V_REQUESTS as
     fact.translatedText_id translatedText_id,
     result.path translatedText,
     fact.is_paid is_paid,
-    fact.feedback_score feedback_score
+    fact.feedback_score feedback_score,
+
+    fact.start_translating_time start_translating_time
 
   FROM
     F_REQUESTS fact
