@@ -587,10 +587,6 @@ def requests():
         update_user_record(g.db, client_id=client_user_id)
         g.db.commit()
 
-        # Marking for payment
-        session['pending_reqeust'] = request_id
-        session['token'] = random_string_gen()
-
         return make_response(json.jsonify(
             message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId'])
             ), 200)
@@ -1349,21 +1345,17 @@ def pay_for_request(str_request_id):
 
 @app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
-@login_required
+#@login_required
 def pay_for_request_process(str_request_id):
     request_id = int(str_request_id)
     pay_via = request.args['pay_via']
     is_success = True if request.args['status'] == "success" else False
     payment_id = request.args['paymentId']
     payer_id = request.args['PayerID']
-    token = request.args['token']
     amount = float(request.args.get('pay_amt'))
 
     if pay_via == 'paypal':
-        if token == session.get('token') and request_id == session.get('pending_reqeust') and is_success:
-            session.pop('token')
-            session.pop('pending_reqeust')
-
+        if is_success:
             payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
 
             g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
@@ -1384,11 +1376,6 @@ def pay_for_request_process(str_request_id):
             # REDIRECT TO FAIL PAGE
             # PAYMENT FAIL
             return redirect("page_provided_with /user/requests/%d/payment" % request_id)
-
-        elif token != session.get('token') or request_id != session.get('pending_reqeust'):
-            # REDIRECT TO WARNING PAGE
-            # PLEASE DO NOT HACK!!!!!!!!!!!!!
-            return redirect("do_not_hack")
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
