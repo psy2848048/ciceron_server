@@ -65,6 +65,9 @@ def pic_allowed_file(filename):
 def doc_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
+def sound_allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_WAV']
+
 @app.route('/api', methods=['GET'])
 #@exception_detector
 def loginCheck():
@@ -488,7 +491,7 @@ def requests():
                 ), 204)
 
         # Upload binaries into file and update each dimension table
-        if (request.files.get('request_photo') is not None):
+        if (request.files.get('request_photo') != None):
             binary = request.files['request_photo']
             filename = ""
             path = ""
@@ -500,7 +503,7 @@ def requests():
             g.db.execute("INSERT INTO D_REQUEST_PHOTOS VALUES (?,?,?)",
                     [new_photo_id, request_id, buffer(path)])
 
-        if (request.files.get('request_sound') is not None):
+        if (request.files.get('request_sound') != None):
             binary = request.files['request_sound']
             filename = ""
             path = ""
@@ -512,7 +515,7 @@ def requests():
             g.db.execute("INSERT INTO D_REQUEST_SOUNDS VALUES (?,?)",
                     [new_sound_id, buffer(path)])
         
-        if (request.files.get('request_file') is not None):
+        if (request.files.get('request_file') != None):
             binary = request.files['request_file']
             filename = ""
             path = ""

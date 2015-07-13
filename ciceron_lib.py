@@ -308,9 +308,9 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_text=get_main_text(conn, row[30], "D_REQUEST_TEXTS"),
                 request_isPhoto= True if row[31] == 1 else False,
                 request_photoPath=get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS"),
-                request_isSound= True if row[33] == 1 else False,
+                request_isSound= True if row[35] == 1 else False,
                 request_soundPath=get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS"),
-                request_isFile= True if row[35] == 1 else False,
+                request_isFile= True if row[33] == 1 else False,
                 request_filePath=get_path_from_id(g.db, row[34], "D_REQUEST_FILES"),
                 request_context=None, # For marking
                 request_status=row[18],
