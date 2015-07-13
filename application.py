@@ -1358,12 +1358,11 @@ def pay_for_request_process(str_request_id):
     if pay_via == 'paypal':
         if is_success:
             payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
-
-            g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
-
             # Paypal payment exeuction
             payment = paypalrestsdk.Payment.find(payment_id)
             payment.execute({"payer_id": payer_id})
+
+            g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
 
             # Payment information update
             g.db.execute("INSERT INTO PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)",
