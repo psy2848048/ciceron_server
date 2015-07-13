@@ -1367,7 +1367,7 @@ def pay_for_request_process(str_request_id):
 
             # Payment information update
             g.db.execute("INSERT INTO PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)",
-                    [payment_info_id, request_id, buffer(session['useremail']), buffer("paypal"), buffer(payment_id), amount])
+                    [payment_info_id, request_id, buffer(user), buffer("paypal"), buffer(payment_id), amount])
 
             g.db.commit()
             #return redirect("success")
