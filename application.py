@@ -1322,8 +1322,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount),
-            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)},
+            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount),
+            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -1337,7 +1337,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)
+        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -1348,6 +1348,7 @@ def pay_for_request(str_request_id):
 #@login_required
 def pay_for_request_process(str_request_id):
     request_id = int(str_request_id)
+    user = request.args['user_id']
     pay_via = request.args['pay_via']
     is_success = True if request.args['status'] == "success" else False
     payment_id = request.args['paymentId']
