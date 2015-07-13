@@ -334,7 +334,7 @@ CREATE VIEW V_QUEUE_LISTS as
     D_QUEUE_LISTS fact
   LEFT OUTER JOIN D_USERS users ON fact.user_id = users.id;
 
-CREATE TABLE USER_LOCATIONS (
+CREATE TABLE USER_ACTIONS (
     user_id INT,
     lati DOUBLE,
     longi DOUBLE,
