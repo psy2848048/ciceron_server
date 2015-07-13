@@ -341,10 +341,9 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             else:
                 item['request_context']=str(row[38]) if row[38] is not None else None
                 item['request_text']=None
-
-            item['request_photoPath']=None
-            item['request_soundPath']=None
-            item['request_filePath']=None
+                item['request_soundPath']=None
+                item['request_photoPath']=None
+                item['request_filePath']=None
 
         elif purpose == "pending_client":
             # Show context if normal request, or show main text
