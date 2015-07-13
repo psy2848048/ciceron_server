@@ -82,7 +82,8 @@ def loginCheck():
         return make_response(json.jsonify(
             useremail=session['useremail'],
             isLoggedIn = True,
-            message="User %s is logged in" % session['useremail'])
+            message="User %s is logged in" % session['useremail'],
+            token=session.get('token'))
             , 200)
     else:
         return make_response(json.jsonify(
@@ -1308,10 +1309,10 @@ def pay_for_request(str_request_id):
                 mode="sandbox",
                 client_id="Acoic-FJwf_Eiq6fkHC0NzHEnc0pBJ4ZHywiE_zXjQWtPXtrsLzQGfOaf0zAnYE30UmISe2KwIj4aWsy",
                 client_secret="ECevFP6ONiBY3vpFcVYqxxAwtBqtau4X6x96JtLxbgzK45QAWQZFfgeoKSMp5HTKPfggtLfFiMkNY9vk"
-                )
+        )
 
         # LIVE
-        #paypalrestsdk.configure(
+        #paypalrestsdk.set_config(
         #        mode="live",
         #        client_id="AaMMC_CcUAx4rM1NwvmJNVZf-I9xxZlyDNLmVtIxk8fqU-j-NAtqpePm7Jf6BXKzLDQuX-prHuCxxd6T",
         #        client_secret="EDKrvTx3Y42SVEJYxbih4NZ__rohsu-YDC7njq4x8-_6Fck_fdzJBRx_bh1rB0csSBUzisicO3P_mF7l"
@@ -1325,15 +1326,13 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://localhost:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount),
-            "cancel_url": "http://localhost:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)},
+            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount),
+            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&token=%s&pay_amt=%f" % (request_id, session.get('token'), amount)},
           "transactions": [{
             "amount": {
-            "total": amount,
-            "currency": "USD",
-            "details": {
-              "subtotal": amount
-            }},
+                "total": "%.2f" % amount,
+                "currency": "USD",
+            },
           "description": "Ciceron translation request fee USD: %f" % amount }]})
         rs = payment.create()  # return True or False
         paypal_link = None
