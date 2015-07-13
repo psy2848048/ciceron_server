@@ -338,5 +338,8 @@ CREATE TABLE USER_LOCATIONS (
     user_id INT,
     lati DOUBLE,
     longi DOUBLE,
+    method STRING,
+    api STRING,
+    request_id INT,
     log_time TIMESTAMP
 );

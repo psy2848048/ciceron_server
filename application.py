@@ -1464,14 +1464,20 @@ def delete_sos():
                      WHERE status_id = 1 AND is_sos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     return make_response(json.jsonify(message="Cleaned"), 200)
 
-@app.route('/api/location_record', methods = ["GET"])
+@app.route('/api/action_record', methods = ["POST"])
 @login_required
 #@exception_detector
 def record_user_location():
+    parameters = parse_request(request)
+    
     user_id = get_user_id(g.db, session['useremail'])
-    lati = request.args.get('lat')
-    longi = request.args.get('long')
-    g.db.execute("INSERT INTO USER_LOCATIONS VALUES (?,?,?, CURRENT_TIMESTAMP)", [user_id, lati, longi])
+    lati = parameters.get('lat')
+    longi = parameters.get('long')
+    method = parameters.get('method')
+    api = parameters.get('api')
+    request_id = parameters.get('request_id')
+    g.db.execute("INSERT INTO USER_ACTIONS VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)", 
+            [user_id, lati, longi, method, api, request_id])
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
