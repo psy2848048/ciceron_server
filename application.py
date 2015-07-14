@@ -795,9 +795,9 @@ def pick_request():
 
         query_ongoing = None
         if session['useremail'] in super_user:
-            query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? """
+            query_ongoing = """SELECT * FROM V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = ? """
         else:
-            query_ongoing = """SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND is_paid = 1 """
+            query_ongoing = """SELECT * FROM V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1 """
 
         if 'since' in request.args.keys():
             query_ongoing += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
