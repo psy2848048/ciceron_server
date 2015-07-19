@@ -342,7 +342,8 @@ def user_profile():
             user_numOfTranslationsCompleted= userinfo[0][12],
             user_badgeList=                 badgeList,
             user_isTranslator=              True if userinfo[0][4] == 1 else False,
-            user_profileText=               str(userinfo[0][14])
+            user_profileText=               str(userinfo[0][14]),
+            user_major=                     str(userinfo[0][15]) if userinfo[0][15] != None else None
             )
 
         if is_your_profile == True:
