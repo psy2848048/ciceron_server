@@ -376,7 +376,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 def complete_groups(conn, parameters, table, method, url_group_id=None):
     if method == "GET":
         my_user_id = get_user_id(conn, session['useremail'])
-        cursor = conn.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id ASC" % table, [my_user_id])
+        cursor = conn.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id DESC" % table, [my_user_id])
         rs = cursor.fetchall()
 
         result = [ dict(id=row[0], name=str(row[1])) for row in rs ]

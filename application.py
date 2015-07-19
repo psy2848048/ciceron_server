@@ -909,6 +909,8 @@ def post_translate_item():
         query = "SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND status_id = 1 "
     else:
         query = "SELECT client_user_id, ongoing_worker_id FROM V_REQUESTS WHERE request_id = ? AND is_paid = 1 AND status_id = 1 "
+    query += "ORDER BY submitted_time DESC LIMIT 20"
+
     cursor = g.db.execute(query, [request_id])
     rs = cursor.fetchall()
     if len(rs) == 0:
@@ -952,7 +954,8 @@ def translation_completed_items_detail(str_request_id):
     if session['useremail'] in super_user:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? "
     else:
-        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1"
+        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1 "
+    query += "ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [request_id, user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
@@ -972,7 +975,7 @@ def translation_completed_items_all():
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? AND is_paid = 1 "
     if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
-    query += " ORDER BY request_id LIMIT 20"
+    query += " ORDER BY submitted_time DESC LIMIT 20"
 
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
@@ -1074,6 +1077,7 @@ def translation_completed_items_in_group(str_group_id):
             query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? AND is_paid = 1 "
+        query += " ORDER BY submitted_time DESC LIMIT 20"
         cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
@@ -1086,6 +1090,7 @@ def show_pending_list_client():
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
         query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0"
+        query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -1103,6 +1108,7 @@ def show_pending_item_client(str_request_id):
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+        query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -1119,6 +1125,7 @@ def show_ongoing_list_client():
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 AND is_paid = 1 "
+        query += " ORDER BY submitted_time DESC LIMIT 20"
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1136,6 +1143,7 @@ def show_ongoing_item_client(str_request_id):
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 AND is_paid = 1 "
+        query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1151,6 +1159,7 @@ def client_completed_items():
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND is_paid = 1 "
+    query += " ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1167,6 +1176,7 @@ def client_completed_items_detail(str_request_id):
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? AND is_paid = 1 "
+    query += " ORDER BY registered_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id, request_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1215,15 +1225,15 @@ def set_title_client(str_request_id):
         # Back rate
         back_rate = 0.0
         if translator_performance >= 80:
-            back_rate = 0.8
-        elif translator_performance >= 60:
             back_rate = 0.7
+        elif translator_performance >= 60:
+            back_rate = 0.6
         elif translator_performance >= 45:
             back_rate = 0.65
         elif translator_performance >= 30:
             back_rate = 0.6
         else:
-            back_rate = 0.55
+            back_rate = 0.50
 
         g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=pay_amount*? WHERE request_id = ?",
                 [translator_id, False, back_rate, request_id])
@@ -1467,6 +1477,7 @@ def publicize():
     g.db.execute("""UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0
                      WHERE status_id = 1 AND expected_time is null AND submitted_time is null
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
+    g.db.commit()
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
 @app.route('/api/admin/language_assigner', methods = ["POST"])
@@ -1495,6 +1506,7 @@ def language_assigner():
 def delete_sos():
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
                      WHERE status_id = 1 AND is_sos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+    g.db.commit()
     return make_response(json.jsonify(message="Cleaned"), 200)
 
 @app.route('/api/action_record', methods = ["POST"])
@@ -1511,6 +1523,7 @@ def record_user_location():
     request_id = parameters.get('request_id')
     g.db.execute("INSERT INTO USER_ACTIONS VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)", 
             [user_id, lati, longi, method, api, request_id])
+    g.db.commit()
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
