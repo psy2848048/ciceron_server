@@ -366,16 +366,22 @@ def user_profile():
         profileText = parameters.get('user_profileText', None)
         if profileText != None:
             profileText = profileText.encode('utf-8')
+        major = parameters.get('user_major', None)
         profile_pic = request.files.get('user_profilePic', None)
 
         # Start logic
         # Get user number
         email = session['useremail']
 
-        # Profile pic update
-        if profileText is not None:
+        # Profile text update
+        if profileText != None:
             g.db.execute("UPDATE D_USERS SET profile_text = ? WHERE email = ?",
                     [buffer(profileText), buffer(email)])
+
+        # Profile text update
+        if major != None:
+            g.db.execute("UPDATE D_USERS SET major = ? WHERE email = ?",
+                    [buffer(major), buffer(email)])
 
         # Profile photo update
         filename = ""
