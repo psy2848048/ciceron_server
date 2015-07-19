@@ -142,7 +142,8 @@ CREATE TABLE D_MACHINES (
     id INT,
     user_id INT,
     os_id INT, -- D_MACHINE_OSS
-    reg_key STRING
+    reg_key STRING,
+    is_push_allowed INT
 );
 
 CREATE TABLE F_REQUESTS (

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory
+from flask_pushjack import FlaskGCM
 from contextlib import closing
 from datetime import datetime, timedelta
 import hashlib, sqlite3, os, time, requests, sys, paypalrestsdk, logging
@@ -22,6 +23,7 @@ UPLOAD_FOLDER_REQUEST_DOC = "request_doc"
 UPLOAD_FOLDER_REQUEST_TEXT =  "request_text"
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
+GCM_API_KEY = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
 
 SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
@@ -31,14 +33,33 @@ ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf']
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
 VERSION= "2014.12.28"
 
+# APP setting
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})
 app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
 app.config.from_object(__name__)
 app.project_number = 1021873337108
+
+# CORS
+cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})
+
+# Flask-Session
 Session(app)
+
+# Flask-Pushjack
+gcm_server = FlaskGCM()
+gcm_server.init_app(app)
+
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
+
+def pic_allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
+
+def doc_allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
+
+def sound_allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_WAV']
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -58,15 +79,6 @@ def teardown_request(exception):
     db = getattr(g, 'db', None)
     if db is not None:
         db.close()
-
-def pic_allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
-
-def doc_allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
-
-def sound_allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_WAV']
 
 @app.route('/api', methods=['GET'])
 #@exception_detector
@@ -151,7 +163,7 @@ def login():
     else:
         salt = random_string_gen()
         session['salt'] = salt
-        return make_response(json.jsonify(identifier=salt, session_id=session.sid), 200)
+        return make_response(json.jsonify(identifier=salt), 200)
 
 @app.route('/api/logout', methods=["GET"])
 #@exception_detector
@@ -1343,6 +1355,22 @@ def pay_for_request(str_request_id):
         else:
             return make_response(json.jsonify(message="Something wrong in paypal"), 400)
 
+    elif pay_via == 'alipay':
+        from alipay import Alipay
+        alipay_obj = Alipay(pid='my_pid', key='my_key', seller_email='my_email')
+        params = {
+            'subject': '是写论翻译'.encode('utf-8'),
+            'total_fee': '%.2f' % amount,
+            'currency': 'USD',
+            'quantity': '1',
+            'notify_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount)
+            }
+        provided_link = alipay_obj.create_direct_pay_by_user_url(**params)
+
+        return make_response(json.jsonify(
+            message="Link to Alipay is provided.",
+            link=provided_link), 200)
+
 @app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
 #@login_required
@@ -1376,6 +1404,22 @@ def pay_for_request_process(str_request_id):
             # REDIRECT TO FAIL PAGE
             # PAYMENT FAIL
             return redirect("page_provided_with /user/requests/%d/payment" % request_id)
+
+    elif pay_via == "alipay":
+        if is_success:
+            # Get & store order ID and price
+
+            ##############
+            ## Complete payment
+            ##############
+
+            g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
+
+            # Payment information update
+            g.db.execute("INSERT INTO PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)",
+                    [payment_info_id, request_id, buffer(user), buffer("alipay"), buffer(payment_id), amount])
+
+            g.db.commit()
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector

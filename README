@@ -22,6 +22,7 @@ Ciceron server code
   - flask-redis
   - flask-session
   - Flask-Mail
+  - Flask-Pushjack
 
 * Summary of set up
  1) Env
