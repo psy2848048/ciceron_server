@@ -400,44 +400,6 @@ def user_profile():
         return make_response(json.jsonify(
             message="Your profile is susccessfully updated!"), 200)
 
-#@app.route('/user/profile/photo', methods=["POST", "GET"])
-##@exception_detector
-#@login_required
-#def user_profile_photo():
-#    if request.method == "POST":
-#        try:
-#            print "Only supports multipart/form-data"
-#            profile_pic = request.files['photo']
-#            filename = ""
-#            path = ""
-#            if profile_pic and pic_allowed_file(profile_pic.filename):
-#                pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
-#                profile_pic.save(pic_path)
-#
-#            g.db.execute("UPDATE D_USERS SET profile_pic_path = ? WHERE email = ?", [buffer(pic_path), buffer(session['useremail'])])
-#            g.db.commit()
-#
-#            return make_response(json.jsonify(
-#                    message="Upload complete",
-#                    path=pic_path),
-#                200)
-#
-#        except KeyError as e:
-#            return make_response(json.jsonify(
-#                message="Photo upload only supports multipart/form-data. And it takes data from the parameter named 'photo'. Please check your configuration.",
-#                ), 400)
-#
-#    else:
-#        return '''
-#            <!doctype html>
-#            <title>Upload test / Profile pic</title>
-#            <h1>Upload new File</h1>
-#            <form action="" method=post enctype=multipart/form-data>
-#              <p><input type=file name=file>
-#                 <input type=submit value=Upload>
-#            </form>
-#            '''
-
 @app.route('/api/requests', methods=["GET", "POST"])
 #@exception_detector
 def requests():
@@ -664,7 +626,7 @@ def show_queue():
                 WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) """
         else:
             query_pending = """SELECT * FROM V_REQUESTS 
-                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1"""
+                WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1 """
 
         if 'since' in request.args.keys():
             query_pending += "AND registered_time < datetime('%%s', '%s') " % request.args['since']
@@ -1090,13 +1052,38 @@ def translation_completed_items_in_group(str_group_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
         return make_response(json.jsonify(data=result), 200)
 
+@app.route('/api/user/translations/incomplete', methods = ["GET"])
+#@exception_detector
+@login_required
+@translator_checker
+def translation_incompleted_items_all():
+    since = request.args.get('since', None)
+    user_id = get_user_id(g.db, session['useremail'])
+
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM V_REQUESTS WHERE (status_id = 1 AND ongoing_worker_id = ?) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?)) "
+    else:
+        query = "SELECT * FROM V_REQUESTS WHERE (status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1) "
+    if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+    query += " ORDER BY request_id DESC LIMIT 20"
+
+    cursor = g.db.execute(query, [user_id, user_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
+    return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/requests/pending', methods=["GET"])
 #@exception_detector
 @login_required
 def show_pending_list_client():
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
-        query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0"
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0 "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+
         query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
@@ -1317,6 +1304,22 @@ def client_completed_items_in_group(str_group_id):
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
+
+@app.route('/api/user/requests/incomplete', methods = ["GET"])
+#@exception_detector
+@login_required
+def client_incompleted_items():
+    user_id = get_user_id(g.db, session['useremail'])
+    query = None
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id IN (0,1) AND client_user_id = ? "
+    else:
+        query = "SELECT * FROM V_REQUESTS WHERE status_id IN (0,1) AND client_user_id = ? AND is_paid = 1 "
+    query += " ORDER BY request_id DESC LIMIT 20"
+    cursor = g.db.execute(query, [user_id])
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
+    return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 #@exception_detector
