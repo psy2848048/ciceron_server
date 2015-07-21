@@ -1102,11 +1102,32 @@ def show_pending_item_client(str_request_id):
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
-        query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
+
+@app.route('/api/user/requests/pending/<str_request_id>', methods=["DELETE"])
+#@exception_detector
+@login_required
+def delete_item_client(str_request_id):
+    if request.method == "DELETE":
+        user_id = get_user_id(g.db, session['useremail'])
+        request_id = int(str_request_id)
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT points FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 "
+        else:
+            query = "SELECT points FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+        cursor = g.db.execute(query, [request_id, user_id])
+        points = cursor.fetchall()[0][0]
+        g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?",
+                [points, user_id])
+        g.db.execute("DELETE FROM F_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0",
+                [request_id, user_id])
+        g.db.commit()
+        return make_response(json.jsonify(
+            message="Request #%d is deleted. USD %.2f is returned as requester's points" % (request_id, points)), 200)
 
 @app.route('/api/user/requests/ongoing', methods=["GET"])
 #@exception_detector
@@ -1187,16 +1208,16 @@ def client_rate_request(str_request_id):
     g.db.execute("UPDATE F_REQUESTS SET feedback_score = ? WHERE id = ?", [feedback_score, request_id])
 
     # Pay back part
-    #query_getTranslator = None
-    #if session['useremail'] in super_user:
-    #    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? "
-    #else:
-    #    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
+    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
 
-    #cursor = g.db.execute(query_getTranslator, [request_id])
-    #rs = cursor.fetchall()
-    #translator_id = rs[0][0]
-    #pay_amount = rs[0][1]
+    cursor = g.db.execute(query_getTranslator, [request_id])
+    rs = cursor.fetchall()
+    translator_id = rs[0][0]
+    pay_amount = rs[0][1]
+
+    #######################################################################
+    #  IF RETURN RATE EXISTS, THE BLOCKED CODE BELOW WILL BE IMPLEMENTED  #
+    #######################################################################
 
     #query_getCounts = None
     #if session['useremail'] in super_user:
@@ -1220,12 +1241,20 @@ def client_rate_request(str_request_id):
     #else:
     #    back_rate = 0.50
 
-    #g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=? WHERE request_id = ?",
-    #        [translator_id, 0, back_rate * pay_amount, request_id])
+    # Currently fixed rate
+    return_rate = 0.5
+
+    # Record payment record
+    g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=? WHERE request_id = ?",
+            [translator_id, 0, back_rate * pay_amount, request_id])
+
+    # Update the translator's purse
+    g.db.execute("UPDATE REVENUE SET amuont = amount + ? * ? WHERE id = ?",
+            [return_rate, pay_amount, translator_id])
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="The requester rated to request #%d as %d points (in 0~2)" % (request_id, feedback_score)),
+        message="The requester rated to request #%d as %d points (in 0~2)\nAnd translator earns USD %.2f" % (request_id, feedback_score, pay_amount*return_rate)),
         200)
 
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
@@ -1487,6 +1516,32 @@ def access_file(directory, filename):
     print filename
     return send_from_directory(directory, filename)
 
+@app.route('/api/admin/delete_sos', methods = ["GET"])
+#@exception_detector
+def delete_sos():
+    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
+                     WHERE status_id = 1 AND is_sos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+    g.db.commit()
+    return make_response(json.jsonify(message="Cleaned"), 200)
+
+@app.route('/api/action_record', methods = ["POST"])
+@login_required
+#@exception_detector
+def record_user_location():
+    parameters = parse_request(request)
+    
+    user_id = get_user_id(g.db, session['useremail'])
+    lati = parameters.get('lat')
+    longi = parameters.get('long')
+    method = parameters.get('method')
+    api = parameters.get('api')
+    request_id = parameters.get('request_id')
+    g.db.execute("INSERT INTO USER_ACTIONS VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)", 
+            [user_id, lati, longi, method, api, request_id])
+    g.db.commit()
+    return make_response(json.jsonnify(
+        message="Logged successfully"), 200)
+
 ################################################################################
 #########                        ADMIN TOOL                            #########
 ################################################################################
@@ -1499,7 +1554,7 @@ def publicize():
                        AND expected_time is null AND submitted_time is null
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
     num_of_publicize = cursor.fetchall()[0][0]
-    g.db.execute("""UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0
+    g.db.execute("""UPDATE F_REQUESTS SET registered_time = CURRENT_TIMESTAMP, ongoing_worker_id = null, status_id = 0
                      WHERE status_id = 1 AND expected_time is null AND submitted_time is null
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
     g.db.commit()
@@ -1526,29 +1581,14 @@ def language_assigner():
     g.db.commit()
     return make_response(json.jsonify(message="Language added successfully"), 200)
 
-@app.route('/api/admin/delete_sos', methods = ["GET"])
+@app.route('/api/admin/return_money', methods = ["POST"])
 #@exception_detector
-def delete_sos():
-    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
-                     WHERE status_id = 1 AND is_sos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
-    g.db.commit()
-    return make_response(json.jsonify(message="Cleaned"), 200)
-
-@app.route('/api/action_record', methods = ["POST"])
-@login_required
-#@exception_detector
-def record_user_location():
+@admin_required
+def return_money():
     parameters = parse_request(request)
-    
-    user_id = get_user_id(g.db, session['useremail'])
-    lati = parameters.get('lat')
-    longi = parameters.get('long')
-    method = parameters.get('method')
-    api = parameters.get('api')
-    request_id = parameters.get('request_id')
-    g.db.execute("INSERT INTO USER_ACTIONS VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)", 
-            [user_id, lati, longi, method, api, request_id])
-    g.db.commit()
+    user_id = get_user_id(session['useremail'])
+    money_amount = parameter(['user_revenue'])
+    # TBD
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

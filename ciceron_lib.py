@@ -487,21 +487,29 @@ def update_user_record(conn, client_id=None, translator_id=None):
     conn.commit()
 
 def parse_request(req):
-    if req.form == None or len(req.form) == 0:
+    if len(req.form) == 0 and len(req.files) == 0:
         parameter_list = req.get_json()
-        result = dict()
+        if parameter_list != None:
+            result = dict()
 
-        for key, value in parameter_list.iteritems():
-            result[key] = value
+            for key, value in parameter_list.iteritems():
+                result[key] = value
 
-        return result
+            return result
+        
+        else:
+            return dict()
 
     else:
-        result = dict()
-        for key, value in req.form.iteritems():
-            result[key] = value
+        if len(req.form) != 0:
+            result = dict()
+            for key, value in req.form.iteritems():
+                result[key] = value
 
-        return result
+            return result
+
+        else:
+            return dict()
  
 def send_push(conn, gcm_obj,
               user_ids,
