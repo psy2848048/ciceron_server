@@ -1176,6 +1176,58 @@ def client_completed_items_detail(str_request_id):
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
 
+@app.route('/api/user/requests/complete/<str_request_id>/rate', methods=["POST"])
+#@exception_detector
+@login_required
+def client_rate_request(str_request_id):
+    parameters = parse_request(request)
+    request_id = int(str_request_id)
+    feedback_score = int(parameters['request_feedbackScore'])
+    # Input feedback score
+    g.db.execute("UPDATE F_REQUESTS SET feedback_score = ? WHERE id = ?", [feedback_score, request_id])
+
+    # Pay back part
+    #query_getTranslator = None
+    #if session['useremail'] in super_user:
+    #    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? "
+    #else:
+    #    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
+
+    #cursor = g.db.execute(query_getTranslator, [request_id])
+    #rs = cursor.fetchall()
+    #translator_id = rs[0][0]
+    #pay_amount = rs[0][1]
+
+    #query_getCounts = None
+    #if session['useremail'] in super_user:
+    #    query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
+    #else:
+    #    query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND is_paid = 1 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
+    #cursor = g.db.execute(query_getCounts, [translator_id])
+    #rs = cursor.fetchall()
+    #translator_performance = rs[0][0]
+
+    ## Back rate
+    #back_rate = 0.0
+    #if translator_performance >= 80:
+    #    back_rate = 0.7
+    #elif translator_performance >= 60:
+    #    back_rate = 0.6
+    #elif translator_performance >= 45:
+    #    back_rate = 0.65
+    #elif translator_performance >= 30:
+    #    back_rate = 0.6
+    #else:
+    #    back_rate = 0.50
+
+    #g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=? WHERE request_id = ?",
+    #        [translator_id, 0, back_rate * pay_amount, request_id])
+    g.db.commit()
+
+    return make_response(json.jsonify(
+        message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
+        200)
+
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
 #@exception_detector
 @login_required
@@ -1195,44 +1247,7 @@ def set_title_client(str_request_id):
                 [new_title_id, buffer(title_text)])
 
         g.db.execute("UPDATE F_REQUESTS SET client_title_id = ? WHERE id = ?", [new_title_id, request_id])
-
-        # Pay back part
-        query_getTranslator = None
-        if session['useremail'] in super_user:
-            query_getTranslator = "SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ? "
-        else:
-            query_getTranslator = "SELECT ongoing_worker_id FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
-
-        cursor = g.db.execute(query_getTranslator, [request_id])
-        rs = cursor.fetchall()
-        translator_id = rs[0][0]
-
-        query_getCounts = None
-        if session['useremail'] in super_user:
-            query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
-        else:
-            query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND is_paid = 1 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
-        cursor = g.db.execute(query_getCounts, [translator_id])
-        rs = cursor.fetchall()
-        translator_performance = rs[0][0]
-
-        # Back rate
-        back_rate = 0.0
-        if translator_performance >= 80:
-            back_rate = 0.7
-        elif translator_performance >= 60:
-            back_rate = 0.6
-        elif translator_performance >= 45:
-            back_rate = 0.65
-        elif translator_performance >= 30:
-            back_rate = 0.6
-        else:
-            back_rate = 0.50
-
-        g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=pay_amount*? WHERE request_id = ?",
-                [translator_id, False, back_rate, request_id])
         g.db.commit()
-
         return make_response(json.jsonify(
             message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
             200)
