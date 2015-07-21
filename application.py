@@ -1225,7 +1225,7 @@ def client_rate_request(str_request_id):
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
+        message="The requester rated to request #%d as %d points (in 0~2)" % (request_id, feedback_score)),
         200)
 
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
