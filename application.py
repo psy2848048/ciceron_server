@@ -1208,7 +1208,8 @@ def client_rate_request(str_request_id):
     g.db.execute("UPDATE F_REQUESTS SET feedback_score = ? WHERE id = ?", [feedback_score, request_id])
 
     # Pay back part
-    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
+    #query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
+    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? "
 
     cursor = g.db.execute(query_getTranslator, [request_id])
     rs = cursor.fetchall()
@@ -1246,15 +1247,15 @@ def client_rate_request(str_request_id):
 
     # Record payment record
     g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=? WHERE request_id = ?",
-            [translator_id, 0, back_rate * pay_amount, request_id])
+            [translator_id, 0, return_rate * pay_amount, request_id])
 
     # Update the translator's purse
-    g.db.execute("UPDATE REVENUE SET amuont = amount + ? * ? WHERE id = ?",
+    g.db.execute("UPDATE REVENUE SET amount = amount + ? * ? WHERE id = ?",
             [return_rate, pay_amount, translator_id])
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="The requester rated to request #%d as %d points (in 0~2)\nAnd translator earns USD %.2f" % (request_id, feedback_score, pay_amount*return_rate)),
+        message="The requester rated to request #%d as %d points (in 0~2). And translator has been earned USD %.2f" % (request_id, feedback_score, pay_amount*return_rate)),
         200)
 
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
@@ -1581,14 +1582,55 @@ def language_assigner():
     g.db.commit()
     return make_response(json.jsonify(message="Language added successfully"), 200)
 
-@app.route('/api/admin/return_money', methods = ["POST"])
+@app.route('/api/admin/return_money', methods = ["GET", "POST"])
 #@exception_detector
 @admin_required
 def return_money():
-    parameters = parse_request(request)
-    user_id = get_user_id(session['useremail'])
-    money_amount = parameter(['user_revenue'])
-    # TBD
+    if request.method == "POST":
+        parameters = parse_request(request)
+        user_id = get_user_id(session['useremail'])
+        where_to_return = parameters['user_whereToReturn']
+        payment_id = parameters['user_PaymentId']
+        money_amount = parameters['user_revenue']
+
+        # Logic flow
+        #   1) Check how much money in user's revenue
+        #     - If request amount is exceeded user's revenue, reject refund request.
+        #   2) Send via paypal
+
+        # SANDBOX
+        API_ID = "APP-80W284485P519543T"
+        API_USER = "psy2848048-facilitator_api1.gmail.com"
+        API_PASS = 'MGJRN5CXRPJ5HH3T'
+        API_SIGNATURE = 'AavIMtR3zJjSZoB3Y-H2AVPEwsxFA-yDLv6u.DjuJe4xTMt5W30scxl6'
+
+        # Live
+        # API_ID = 'Should be issued later'
+        # API_USERNAME = 'psy2848048_api1.gmail.com'
+        # API_PASS = 'KJSCMBU89VGJEUNY'
+        # API_SIGNATURE = 'Ab2fJpObRrhzvlAb1Lwnby0Qw9SyAfYXxgI.J93.rSrMRSopH-uqKonL'
+
+        # END POINT = https://svcs.sandbox.paypal.com/AdaptivePayments/Pay
+        # POST
+        # Input header:
+        # X-PAYPAL-APPLICATION-ID = API_ID
+        # X-PAYPAL-SECURITY-USERID = API_USER
+        # X-PAYPAL-SECURITY-PASSWORD = API_PASS
+        # X-PAYPAL-SECURITY-SIGNATURE = API_SIGNATURE
+        # X-PAYPAL-DEVICE-IPADDRESS = IP_ADDRESS
+        # X-PAYPAL-REQUEST-DATA-FORMAT = 'JSON'
+        # X-PAYPAL-RESPONSE-DATA-FORMAT = 'JSON'
+
+        body = {"returnUrl":"http://example.com/returnURL.htm",
+                "requestEnvelope":
+                   {"errorLanguage":"en_KR"},
+                "currencyCode":"USD",
+                "receiverList":{
+                    "receiver":
+                    [{"email":"psy2848048@gmail.com","amount":"10.00",}]
+                    },
+                "cancelUrl":"http://example.com/cancelURL.htm",
+                "actionType":"PAY"}
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

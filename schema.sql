@@ -346,3 +346,15 @@ CREATE TABLE USER_ACTIONS (
     request_id INT,
     log_time TIMESTAMP
 );
+
+CREATE TABLE RETURN_MONEY (
+    id INT,
+    user_id INT,
+    where_to_return TEXT,
+    payment_id TEXT,
+    request_time TIMESTAMP,
+    is_returned INT,
+    order_no TEXT,
+    amount DECIMAL(10,2),
+    return_time TIMESTAMP
+);
