@@ -219,7 +219,7 @@ def signup():
         user_id = get_new_id(g.db, "D_USERS")
 
         print "New user id: %d" % user_id
-        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [user_id,
                  buffer(email),
                  buffer(name),
@@ -234,7 +234,7 @@ def signup():
                  0,
                  0,
                  None,
-                 buffer("nothing")])
+                 buffer("nothing"), buffer("Major")])
 
         g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
             [user_id, buffer(hashed_password)])
