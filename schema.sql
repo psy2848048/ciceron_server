@@ -16,8 +16,7 @@ CREATE TABLE D_USERS (
     numOfTranslationOngoing INT,
     numOfTranslationCompleted INT,
     badgeList_id INT, -- D_AWARDED_BADGES
-    profile_text TEXT,
-    major STRING
+    profile_text TEXT
 );
 
 CREATE TABLE D_TRANSLATABLE_LANGUAGES (

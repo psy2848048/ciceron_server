@@ -282,7 +282,6 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 user_isTranslator=              True if q_item[6] == 1 else False,
                 user_profileText=               str(q_item[16]),
                 user_revenue=                   -65535,
-                user_major=                     str(q_item[17]) if q_item[17] != None else None
                 )
             queue_list.append(temp_item)
 
