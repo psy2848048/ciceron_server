@@ -328,6 +328,10 @@ def user_profile():
                 [badgeList_id])
         badgeList = (',').join([ str(item[0]) for item in cursor.fetchall() ])
 
+        # GET list: user's keywords
+        cursor = g.db.execute("SELECT key.text FROM D_USER_KEYWORDS ids JOIN D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = ?", [user_id])
+        keywords = (',').join([ str(item[0]) for item in cursor.fetchall() ])
+
         profile = dict(
             user_email=                     email,
             user_name=                      str(userinfo[0][2]),
@@ -342,7 +346,8 @@ def user_profile():
             user_numOfTranslationsCompleted= userinfo[0][12],
             user_badgeList=                 badgeList,
             user_isTranslator=              True if userinfo[0][4] == 1 else False,
-            user_profileText=               str(userinfo[0][14])
+            user_profileText=               str(userinfo[0][14]),
+            user_keywords=                  keywords
             )
 
         if is_your_profile == True:
@@ -398,6 +403,34 @@ def user_profile():
         g.db.commit()
         return make_response(json.jsonify(
             message="Your profile is susccessfully updated!"), 200)
+
+@app.route('/api/user/profile/keywords/<keyword>', methods = ['POST', 'DELETE'])
+@login_required
+#@exception_detector
+def user_keywords_control(keyword):
+    if request.method == "POST":
+        keyword_id = get_id_from_text(g.db, keyword, "D_KEYWORDS")
+        if keyword_id == -1:
+            keyword_id = get_new_id(g.db, "D_KEYWORDS")
+            g.db.execute("INSERT INTO D_KEYWORDS VALUES (?,?)", [keyword_id, buffer(keyword)])
+
+        user_id = get_user_id(g.db, session['useremail'])
+        g.db.execute("INSERT INTO D_USER_KEYWORDS VALUES (?,?)", [user_id, keyword_id])
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Keyword '%s' is inserted into user %s" % (keyword, session['useremail'])),
+            200)
+
+    elif request.method == "DELETE":
+        user_id = get_user_id(g.db, session['useremail'])
+        keyword_id = get_id_from_text(g.db, keyword, "D_KEYWORDS")
+        g.db.execute("DELETE FROM D_USER_KEYWORDS WHERE user_id = ? AND keyword_id = ?", [user_id, keyword_id])
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Keyword '%s' is deleted from user %s" % (keyword, session['useremail'])),
+            200)
 
 @app.route('/api/requests', methods=["GET", "POST"])
 #@exception_detector

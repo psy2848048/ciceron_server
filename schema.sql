@@ -38,6 +38,16 @@ INSERT INTO D_LANGUAGES VALUES (4, 'Chinese(Cantonese)');
 INSERT INTO D_LANGUAGES VALUES (5, 'Japanese');
 INSERT INTO D_LANGUAGES VALUES (500, 'Others');
 
+CREATE TABLE D_USER_KEYWORDS (
+    user_id INT,
+    keyword_id INT
+);
+
+CREATE TABLE D_KEYWORDS (
+    id INT,
+    text TEXT
+);
+
 CREATE TABLE D_FORMATS (
     id INT,
     text STRING
