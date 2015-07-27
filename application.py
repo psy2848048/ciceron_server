@@ -1243,7 +1243,7 @@ def client_rate_request(str_request_id):
     #    back_rate = 0.50
 
     # Currently fixed rate
-    return_rate = 0.5
+    return_rate = 0.7
 
     # Record payment record
     g.db.execute("UPDATE PAYMENT_INFO SET translator_id=?, is_payed_back=?, back_amount=? WHERE request_id = ?",
@@ -1357,14 +1357,103 @@ def client_incompleted_items():
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM V_REQUESTS WHERE status_id IN (0,1) AND client_user_id = ? "
+        query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? "
     else:
-        query = "SELECT * FROM V_REQUESTS WHERE status_id IN (0,1) AND client_user_id = ? AND is_paid = 1 "
+        query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? AND is_paid = 1 "
     query += " ORDER BY request_id DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
     return make_response(json.jsonify(data=result), 200)
+
+@app.route('/api/user/requests/incomplete/<str_request_id>', methods = ["PUT", "DELETE", "POST"])
+#@exception_detector
+@login_required
+def client_incompleted_item_control(str_request_id):
+    if request.method == "PUT":
+        # Only update due_time and price
+
+        # It can be used in:
+        #    1) Non-selected request
+        #    2) Give more chance to the trusted translator
+
+        request_id = int(request_id)
+        parameters = parse_request(request)
+
+        # Addional time: unit is second, counted from NOW
+        additional_time_in_sec = parameters['user_additionalTime']
+        additional_price = 0
+        if parameters.get('user_additionalPrice') != None:
+            additional_price = float(parameters['user_additionalPrice'])
+
+        user_id = get_user_id(g.db, session['useremail'])
+        # Change due date w/o addtional money
+        if additional_price == 0:
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0 WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is null", [request_id, user_id])
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 1 WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null", [request_id, user_id])
+            g.db.commit()
+
+            return make_response(json.jsonify(
+                message="Request #%d is renewed" % request_id,
+                api=None), 200)
+
+        # Change due date w/additional money
+        else:
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, is_paid = 0, points = points + ? WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is null", [additional_price, request_id, user_id])
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 1, is_paid = 0, points = points + ? WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null", [additional_price, request_id, user_id])
+            g.db.commit()
+
+            return make_response(json.jsonify(
+                message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
+                api="/api/user/requests/%d/payment/start"%request_id), 200)
+
+    elif request.method == "POST":
+        # It can be used in:
+        #    1) Say goodbye to translator, back to stoa
+
+        request_id = int(request_id)
+        parameters = parse_request(request)
+
+        # Addional time: unit is second, counted from NOW
+        additional_time_in_sec = parameters['user_additionalTime']
+        additional_price = 0
+        if parameters.get('user_additionalPrice') != None:
+            additional_price = float(parameters['user_additionalPrice'])
+
+        user_id = get_user_id(g.db, session['useremail'])
+        # Change due date w/o addtional money
+        if additional_price == 0:
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, ongoing_worker_id = null WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null", [request_id, user_id])
+            g.db.commit()
+
+            return make_response(json.jsonify(
+                message="Request #%d is posted back to stoa." % request_id,
+                api=None), 200)
+
+        # Change due date w/additional money
+        else:
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, is_paid = 0, points = points + ?, ongoing_worker_id = null WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null", [additional_price, request_id, user_id])
+            g.db.commit()
+
+            return make_response(json.jsonify(
+                message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
+                api="/api/user/requests/%d/payment/start"%request_id), 200)
+
+    elif request.method == "DELETE":
+        # It can be used in:
+        #    1) Say goodbye to translator. And he/she don't want to leave his/her request
+        request_id = int(request_id)
+        user_id = get_user_id(g.db, session['useremail'])
+
+        g.db.execute("UPDATE F_REQUESTS SET is_paid = 0 WHERE id = ? AND status_id = -1 AND client_user_id = ? ", [request_id, user_id])
+
+        cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id = -1 AND client_user_id = ?", [request_id, user_id])
+        points = float(cursor.fetchall()[0][0])
+        g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?", [points, user_id])
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Your request #%d is deleted. Your points USD %.2f is backed in your account" % [request_id, points]), 200)
 
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 #@exception_detector
@@ -1380,15 +1469,15 @@ def pay_for_request(str_request_id):
         # SANDBOX
         paypalrestsdk.configure(
                 mode="sandbox",
-                client_id="Acoic-FJwf_Eiq6fkHC0NzHEnc0pBJ4ZHywiE_zXjQWtPXtrsLzQGfOaf0zAnYE30UmISe2KwIj4aWsy",
-                client_secret="ECevFP6ONiBY3vpFcVYqxxAwtBqtau4X6x96JtLxbgzK45QAWQZFfgeoKSMp5HTKPfggtLfFiMkNY9vk"
+                client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
+                client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
         )
 
         # LIVE
         #paypalrestsdk.set_config(
         #        mode="live",
-        #        client_id="AaMMC_CcUAx4rM1NwvmJNVZf-I9xxZlyDNLmVtIxk8fqU-j-NAtqpePm7Jf6BXKzLDQuX-prHuCxxd6T",
-        #        client_secret="EDKrvTx3Y42SVEJYxbih4NZ__rohsu-YDC7njq4x8-_6Fck_fdzJBRx_bh1rB0csSBUzisicO3P_mF7l"
+        #        client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
+        #        client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
         #        )
 
         logging.basicConfig(level=logging.INFO)
@@ -1555,9 +1644,8 @@ def publicize():
                        AND expected_time is null AND submitted_time is null
                        AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
     num_of_publicize = cursor.fetchall()[0][0]
-    g.db.execute("""UPDATE F_REQUESTS SET registered_time = CURRENT_TIMESTAMP, ongoing_worker_id = null, status_id = 0
-                     WHERE status_id = 1 AND expected_time is null AND submitted_time is null
-                       AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
+    g.db.execute("""UPDATE F_REQUESTS SET registered_time = CURRENT_TIMESTAMP, ongoing_worker_id = null, status_id = -1
+                     WHERE status_id = 1 AND expected_time is null AND submitted_time is null AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3""")
     g.db.commit()
     return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
 
@@ -1600,15 +1688,15 @@ def return_money():
 
         # SANDBOX
         API_ID = "APP-80W284485P519543T"
-        API_USER = "psy2848048-facilitator_api1.gmail.com"
-        API_PASS = 'MGJRN5CXRPJ5HH3T'
-        API_SIGNATURE = 'AavIMtR3zJjSZoB3Y-H2AVPEwsxFA-yDLv6u.DjuJe4xTMt5W30scxl6'
+        API_USER = "contact-facilitator_api1.ciceron.me"
+        API_PASS = 'R8H3MF9EQYTNHD22'
+        API_SIGNATURE = 'ABMADzBsLmPPJmWRmjvj6KuGeZ4MAoDQ7X0sCtehblA93Yolgrjto1tO'
 
         # Live
         # API_ID = 'Should be issued later'
-        # API_USERNAME = 'psy2848048_api1.gmail.com'
-        # API_PASS = 'KJSCMBU89VGJEUNY'
-        # API_SIGNATURE = 'Ab2fJpObRrhzvlAb1Lwnby0Qw9SyAfYXxgI.J93.rSrMRSopH-uqKonL'
+        # API_USERNAME = 'contact_api1.ciceron.me'
+        # API_PASS = 'GJ5JNF596R3VNBK4'
+        # API_SIGNATURE = 'AiPC9BjkCyDFQXbSkoZcgqH3hpacAqbVr1jqSkiaKlwohFFSWhFvOxwI'
 
         # END POINT = https://svcs.sandbox.paypal.com/AdaptivePayments/Pay
         # POST
