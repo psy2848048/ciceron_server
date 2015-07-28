@@ -404,7 +404,7 @@ def user_profile():
         return make_response(json.jsonify(
             message="Your profile is susccessfully updated!"), 200)
 
-@app.route('/api/user/profile/keywords/<keyword>', methods = ['POST', 'DELETE'])
+@app.route('/api/user/profile/keywords/<keyword>', methods = ['GET', 'POST', 'DELETE'])
 @login_required
 #@exception_detector
 def user_keywords_control(keyword):
@@ -431,6 +431,14 @@ def user_keywords_control(keyword):
         return make_response(json.jsonify(
             message="Keyword '%s' is deleted from user %s" % (keyword, session['useremail'])),
             200)
+
+    elif request.method == "GET":
+        print """SELECT text FROM D_KEYWORDS WHERE text like '%s%%' """ % keyword
+        cursor = g.db.execute("""SELECT id, text FROM D_KEYWORDS WHERE text like '%s%%' """ % keyword)
+        similar_keywords = [str(item[1]) for item in cursor.fetchall()]
+        return make_response(json.jsonify(
+            message="Similarity search results",
+            result=similar_keywords), 200)
 
 @app.route('/api/requests', methods=["GET", "POST"])
 #@exception_detector
