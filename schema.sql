@@ -340,8 +340,7 @@ CREATE VIEW V_QUEUE_LISTS as
    users.numOfTranslationOngoing numOfTranslationOngoing,
     users.numOfTranslationCompleted numOfTranslationCompleted,
     users.badgeList_id badgeList_id, -- D_AWARDED_BADGES
-    users.profile_text profile_text,
-    users.major major
+    users.profile_text profile_text
   FROM
     D_QUEUE_LISTS fact
   LEFT OUTER JOIN D_USERS users ON fact.user_id = users.id;
