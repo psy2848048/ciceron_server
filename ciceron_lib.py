@@ -266,6 +266,10 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 [q_item[2]])
             badgeList = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
 
+            # GET list: user's keywords
+            cursor5 = g.db.execute("SELECT key.text FROM D_USER_KEYWORDS ids JOIN D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = ?", [q_item[2]])
+            keywords = (',').join([ str(item[0]) for item in cursor5.fetchall() ])
+
             temp_item=dict(
                 user_email=                     str(q_item[3]),
                 user_name=                      str(q_item[4]),
@@ -282,6 +286,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 user_isTranslator=              True if q_item[6] == 1 else False,
                 user_profileText=               str(q_item[16]),
                 user_revenue=                   -65535,
+                user_keywords=                   keywords
                 )
             queue_list.append(temp_item)
 
