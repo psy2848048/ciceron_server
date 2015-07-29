@@ -452,13 +452,14 @@ def requests():
         query = None
         if session.get('useremail') in super_user:
             query = """SELECT * FROM V_REQUESTS WHERE
-                (ongoing_worker_id is null AND status_id = 0 AND isSos = 0) OR (isSos = 1) """
+                ((ongoing_worker_id is null AND status_id = 0 AND isSos = 0) OR (isSos = 1)) """
         else:
             query = """SELECT * FROM V_REQUESTS WHERE
-                (ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1) """
+                ((ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1)) """
         if 'since' in request.args.keys():
-            query += "AND registered_time < strftime('%%s', '%s') " % request.args.get('since')
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
+        print query
 
         cursor = g.db.execute(query)
         rs = cursor.fetchall()
@@ -669,7 +670,7 @@ def show_queue():
                 WHERE request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1 """
 
         if 'since' in request.args.keys():
-            query_pending += "AND registered_time < datetime('%%s', '%s') " % request.args['since']
+            query_pending += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query_pending += "ORDER BY registered_time DESC LIMIT 20"
 
         cursor = g.db.execute(query_pending, [my_user_id])
@@ -821,7 +822,7 @@ def pick_request():
             query_ongoing = """SELECT * FROM V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1 """
 
         if 'since' in request.args.keys():
-            query_ongoing += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+            query_ongoing += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query_ongoing += "ORDER BY registered_time DESC LIMIT 20"
 
         my_user_id = get_user_id(g.db, session['useremail'])
@@ -843,6 +844,8 @@ def working_translate_item(str_request_id):
             query = "SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id])
 
         rs = cursor.fetchall()
@@ -870,6 +873,8 @@ def expected_time(str_request_id):
             query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? "
         else:
             query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
         return make_response(json.jsonify(default_dueTime=rs[0][0]), 200)
@@ -964,6 +969,8 @@ def translation_completed_items_detail(str_request_id):
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1 "
+    if 'since' in request.args.keys():
+        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += "ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [request_id, user_id])
     rs = cursor.fetchall()
@@ -983,7 +990,8 @@ def translation_completed_items_all():
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? AND is_paid = 1 "
-    if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+    if 'since' in request.args.keys():
+        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
 
     cursor = g.db.execute(query, [user_id])
@@ -1030,7 +1038,10 @@ def set_title_translator(str_request_id):
 @login_required
 def translators_complete_groups():
     if request.method == "GET":
-        result = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "GET")
+        since = None
+        if 'since' in request.args.keys():
+            since = request.args['since']
+        result = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "GET", since=since)
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
@@ -1086,6 +1097,8 @@ def translation_completed_items_in_group(str_group_id):
             query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY submitted_time DESC LIMIT 20"
         cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
@@ -1102,10 +1115,11 @@ def translation_incompleted_items_all():
 
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM V_REQUESTS WHERE (status_id = 1 AND ongoing_worker_id = ?) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?)) "
+        query = "SELECT * FROM V_REQUESTS WHERE ((status_id = 1 AND ongoing_worker_id = ?) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?))) "
     else:
-        query = "SELECT * FROM V_REQUESTS WHERE (status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1) "
-    if since is not None: query += "AND registered_time < datetime(%f) " % Decimal(request.args['since'])
+        query = "SELECT * FROM V_REQUESTS WHERE ((status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1)) "
+    if 'since' in request.args.keys():
+        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY request_id DESC LIMIT 20"
 
     cursor = g.db.execute(query, [user_id, user_id])
@@ -1123,6 +1137,8 @@ def show_pending_list_client():
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
 
         query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [user_id])
@@ -1142,6 +1158,8 @@ def show_pending_item_client(str_request_id):
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 0 AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -1180,6 +1198,8 @@ def show_ongoing_list_client():
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY submitted_time DESC LIMIT 20"
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
@@ -1198,6 +1218,8 @@ def show_ongoing_item_client(str_request_id):
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 "
         else:
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
@@ -1214,6 +1236,8 @@ def client_completed_items():
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND is_paid = 1 "
+    if 'since' in request.args.keys():
+        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
@@ -1231,6 +1255,8 @@ def client_completed_items_detail(str_request_id):
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? AND is_paid = 1 "
+    if 'since' in request.args.keys():
+        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY registered_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id, request_id])
     rs = cursor.fetchall()
@@ -1332,7 +1358,10 @@ def set_title_client(str_request_id):
 @login_required
 def client_complete_groups():
     if request.method == "GET":
-        result = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "GET")
+        since = None
+        if 'since' in request.args.keys():
+            since = request.args['since']
+        result = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "GET", since=since)
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
@@ -1382,9 +1411,12 @@ def client_completed_items_in_group(str_group_id):
         my_user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? ORDER BY request_id DESC"
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? "
         else:
-            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? AND is_paid = 1 ORDER BY request_id DESC"
+            query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += "ORDER BY request_id DESC"
         cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1400,6 +1432,8 @@ def client_incompleted_items():
         query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? "
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? AND is_paid = 1 "
+    if 'since' in request.args.keys():
+        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY request_id DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
@@ -1631,8 +1665,8 @@ def register_or_update_register_id():
     num = cursor.fetchall()[0][0]
 
     if num == 0:
-        g.db.execute("INSERT INTO D_MACHINES VALUES (?, ?, (SELECT id FROM D_MACHINE_OSS WHERE text = ?), ?)",
-            [record_id, user_id, buffer(device_os), buffer(reg_key)])
+        g.db.execute("INSERT INTO D_MACHINES VALUES (?, ?, (SELECT id FROM D_MACHINE_OSS WHERE text = ?), ?, ?)",
+            [record_id, user_id, buffer(device_os), buffer(reg_key), 1])
     else:
         g.db.execute("UPDATE D_MACHINES SET reg_key = ? WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?",
             [buffer(reg_key), buffer(device_os), user_id])

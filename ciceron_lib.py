@@ -378,10 +378,14 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
     return result
 
-def complete_groups(conn, parameters, table, method, url_group_id=None):
+def complete_groups(conn, parameters, table, method, url_group_id=None, since=None):
     if method == "GET":
         my_user_id = get_user_id(conn, session['useremail'])
-        cursor = conn.execute("SELECT id, text FROM %s WHERE user_id = ? ORDER BY id DESC" % table, [my_user_id])
+        query = "SELECT id, text FROM %s WHERE user_id = ? "
+        if since != None:
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % since
+        query += "ORDER BY id DESC"
+        cursor = conn.execute(query % table, [my_user_id])
         rs = cursor.fetchall()
 
         result = [ dict(id=row[0], name=str(row[1])) for row in rs ]
