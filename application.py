@@ -219,7 +219,7 @@ def signup():
         user_id = get_new_id(g.db, "D_USERS")
 
         print "New user id: %d" % user_id
-        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [user_id,
                  buffer(email),
                  buffer(name),
@@ -234,7 +234,7 @@ def signup():
                  0,
                  0,
                  None,
-                 buffer("nothing"), buffer("Major")])
+                 buffer("nothing")])
 
         g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
             [user_id, buffer(hashed_password)])
@@ -370,7 +370,6 @@ def user_profile():
         profileText = parameters.get('user_profileText', None)
         if profileText != None:
             profileText = profileText.encode('utf-8')
-        major = parameters.get('user_major', None)
         profile_pic = request.files.get('user_profilePic', None)
 
         # Start logic
@@ -381,11 +380,6 @@ def user_profile():
         if profileText != None:
             g.db.execute("UPDATE D_USERS SET profile_text = ? WHERE email = ?",
                     [buffer(profileText), buffer(email)])
-
-        # Profile text update
-        if major != None:
-            g.db.execute("UPDATE D_USERS SET major = ? WHERE email = ?",
-                    [buffer(major), buffer(email)])
 
         # Profile photo update
         filename = ""
@@ -459,7 +453,6 @@ def requests():
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
-        print query
 
         cursor = g.db.execute(query)
         rs = cursor.fetchall()
