@@ -543,6 +543,33 @@ def requests():
             g.db.execute("INSERT INTO D_REQUEST_FILES VALUES (?,?)",
                     [new_file_id, buffer(path)])
 
+            ############ Documentfile 2 TEXT ##################
+
+            if (binary.filename).endswith('.docx'):
+                from docx import Document
+                try:
+                    doc = Document(path)
+                    text_string = ('\n').join([ paragraph.text for paragraph in doc.paragraphs ])
+                    print "DOCX file is converted into text."
+                except Exception as e:
+                    print "DOCX Error. Skip."
+                    pass
+
+            elif (binary.filename).endswith('.pdf'):
+                import slate
+                try:
+                    f = open(path, 'rb')
+                    doc = slate.PDF(f)
+                    f.close()
+
+                    text_string = ('\n\n').join(doc)
+                    text_string = text_string.decode('utf-8')
+                except Exception as e:
+                    print "PDF Error. Skip"
+                    pass
+
+            ##################################################
+
         if text_string:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_TEXT'], filename)

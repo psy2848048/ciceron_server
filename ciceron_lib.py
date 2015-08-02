@@ -294,7 +294,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         cursor2 = conn.execute("SELECT path FROM D_REQUEST_TEXTS  WHERE id = ?", [row[30]])
         list_txt = cursor2.fetchall()
 
-        if len(list_txt[0]) == 0:
+        if len(list_txt) == 0 or len(list_txt[0]) == 0:
             num_of_words = None
         else:
             num_of_words = char_counter(list_txt[0][0])
