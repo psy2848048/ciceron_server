@@ -446,10 +446,10 @@ def requests():
         query = None
         if session.get('useremail') in super_user:
             query = """SELECT * FROM V_REQUESTS WHERE
-                ((ongoing_worker_id is null AND status_id = 0 AND isSos = 0) OR (isSos = 1)) """
+                (((ongoing_worker_id is null AND status_id = 0 AND isSos = 0) OR (isSos = 1))) AND due_time > CURRENT_TIMESTAMP """
         else:
             query = """SELECT * FROM V_REQUESTS WHERE
-                ((ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1)) """
+                (((ongoing_worker_id is null AND status_id = 0 AND isSos = 0 AND is_paid = 1) OR (isSos = 1))) AND due_time > CURRENT_TIMESTAMP """
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
@@ -1730,18 +1730,16 @@ def record_user_location():
 #########                        ADMIN TOOL                            #########
 ################################################################################
 
-@app.route('/api/admin/publicize', methods = ["GET"])
+@app.route('/api/admin/expired_request_checker', methods = ["GET"])
 #@exception_detector
 @admin_required
 def publicize():
-    cursor = g.db.execute("""SELECT count(*) FROM F_REQUESTS WHERE status_id = 1
-                       AND expected_time is null AND submitted_time is null
-                       AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3 """)
-    num_of_publicize = cursor.fetchall()[0][0]
-    g.db.execute("""UPDATE F_REQUESTS SET registered_time = CURRENT_TIMESTAMP, ongoing_worker_id = null, status_id = -1
-                     WHERE status_id = 1 AND expected_time is null AND submitted_time is null AND CURRENT_TIMESTAMP-registered_time > (due_time-registered_time)/3""")
+    g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
+                     WHERE (status_id = 1 AND expected_time is null AND submitted_time is null AND (CURRENT_TIMESTAMP-start_translating_time) > ((due_time-start_translating_time)/3) AND due_time > datetime(start_translating_time, '+6 hours') )
+                     OR (status_id = 1 AND expected_time is not null and submitted_time is null AND CURRENT_TIMESTAMP > due_time) 
+                     OR (status_id = 0 AND CURRENT_TIMESTAMP > due_time) """)
     g.db.commit()
-    return make_response(json.jsonify(message="%d requests are publicized."%num_of_publicize), 200)
+    return make_response(json.jsonify(message="Expired requests are publicized"), 200)
 
 @app.route('/api/admin/language_assigner', methods = ["POST"])
 #@exception_detector
