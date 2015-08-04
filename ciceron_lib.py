@@ -547,3 +547,21 @@ def send_push(conn, gcm_obj,
                     dry_run=dry_run)
 
     return response
+
+def send_mail(mail_to, subject, message):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    content = MIMEText(message, 'plain', _charset='utf-8')
+    msg = MIMEMultipart('form-data')
+    msg['Subject'] = subject
+    msg['From'] = 'no-reply@ciceron.me'
+    msg['To'] = mail_to
+    msg.attach(content)
+
+    a = smtplib.SMTP('smtp.worksmobile.com:587')
+    a.starttls()
+    a.login('no-reply@ciceron.me', 'Ciceron01!')
+    a.sendmail('no-reply@ciceron.me', mail_to, msg.as_string())
+    a.quit()
