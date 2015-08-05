@@ -312,7 +312,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_isText= True if row[29] == 1 else False,
                 request_text=get_main_text(conn, row[30], "D_REQUEST_TEXTS"),
                 request_isPhoto= True if row[31] == 1 else False,
-                request_photoPath=get_path_from_id(g.db, row[32], "D_REQUEST_SOUNDS"),
+                request_photoPath=get_path_from_id(g.db, row[32], "D_REQUEST_PHOTOS"),
                 request_isSound= True if row[35] == 1 else False,
                 request_soundPath=get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS"),
                 request_isFile= True if row[33] == 1 else False,
