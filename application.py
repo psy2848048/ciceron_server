@@ -1711,7 +1711,7 @@ def access_file(directory, filename):
 #@exception_detector
 def delete_sos():
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
-                     WHERE status_id = 1 AND isSos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+                     WHERE status_id in (0,1) AND isSos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     g.db.commit()
     return make_response(json.jsonify(message="Cleaned"), 200)
 
