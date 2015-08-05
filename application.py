@@ -1142,9 +1142,9 @@ def translation_incompleted_items_all():
 
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM V_REQUESTS WHERE ((status_id = 1 AND ongoing_worker_id = ?) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?))) "
+        query = "SELECT * FROM V_REQUESTS WHERE ((status_id IN (-1,1) AND ongoing_worker_id = ?) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?))) "
     else:
-        query = "SELECT * FROM V_REQUESTS WHERE ((status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1)) "
+        query = "SELECT * FROM V_REQUESTS WHERE ((status_id IN (-1,1) AND ongoing_worker_id = ? AND is_paid = 1) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = ?) AND is_paid = 1)) "
     if 'since' in request.args.keys():
         query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY request_id DESC LIMIT 20"
