@@ -11,6 +11,7 @@ from gcm import GCM
 from ciceron_lib import *
 from flask.ext.cors import CORS
 from flask.ext.session import Session
+from celery import Celery
 
 DATABASE = '../db/ciceron.db'
 VERSION = '1.0'
@@ -33,6 +34,8 @@ ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf']
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
 VERSION= "2014.12.28"
 
+CELERY_BROKER_URL = 'redis://localhost'
+
 # APP setting
 app = Flask(__name__)
 app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
@@ -48,6 +51,10 @@ Session(app)
 # Flask-Pushjack
 gcm_server = FlaskGCM()
 gcm_server.init_app(app)
+
+# Celery
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery.conf.update(app.config)
 
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
@@ -1704,7 +1711,7 @@ def access_file(directory, filename):
 #@exception_detector
 def delete_sos():
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
-                     WHERE status_id = 1 AND is_sos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+                     WHERE status_id = 1 AND isSos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     g.db.commit()
     return make_response(json.jsonify(message="Cleaned"), 200)
 

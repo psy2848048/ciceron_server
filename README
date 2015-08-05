@@ -21,11 +21,11 @@ Ciceron server code
   - flask-cors
   - flask-redis
   - flask-session
-  - Flask-Mail
   - Flask-Pushjack
   - pip install --upgrade --ignore-installed slate==0.3 pdfminer==20110515
   - python-docx
   - lxml
+  - Celery
 
 * Summary of set up
  1) Env
