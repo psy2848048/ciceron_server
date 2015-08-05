@@ -1739,7 +1739,6 @@ def record_user_location():
 
 @app.route('/api/admin/expired_request_checker', methods = ["GET"])
 #@exception_detector
-@admin_required
 def publicize():
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
                      WHERE (status_id = 1 AND expected_time is null AND submitted_time is null AND (CURRENT_TIMESTAMP-start_translating_time) > ((due_time-start_translating_time)/3) AND due_time > datetime(start_translating_time, '+6 hours') )
