@@ -77,6 +77,22 @@ def init_db():
             db.cursor().executescript(f.read())
         db.commit()
 
+################################################################################
+#########                    CELERY ASYNC TASKS                        #########
+################################################################################
+
+#@celery.task
+#def input_notification():
+#    asdf
+#
+#@celery.task
+#def send_email():
+#    asdf
+
+################################################################################
+#########                     MAIN APPLICATION                         #########
+################################################################################
+
 @app.before_request
 def before_request():
     g.db = connect_db()
@@ -101,8 +117,7 @@ def loginCheck():
         return make_response(json.jsonify(
             useremail=session['useremail'],
             isLoggedIn = True,
-            message="User %s is logged in" % session['useremail'],
-            token=session.get('token'))
+            message="User %s is logged in" % session['useremail'])
             , 200)
     else:
         return make_response(json.jsonify(
@@ -634,6 +649,13 @@ def requests():
                     is_paid]))               # is_paid
 
         update_user_record(g.db, client_id=client_user_id)
+
+        # Notification
+        rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
+        for item in rs:
+            item.append(None)
+        store_notiTable(g.db, 0, rs, request_id)
+
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -831,6 +853,10 @@ def pick_request():
                 [queue_id, request_id, user_id])
 
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
+
+        # Notification
+        rs = [[request_user_id, user_id]]
+        store_notiTable(g.db, 5, rs, request_id)
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -913,6 +939,12 @@ def expected_time(str_request_id):
         expected_time = parameters['expectedTime']
         g.db.execute("UPDATE F_REQUESTS SET expected_time = datetime('%%s', ?) WHERE status_id = 1 AND id = ?",
                 [expected_time, request_id])
+
+        # Notification
+        query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
+        cursor.execute(query, [request_id])
+        rs = cursor.fetchall()
+        store_notiTable(g.db, 6, rs, request_id)
         g.db.commit()
         return make_response(json.jsonify(message="Thank you for responding!"), 200)
 
@@ -931,6 +963,12 @@ def expected_time(str_request_id):
         client_user_id = cursor.fetchall()[0][0]
         translator_user_id = get_user_id(g.db, session['useremail'])
         update_user_record(g.db, client_id=client_user_id, translator_id=translator_user_id)
+
+        # Notification
+        query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
+        cursor.execute(query, [request_id])
+        rs = cursor.fetchall()
+        store_notiTable(g.db, 7, rs, request_id)
         g.db.commit()
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
@@ -978,6 +1016,13 @@ def post_translate_item():
     # Change the state of the request
     g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=datetime('now') WHERE id = ?", [requester_default_group_id, translator_default_group_id, request_id])
     update_user_record(g.db, client_id=requester_id, translator_id=translator_id)
+
+    # Notification
+    query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
+    cursor.execute(query, [request_id])
+    rs = cursor.fetchall()
+    store_notiTable(g.db, 8, rs, request_id)
+
     g.db.commit()
 
     return make_response(json.jsonify(
@@ -1345,6 +1390,13 @@ def client_rate_request(str_request_id):
     # Update the translator's purse
     g.db.execute("UPDATE REVENUE SET amount = amount + ? * ? WHERE id = ?",
             [return_rate, pay_amount, translator_id])
+
+    # Notification
+    query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
+    cursor.execute(query, [request_id])
+    rs = cursor.fetchall()
+    store_notiTable(g.db, 2, rs, request_id)
+
     g.db.commit()
 
     return make_response(json.jsonify(
@@ -1478,7 +1530,7 @@ def client_incompleted_item_control(str_request_id):
         #    1) Non-selected request
         #    2) Give more chance to the trusted translator
 
-        request_id = int(request_id)
+        request_id = int(str_request_id)
         parameters = parse_request(request)
 
         # Addional time: unit is second, counted from NOW
@@ -1486,6 +1538,12 @@ def client_incompleted_item_control(str_request_id):
         additional_price = 0
         if parameters.get('user_additionalPrice') != None:
             additional_price = float(parameters['user_additionalPrice'])
+
+        # Notification
+        query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
+        cursor.execute(query, [request_id])
+        rs = cursor.fetchall()
+        store_notiTable(g.db, 4, rs, request_id)
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1512,7 +1570,7 @@ def client_incompleted_item_control(str_request_id):
         # It can be used in:
         #    1) Say goodbye to translator, back to stoa
 
-        request_id = int(request_id)
+        request_id = int(str_request_id)
         parameters = parse_request(request)
 
         # Addional time: unit is second, counted from NOW
@@ -1520,6 +1578,12 @@ def client_incompleted_item_control(str_request_id):
         additional_price = 0
         if parameters.get('user_additionalPrice') != None:
             additional_price = float(parameters['user_additionalPrice'])
+
+        # Notification
+        query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
+        cursor.execute(query, [request_id])
+        rs = cursor.fetchall()
+        store_notiTable(g.db, 3, rs, request_id)
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1551,6 +1615,13 @@ def client_incompleted_item_control(str_request_id):
         cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id = -1 AND client_user_id = ?", [request_id, user_id])
         points = float(cursor.fetchall()[0][0])
         g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?", [points, user_id])
+
+        # Notification
+        query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
+        cursor.execute(query, [request_id])
+        rs = cursor.fetchall()
+        store_notiTable(g.db, 3, rs, request_id)
+
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -1740,8 +1811,10 @@ def record_user_location():
 @app.route('/api/admin/expired_request_checker', methods = ["GET"])
 #@exception_detector
 def publicize():
+    # 
+    cursor.execute()
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
-                     WHERE (status_id = 1 AND expected_time is null AND submitted_time is null AND (CURRENT_TIMESTAMP-start_translating_time) > ((due_time-start_translating_time)/3) AND due_time > datetime(start_translating_time, '+6 hours') )
+                     WHERE (status_id = 1 AND expected_time is null AND submitted_time is null AND (CURRENT_TIMESTAMP-start_translating_time) > ((due_time-start_translating_time)/3) )
                      OR (status_id = 1 AND expected_time is not null and submitted_time is null AND CURRENT_TIMESTAMP > due_time) 
                      OR (status_id = 0 AND CURRENT_TIMESTAMP > due_time) """)
     g.db.commit()

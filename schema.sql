@@ -366,3 +366,49 @@ CREATE TABLE RETURN_MONEY (
     amount DECIMAL(10,2),
     return_time TIMESTAMP
 );
+
+CREATE TABLE D_NOTI_TYPE (
+    id INT,
+    text STRING
+);
+
+INSERT INTO D_NOTI_TYPE VALUES (0, 'new_request_alarm');
+INSERT INTO D_NOTI_TYPE VALUES (1, 'enter_expected_time');
+INSERT INTO D_NOTI_TYPE VALUES (2, 'your_request_is_rated');
+INSERT INTO D_NOTI_TYPE VALUES (3, 'client_cancel_deadline_exceeded');
+INSERT INTO D_NOTI_TYPE VALUES (4, 'due_time_extended');
+
+INSERT INTO D_NOTI_TYPE VALUES (5, 'start_translating');
+INSERT INTO D_NOTI_TYPE VALUES (6, 'check_expected_deadline');
+INSERT INTO D_NOTI_TYPE VALUES (7, 'give_up_translation');
+INSERT INTO D_NOTI_TYPE VALUES (8, 'finish_request');
+INSERT INTO D_NOTI_TYPE VALUES (9, 'not_finish_request');
+INSERT INTO D_NOTI_TYPE VALUES (10, 'no_translator_comes');
+
+INSERT INTO D_NOTI_TYPE VALUES (11, 'youve_got_badge');
+
+CREATE TABLE F_NOTIFICATION (
+    user_id INT,
+    noti_type_id INT,
+    target_user_id INT,
+    request_id INT,
+    ts TIMESTAMP,
+    is_read INT
+);
+
+CREATE VIEW V_NOTIFICATION as
+  SELECT
+    fact.user_id user_id,
+    users.email user_email,
+    fact.noti_type_id noti_type_id,
+    noti.text noti_type,
+    fact.request_id request_id,
+    fact.target_user_id target_user_id,
+    users2.email target_user_email,
+    noti.text noti_type,
+    fact.ts ts,
+    fact.is_read is_read
+  FROM F_NOTIFICATION fact
+  LEFT OUTER JOIN D_USERS users ON fact.user_id = users.id
+  LEFT OUTER JOIN D_USERS users2 ON fact.target_user_id = users2.id
+  LEFT OUTER JOIN D_NOTI_TYPE noti ON fact.noti_type_id = noti.id;

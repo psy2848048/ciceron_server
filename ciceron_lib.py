@@ -565,3 +565,21 @@ def send_mail(mail_to, subject, message):
     a.login('no-reply@ciceron.me', 'Ciceron01!')
     a.sendmail('no-reply@ciceron.me', mail_to, msg.as_string())
     a.quit()
+
+def store_notiTable(conn, noti_type_id, rs, request_id):
+    query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,0)"
+    for item in rs:
+        conn.execute(query, [item[0], noti_type_id, item[1], request_id])
+
+def pick_random_translator(conn, number, from_lang, to_lang):
+    query = """SELECT distinct user.id FROM D_USERS user
+        JOIN V_TRANSLATABLE_LANGUAGES trans ON user.id = trans.user_id
+        JOIN V_TRANSLATABLE_LANGUAGES trans2 ON user.id = trans2.user_id
+        WHERE (user.mother_language_id = ? AND trans.translatable_language_id = ?)
+           OR (trans.translatable_language_id = ? AND user.mother_language_id = ?)
+           OR (trans.translatable_language_id = ? AND trans2.translatable_language_id = ?)
+           ORDER BY RANDOM() LIMIT %d""" % number
+    cursor = conn.execute(query, [from_lang, to_lang, from_lang, to_lang, from_lang, to_lang])
+    result = cursor.fetchall()
+
+    return result
