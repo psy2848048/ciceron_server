@@ -400,12 +400,13 @@ CREATE VIEW V_NOTIFICATION as
   SELECT
     fact.user_id user_id,
     users.email user_email,
+    users.name user_name,
     fact.noti_type_id noti_type_id,
     noti.text noti_type,
     fact.request_id request_id,
     fact.target_user_id target_user_id,
     users2.email target_user_email,
-    noti.text noti_type,
+    users2.name target_user_name,
     fact.ts ts,
     fact.is_read is_read
   FROM F_NOTIFICATION fact

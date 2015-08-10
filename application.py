@@ -653,8 +653,7 @@ def requests():
         # Notification
         rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
         for item in rs:
-            item.append(None)
-        store_notiTable(g.db, 0, rs, request_id)
+            store_notiTable(g.db, item[0], 0, None, request_id)
 
         g.db.commit()
 
@@ -855,8 +854,7 @@ def pick_request():
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
 
         # Notification
-        rs = [[request_user_id, user_id]]
-        store_notiTable(g.db, 5, rs, request_id)
+        store_notiTable(g.db, request_user_id, 6, user_id, request_id)
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -944,7 +942,7 @@ def expected_time(str_request_id):
         query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, 6, rs, request_id)
+        store_notiTable(g.db, rs[0], 7, rs[1], request_id)
         g.db.commit()
         return make_response(json.jsonify(message="Thank you for responding!"), 200)
 
@@ -968,7 +966,7 @@ def expected_time(str_request_id):
         query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, 7, rs, request_id)
+        store_notiTable(g.db, rs[0], 8, rs[1], request_id)
         g.db.commit()
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
@@ -1021,7 +1019,7 @@ def post_translate_item():
     query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    store_notiTable(g.db, 8, rs, request_id)
+    store_notiTable(g.db, rs[0], 10, rs[1], request_id)
 
     g.db.commit()
 
@@ -1395,7 +1393,7 @@ def client_rate_request(str_request_id):
     query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    store_notiTable(g.db, 2, rs, request_id)
+    store_notiTable(g.db, rs[0], 2, rs[1], request_id)
 
     g.db.commit()
 
@@ -1543,7 +1541,7 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, 4, rs, request_id)
+        store_notiTable(g.db, rs[0], 4, rs[1], request_id)
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1583,7 +1581,7 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, 3, rs, request_id)
+        store_notiTable(g.db, rs[0], 3, rs[1], request_id)
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1620,7 +1618,7 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, 3, rs, request_id)
+        store_notiTable(g.db, rs[0], 3, rs[1], request_id)
 
         g.db.commit()
 
@@ -1782,7 +1780,7 @@ def access_file(directory, filename):
 #@exception_detector
 def delete_sos():
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
-                     WHERE status_id in (0,1) AND isSos=1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+                     WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     g.db.commit()
     return make_response(json.jsonify(message="Cleaned"), 200)
 
@@ -1804,6 +1802,47 @@ def record_user_location():
     return make_response(json.jsonnify(
         message="Logged successfully"), 200)
 
+@app.route('/api/notification', methods = ["GET"])
+@login_required
+#@exception_detector
+def get_notification():
+    user_id = get_user_id(g.db, session['useremail'])
+    query = """SELECT user_name, noti_type_id, request_id, target_user_name, ts
+        FROM V_NOTIFICATION WHERE user_id = ? """
+    if 'since' in request.args.keys():
+        query += "AND ts < datetime(%s, 'unixepoch') " % request.args.get('since')
+    query += "ORDER BY ts DESC LIMIT 10 "
+    cursor = g.db.execute(query, [user_id])
+    rs = cursor.fetchall()
+
+    result = []
+    for item in rs:
+        row = {}
+
+        row['username'] = item[0]
+        row['noti_typeId'] = item[1]
+        row['request_id'] = item[2]
+        row['target_username'] = item[3]
+        row['ts'] = item[4]
+
+        result.push(row)
+
+    return make_response(json.jsonify(
+        message="Notifications",
+        data=result), 200)
+
+@app.route('/api/notification/read', methods = ["GET"])
+@login_required
+#@exception_detector
+def read_notification():
+    user_id = get_user_id(g.db, session['useremail'])
+    query = """UPDATE F_NOTIFICATION SET is_read = 1 WHERE ts < datetime(%s, 'unixepoch') ORDER BY ts DESC LIMIT 10 """ % request.args.get('since')
+    g.db.execute(query)
+    g.db.commit()
+
+    return make_response(json.jsonify(
+        message="10 notis are marked as read"), 200)
+
 ################################################################################
 #########                        ADMIN TOOL                            #########
 ################################################################################
@@ -1811,13 +1850,61 @@ def record_user_location():
 @app.route('/api/admin/expired_request_checker', methods = ["GET"])
 #@exception_detector
 def publicize():
-    # 
-    cursor.execute()
+    # No Expected time
+    query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
+        FROM F_REQUESTS
+        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
+        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """
+    cursor = g.db.execute(query_no_expected_time)
+    rs = cursor.fetchall()
+    for item in rs:
+        store_notiTable(g.db, rs[0], 5, rs[1], rs[2])
+        store_notiTable(g.db, rs[1], 9, rs[0], rs[2])
+
+    # Expired deadline
+    query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
+        FROM F_REQUESTS
+        WHERE isSos = 0 AND status_id = 1 AND CURRENT_TIMESTAMP > due_time """
+    cursor = g.db.execute(query_expired_deadline)
+    rs = cursor.fetchall()
+    for item in rs:
+        store_notiTable(g.db, rs[1], 11, rs[0], rs[2])
+
+    # No translators
+    query_no_translators = """SELECT client_user_id, id
+        FROM F_REQUESTS
+        WHERE isSos = 0 AND status_id = 0 AND CURRENT_TIMESTAMP > due_time """
+    cursor = g.db.execute(query_no_translators)
+    rs = cursor.fetchall()
+    for item in rs:
+        store_notiTable(g.db, rs[0], 12, None, rs[1])
+
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
-                     WHERE (status_id = 1 AND expected_time is null AND submitted_time is null AND (CURRENT_TIMESTAMP-start_translating_time) > ((due_time-start_translating_time)/3) )
-                     OR (status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time) """)
+        WHERE isSos = 0 AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
+    g.db.execute("""UPDATE F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
+        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
+        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """)
     g.db.commit()
     return make_response(json.jsonify(message="Expired requests are publicized"), 200)
+
+@app.route('/api/admin/ask_expected_time', methods = ["GET"])
+#@exception_detector
+def ask_expected_time():
+    query = """SELECT ongoing_worker_id, id FROM F_REQUESTS 
+        WHERE isSos= 0 AND status_id = 1 AND expected_time is null 
+        AND (
+          (CURRENT_TIMESTAMP > datetime(start_translating_time, '+30 minutes') AND (CURRENT_TIMESTAMP - start_translating_time) < ((due_time - start_translating_time)/3) AND due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
+        OR 
+          ((CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/3) AND (CURRENT_TIMESTAMP - start_translating_time) < ((due_time - start_translating_time)/2) AND due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
+        )"""
+    cursor = g.db.execute(query)
+    rs = cursor.fetchall()
+    for item in rs:
+        store_notiTable(g.db, rs[0], 1, None, rs[1])
+
+    g.db.commit()
+    return make_response(json.jsonify(
+        message="Noti are added for asking expected time. Scheduler will trigger to ask it."), 200)
 
 @app.route('/api/admin/language_assigner', methods = ["POST"])
 #@exception_detector

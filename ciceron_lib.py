@@ -566,10 +566,9 @@ def send_mail(mail_to, subject, message):
     a.sendmail('no-reply@ciceron.me', mail_to, msg.as_string())
     a.quit()
 
-def store_notiTable(conn, noti_type_id, rs, request_id):
+def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,0)"
-    for item in rs:
-        conn.execute(query, [item[0], noti_type_id, item[1], request_id])
+    conn.execute(query, [user_id, noti_type_id, target_user_id, request_id])
 
 def pick_random_translator(conn, number, from_lang, to_lang):
     query = """SELECT distinct user.id FROM D_USERS user
