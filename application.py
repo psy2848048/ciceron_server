@@ -1815,8 +1815,7 @@ def publicize():
     cursor.execute()
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
                      WHERE (status_id = 1 AND expected_time is null AND submitted_time is null AND (CURRENT_TIMESTAMP-start_translating_time) > ((due_time-start_translating_time)/3) )
-                     OR (status_id = 1 AND expected_time is not null and submitted_time is null AND CURRENT_TIMESTAMP > due_time) 
-                     OR (status_id = 0 AND CURRENT_TIMESTAMP > due_time) """)
+                     OR (status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time) """)
     g.db.commit()
     return make_response(json.jsonify(message="Expired requests are publicized"), 200)
 
