@@ -81,13 +81,96 @@ def init_db():
 #########                    CELERY ASYNC TASKS                        #########
 ################################################################################
 
-#@celery.task
-#def input_notification():
-#    asdf
-#
-#@celery.task
-#def send_email():
-#    asdf
+@celery.task
+def parallel_send_email(user_name, user_email, noti_type, request_id, language_id, optional_info=None):
+    import mail_template
+    message = None
+
+    if noti_type == 0:
+        message = mail_template.translator_new_ticket(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    elif noti_type == 1:
+        message = mail_template.translator_check_expected_time(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me',
+             "expected": optional_info.get('expected')}
+            # datetime.now() + timedelta(seconds=(due_time - start_translating_time)/3)
+
+    elif noti_type == 2:
+        message = mail_template.translator_complete(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+            
+    elif noti_type == 4:
+        message = mail_template.translator_exceeded_due(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    elif noti_type == 5:
+        message = mail_template.translator_extended_due(langauge_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me',
+             "new_due": optional_info.get('new_due')}
+
+    elif noti_type == 6:
+        message = mail_template.translator_no_answer_expected_time(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    elif noti_type == 7:
+        message = mail_template.client_take_ticket(langauge_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me',
+             'hero': optional_info.get('hero')}
+
+    elif noti_type == 8:
+        message = mail_template.client_check_expected_time(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    elif noti_type == 9:
+        message = mail_template.client_giveup_ticket(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me',
+             "hero": optional_info.get('hero')}
+
+    elif noti_type == 10:
+        message = mail_template.client_no_answer_expected_time_go_to_stoa(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    elif noti_type == 11:
+        message = mail_template.client_complete(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me',
+             "hero": optional_info.get('hero')}
+
+    elif noti_type == 12:
+        message = mail_template.client_incomplete(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    elif noti_type == 13:
+        message = mail_template.client_no_hero(language_id) %
+            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_email,
+             "link": 'http://ciceron.me'}
+
+    send_mail(user_email, "Here is your news, %s" % user_name, message)
 
 ################################################################################
 #########                     MAIN APPLICATION                         #########
@@ -1577,12 +1660,6 @@ def client_incompleted_item_control(str_request_id):
         if parameters.get('user_additionalPrice') != None:
             additional_price = float(parameters['user_additionalPrice'])
 
-        # Notification
-        query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
-        cursor.execute(query, [request_id])
-        rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0], 3, rs[1], request_id)
-
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
         if additional_price == 0:
@@ -1776,14 +1853,6 @@ def access_file(directory, filename):
     print filename
     return send_from_directory(directory, filename)
 
-@app.route('/api/admin/delete_sos', methods = ["GET"])
-#@exception_detector
-def delete_sos():
-    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
-                     WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
-    g.db.commit()
-    return make_response(json.jsonify(message="Cleaned"), 200)
-
 @app.route('/api/action_record', methods = ["POST"])
 @login_required
 #@exception_detector
@@ -1844,10 +1913,10 @@ def read_notification():
         message="10 notis are marked as read"), 200)
 
 ################################################################################
-#########                        ADMIN TOOL                            #########
+#########                      SCHEDULER API                           #########
 ################################################################################
 
-@app.route('/api/admin/expired_request_checker', methods = ["GET"])
+@app.route('/api/scheduler/expired_request_checker', methods = ["GET"])
 #@exception_detector
 def publicize():
     # No Expected time
@@ -1869,6 +1938,7 @@ def publicize():
     rs = cursor.fetchall()
     for item in rs:
         store_notiTable(g.db, rs[1], 11, rs[0], rs[2])
+        store_notiTable(g.db, rs[0],  3, rs[1], rs[2])
 
     # No translators
     query_no_translators = """SELECT client_user_id, id
@@ -1887,7 +1957,7 @@ def publicize():
     g.db.commit()
     return make_response(json.jsonify(message="Expired requests are publicized"), 200)
 
-@app.route('/api/admin/ask_expected_time', methods = ["GET"])
+@app.route('/api/scheduler/ask_expected_time', methods = ["GET"])
 #@exception_detector
 def ask_expected_time():
     query = """SELECT ongoing_worker_id, id FROM F_REQUESTS 
@@ -1905,6 +1975,34 @@ def ask_expected_time():
     g.db.commit()
     return make_response(json.jsonify(
         message="Noti are added for asking expected time. Scheduler will trigger to ask it."), 200)
+
+@app.route('/api/scheduler/delete_sos', methods = ["GET"])
+#@exception_detector
+def delete_sos():
+    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
+                     WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
+    g.db.commit()
+    return make_response(json.jsonify(message="Cleaned"), 200)
+
+@app.route('/api/scheduler/mail_alarm', methods = ["GET"])
+#@exception_detector
+def mail_alarm():
+    user_id = get_user_id(g.db, session['useremail'])
+    query = "SELECT * FROM V_NOTIFICATION WHERE user_id = ? AND is_read=0 ORDER BY ts DESC"
+    cursor = g.db.execute(query, [user_id])
+    rs = cursor.fetchall()
+
+    for item in rs:
+        parallel_send_email.delay(item[2], item[1], item[3], item[5], 
+            optional_info={
+                "expected": item[10] + (item[11] - item[10])/3,
+                "new_due": item[11],
+                "hero": item[15]
+                })
+
+################################################################################
+#########                        ADMIN TOOL                            #########
+################################################################################
 
 @app.route('/api/admin/language_assigner', methods = ["POST"])
 #@exception_detector

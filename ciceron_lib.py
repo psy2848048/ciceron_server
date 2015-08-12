@@ -556,7 +556,7 @@ def send_mail(mail_to, subject, message):
     content = MIMEText(message, 'plain', _charset='utf-8')
     msg = MIMEMultipart('form-data')
     msg['Subject'] = subject
-    msg['From'] = 'no-reply@ciceron.me'
+    msg['From'] = 'Ciceron team <no-reply@ciceron.me>'
     msg['To'] = mail_to
     msg.attach(content)
 

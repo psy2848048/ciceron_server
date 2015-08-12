@@ -375,17 +375,19 @@ CREATE TABLE D_NOTI_TYPE (
 INSERT INTO D_NOTI_TYPE VALUES (0, 'new_request_alarm');
 INSERT INTO D_NOTI_TYPE VALUES (1, 'enter_expected_time');
 INSERT INTO D_NOTI_TYPE VALUES (2, 'your_request_is_rated');
-INSERT INTO D_NOTI_TYPE VALUES (3, 'client_cancel_deadline_exceeded');
+INSERT INTO D_NOTI_TYPE VALUES (3, 'deadline_exceeded');
 INSERT INTO D_NOTI_TYPE VALUES (4, 'due_time_extended');
+INSERT INTO D_NOTI_TYPE VALUES (5, 'cancel_due_to_no_expectedDue');
 
-INSERT INTO D_NOTI_TYPE VALUES (5, 'start_translating');
-INSERT INTO D_NOTI_TYPE VALUES (6, 'check_expected_deadline');
-INSERT INTO D_NOTI_TYPE VALUES (7, 'give_up_translation');
-INSERT INTO D_NOTI_TYPE VALUES (8, 'finish_request');
-INSERT INTO D_NOTI_TYPE VALUES (9, 'not_finish_request');
-INSERT INTO D_NOTI_TYPE VALUES (10, 'no_translator_comes');
+INSERT INTO D_NOTI_TYPE VALUES (6, 'start_translating');
+INSERT INTO D_NOTI_TYPE VALUES (7, 'check_expected_deadline');
+INSERT INTO D_NOTI_TYPE VALUES (8, 'give_up_translation');
+INSERT INTO D_NOTI_TYPE VALUES (9, 'no_expectedDue_go_to_stoa');
+INSERT INTO D_NOTI_TYPE VALUES (10, 'finish_request');
+INSERT INTO D_NOTI_TYPE VALUES (11, 'not_finish_request');
+INSERT INTO D_NOTI_TYPE VALUES (12, 'no_translator_comes');
 
-INSERT INTO D_NOTI_TYPE VALUES (11, 'youve_got_badge');
+INSERT INTO D_NOTI_TYPE VALUES (13, 'youve_got_badge');
 
 CREATE TABLE F_NOTIFICATION (
     user_id INT,
@@ -398,18 +400,26 @@ CREATE TABLE F_NOTIFICATION (
 
 CREATE VIEW V_NOTIFICATION as
   SELECT
-    fact.user_id user_id,
-    users.email user_email,
-    users.name user_name,
-    fact.noti_type_id noti_type_id,
-    noti.text noti_type,
-    fact.request_id request_id,
-    fact.target_user_id target_user_id,
-    users2.email target_user_email,
-    users2.name target_user_name,
-    fact.ts ts,
-    fact.is_read is_read
+    fact.user_id user_id, --0
+    users.email user_email, --1
+    users.name user_name, --2
+    fact.noti_type_id noti_type_id, --3
+    noti.text noti_type, --4
+    fact.request_id request_id, --5
+    req.context context, --6
+    req.registered_time registered_time, --7
+    req.expected_time expected_time, --8
+    req.submitted_time submitted_time, --9
+    req.start_translating_time start_translating_time, --10
+    req.due_time due_time, --11
+    req.points points, --12
+    fact.target_user_id target_user_id, --13
+    users2.email target_user_email, --14
+    users2.name target_user_name, --15
+    fact.ts ts, --16
+    fact.is_read is_read --17
   FROM F_NOTIFICATION fact
   LEFT OUTER JOIN D_USERS users ON fact.user_id = users.id
   LEFT OUTER JOIN D_USERS users2 ON fact.target_user_id = users2.id
-  LEFT OUTER JOIN D_NOTI_TYPE noti ON fact.noti_type_id = noti.id;
+  LEFT OUTER JOIN D_NOTI_TYPE noti ON fact.noti_type_id = noti.id
+  LEFT OUTER JOIN V_REQUESTS req ON fact.request_id = req.request_id;
