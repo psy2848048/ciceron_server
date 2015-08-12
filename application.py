@@ -87,86 +87,73 @@ def parallel_send_email(user_name, user_email, noti_type, request_id, language_i
     message = None
 
     if noti_type == 0:
-        message = mail_template.translator_new_ticket(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.translator_new_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 1:
-        message = mail_template.translator_check_expected_time(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.translator_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me',
              "expected": optional_info.get('expected')}
             # datetime.now() + timedelta(seconds=(due_time - start_translating_time)/3)
 
     elif noti_type == 2:
-        message = mail_template.translator_complete(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.translator_complete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
             
     elif noti_type == 4:
-        message = mail_template.translator_exceeded_due(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.translator_exceeded_due(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 5:
-        message = mail_template.translator_extended_due(langauge_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.translator_extended_due(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me',
              "new_due": optional_info.get('new_due')}
 
     elif noti_type == 6:
-        message = mail_template.translator_no_answer_expected_time(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.translator_no_answer_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 7:
-        message = mail_template.client_take_ticket(langauge_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_take_ticket(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me',
              'hero': optional_info.get('hero')}
 
     elif noti_type == 8:
-        message = mail_template.client_check_expected_time(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 9:
-        message = mail_template.client_giveup_ticket(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_giveup_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me',
              "hero": optional_info.get('hero')}
 
     elif noti_type == 10:
-        message = mail_template.client_no_answer_expected_time_go_to_stoa(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_no_answer_expected_time_go_to_stoa(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 11:
-        message = mail_template.client_complete(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_complete(language_id) %{"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me',
              "hero": optional_info.get('hero')}
 
     elif noti_type == 12:
-        message = mail_template.client_incomplete(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_incomplete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 13:
-        message = mail_template.client_no_hero(language_id) %
-            {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = mail_template.client_no_hero(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
 
