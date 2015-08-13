@@ -553,17 +553,18 @@ def send_mail(mail_to, subject, message):
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
 
-    content = MIMEText(message, 'plain', _charset='utf-8')
-    msg = MIMEMultipart('form-data')
+    content = MIMEText(message, 'html', _charset='utf-8')
+    msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From'] = 'Ciceron team <no-reply@ciceron.me>'
-    msg['To'] = mail_to
+    msg['To'] = str(mail_to)
     msg.attach(content)
 
+    print msg
     a = smtplib.SMTP('smtp.worksmobile.com:587')
     a.starttls()
     a.login('no-reply@ciceron.me', 'Ciceron01!')
-    a.sendmail('no-reply@ciceron.me', mail_to, msg.as_string())
+    a.sendmail('no-reply@ciceron.me', str(mail_to), msg.as_string())
     a.quit()
 
 def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):

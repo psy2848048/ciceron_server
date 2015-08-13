@@ -12,6 +12,7 @@ from ciceron_lib import *
 from flask.ext.cors import CORS
 from flask.ext.session import Session
 from celery import Celery
+from multiprocessing import Process
 
 DATABASE = '../db/ciceron.db'
 VERSION = '1.0'
@@ -78,83 +79,83 @@ def init_db():
         db.commit()
 
 ################################################################################
-#########                    CELERY ASYNC TASKS                        #########
+#########                        ASYNC TASKS                           #########
 ################################################################################
 
-@celery.task
 def parallel_send_email(user_name, user_email, noti_type, request_id, language_id, optional_info=None):
     import mail_template
+    template = mail_template.mail_format()
     message = None
 
     if noti_type == 0:
-        message = mail_template.translator_new_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.translator_new_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 1:
-        message = mail_template.translator_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.translator_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me',
              "expected": optional_info.get('expected')}
             # datetime.now() + timedelta(seconds=(due_time - start_translating_time)/3)
 
     elif noti_type == 2:
-        message = mail_template.translator_complete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = template.translator_complete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_email,
              "link": 'http://ciceron.me'}
             
     elif noti_type == 4:
-        message = mail_template.translator_exceeded_due(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.translator_exceeded_due(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 5:
-        message = mail_template.translator_extended_due(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.translator_extended_due(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me',
              "new_due": optional_info.get('new_due')}
 
     elif noti_type == 6:
-        message = mail_template.translator_no_answer_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.translator_no_answer_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 7:
-        message = mail_template.client_take_ticket(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_take_ticket(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me',
              'hero': optional_info.get('hero')}
 
     elif noti_type == 8:
-        message = mail_template.client_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 9:
-        message = mail_template.client_giveup_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_giveup_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me',
              "hero": optional_info.get('hero')}
 
     elif noti_type == 10:
-        message = mail_template.client_no_answer_expected_time_go_to_stoa(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_no_answer_expected_time_go_to_stoa(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 11:
-        message = mail_template.client_complete(language_id) %{"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_complete(language_id) %{"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me',
              "hero": optional_info.get('hero')}
 
     elif noti_type == 12:
-        message = mail_template.client_incomplete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_incomplete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     elif noti_type == 13:
-        message = mail_template.client_no_hero(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+        message = template.client_no_hero(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
              "link": 'http://ciceron.me'}
 
     send_mail(user_email, "Here is your news, %s" % user_name, message)
@@ -1966,6 +1967,25 @@ def ask_expected_time():
 @app.route('/api/scheduler/delete_sos', methods = ["GET"])
 #@exception_detector
 def delete_sos():
+    # Expired deadline
+    query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
+        FROM F_REQUESTS
+        WHERE isSos = 1 AND status_id = 1 AND CURRENT_TIMESTAMP > due_time """
+    cursor = g.db.execute(query_expired_deadline)
+    rs = cursor.fetchall()
+    for item in rs:
+        store_notiTable(g.db, rs[1], 11, rs[0], rs[2])
+        store_notiTable(g.db, rs[0],  3, rs[1], rs[2])
+
+    # No translators
+    query_no_translators = """SELECT client_user_id, id
+        FROM F_REQUESTS
+        WHERE isSos = 1 AND status_id = 0 AND CURRENT_TIMESTAMP > due_time """
+    cursor = g.db.execute(query_no_translators)
+    rs = cursor.fetchall()
+    for item in rs:
+        store_notiTable(g.db, rs[0], 12, None, rs[1])
+
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
                      WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     g.db.commit()
@@ -1974,18 +1994,40 @@ def delete_sos():
 @app.route('/api/scheduler/mail_alarm', methods = ["GET"])
 #@exception_detector
 def mail_alarm():
-    user_id = get_user_id(g.db, session['useremail'])
-    query = "SELECT * FROM V_NOTIFICATION WHERE user_id = ? AND is_read=0 ORDER BY ts DESC"
-    cursor = g.db.execute(query, [user_id])
+    query = "SELECT * FROM V_NOTIFICATION WHERE is_read=0 AND CURRENT_TIMESTAMP > datetime(ts, '+3 minutes') ORDER BY ts"
+    cursor = g.db.execute(query)
     rs = cursor.fetchall()
+    process_pool = []
 
     for item in rs:
-        parallel_send_email.delay(item[2], item[1], item[3], item[5], 
-            optional_info={
-                "expected": item[10] + (item[11] - item[10])/3,
-                "new_due": item[11],
-                "hero": item[15]
-                })
+        user_id = item[0]
+        query_mother_lang = "SELECT mother_language_id FROM D_USERS WHERE id = ?"
+        cursor = g.db.execute(query_mother_lang, [user_id])
+        mother_lang_id = cursor.fetchall()[0][0]
+
+        proc = Process(target=parallel_send_email,
+                       args=(item[2], item[1], item[3], item[5], mother_lang_id),
+                       kwargs={"optional_info": {
+                                   "expected": item[10] + (item[11] - item[10])/3 if item[10] != None and item[11] != None else None,
+                                   "new_due": item[11] if item[11] != None else None,
+                                   "hero": item[15] if item[15] != None else None
+                                  }
+                              }
+                       )
+
+        process_pool.append(proc)
+
+    for i in process_pool:
+        i.start()
+    for i in process_pool:
+        i.join()
+
+    query = "UPDATE F_NOTIFICATION SET is_read=1 WHERE is_read=0"
+    g.db.execute(query)
+    g.db.commit()
+
+    return make_response(json.jsonify(
+        message="Mail alarm sent"), 200)
 
 ################################################################################
 #########                        ADMIN TOOL                            #########
