@@ -1841,6 +1841,10 @@ def access_file(directory, filename):
     print filename
     return send_from_directory(directory, filename)
 
+@app.route('/api/mail_img/<directory>/<filename>')
+def mail_img(directory, filename):
+    return send_from_directory(directory, filename)
+
 @app.route('/api/action_record', methods = ["POST"])
 @login_required
 #@exception_detector

@@ -1,6 +1,6 @@
 class mail_format:
 
-    translator_new_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    translator_new_ticket_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  A new ticket is waiting for your help!<br>
@@ -17,7 +17,7 @@ class mail_format:
         elif language_id == 1:
             return self.translator_new_ticket_en
 
-    translator_check_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    translator_check_expected_time_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  Have you ever checked your translation? Is it OK?<br>
@@ -37,7 +37,7 @@ class mail_format:
         elif language_id == 1:
             return self.translator_check_expected_time_en
 
-    translator_complete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    translator_complete_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  Thank you for saving a person from worriness!<br>
@@ -57,7 +57,7 @@ class mail_format:
         elif language_id == 1:
             return self.translator_complete_en
 
-    translator_exceeded_due_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    translator_exceeded_due_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  We are terribly sorry to inform that you are ceased to access  <a href='%(link)s' target='_blank'>your ticket</a>due to expired deadline.<br>
@@ -73,7 +73,7 @@ class mail_format:
         elif language_id == 1:
             return self.translator_exceeded_due_en
 
-    translator_extended_due_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    translator_extended_due_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  Congrats! Despite that you missed the deadline, the client has just extended <a href='%(link)s' target='_blank'>your ticket</a> until %(new_due).<br>
@@ -90,7 +90,7 @@ class mail_format:
         elif language_id == 1:
             return self.translator_extended_due_en
 
-    translator_no_answer_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    translator_no_answer_expected_time_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  We are terribly sorry to inform that other hero will work for <a href='%(link)s' target='_blank'>your ticket</a> due to no response of expected finish.<br>
@@ -107,7 +107,7 @@ class mail_format:
         elif language_id == 1:
             return self.translator_no_answer_expected_time_en
 
-    client_take_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_take_ticket_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  <b>%(hero)s</b>&nbsp;is your hero for <a href='%(link)s' target='_blank'>this ticket</a>!<br>
@@ -125,7 +125,7 @@ class mail_format:
         elif language_id == 1:
             return self.client_take_ticket_en
 
-    client_check_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_check_expected_time_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  Your hero answered the expected finish of ticket!<br>
@@ -142,7 +142,7 @@ class mail_format:
         elif language_id == 1:
             return self.client_check_expected_time_en
 
-    client_giveup_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_giveup_ticket_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  Your hero <b>%(hero)s</b>&nbsp;responded that hero cannot help your ticket.<br>
@@ -159,7 +159,7 @@ class mail_format:
         elif language_id == 1:
             return self.client_giveup_ticket_en
 
-    client_no_answer_expected_time_go_to_stoa_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_no_answer_expected_time_go_to_stoa_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  Your hero has not set his/her expected finish time. Therefore, <a href='%(link)s' target='_blank'>your ticket</a> has just moved to stoa.<br>
@@ -176,7 +176,7 @@ class mail_format:
         elif language_id == 1:
             return self.client_no_answer_expected_time_go_to_stoa_en
 
-    client_complete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_complete_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  Your ticket has just been solved!<br>
@@ -195,7 +195,7 @@ class mail_format:
         elif language_id == 1:
             return self.client_complete_kr
 
-    client_incomplete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_incomplete_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  We are sorry to say that your hero miss the deadline of the ticket.<br>
@@ -212,7 +212,7 @@ class mail_format:
         elif language_id == 1:
             return self.client_incomplete_en
 
-    client_no_hero_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+    client_no_hero_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  We are sorry to say that no hero wants to help your ticket.<br>
