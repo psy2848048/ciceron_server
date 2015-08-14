@@ -1013,7 +1013,7 @@ def expected_time(str_request_id):
         query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0], 7, rs[1], request_id)
+        store_notiTable(g.db, rs[0][0], 7, rs[0][1], request_id)
         g.db.commit()
         return make_response(json.jsonify(message="Thank you for responding!"), 200)
 
@@ -1090,7 +1090,7 @@ def post_translate_item():
     query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    store_notiTable(g.db, rs[0], 10, rs[1], request_id)
+    store_notiTable(g.db, rs[0][0], 10, rs[0][1], request_id)
 
     g.db.commit()
 
@@ -1464,7 +1464,7 @@ def client_rate_request(str_request_id):
     query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    store_notiTable(g.db, rs[0], 2, rs[1], request_id)
+    store_notiTable(g.db, rs[0][0], 2, rs[0][1], request_id)
 
     g.db.commit()
 
@@ -1612,7 +1612,7 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0], 4, rs[1], request_id)
+        store_notiTable(g.db, rs[0][0], 4, rs[0][1], request_id)
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1683,7 +1683,7 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0], 3, rs[1], request_id)
+        store_notiTable(g.db, rs[0][0], 3, rs[0][1], request_id)
 
         g.db.commit()
 
