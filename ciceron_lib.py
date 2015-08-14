@@ -585,4 +585,4 @@ def pick_random_translator(conn, number, from_lang, to_lang):
     return result
 
 def string2Date(string):
-    return datetime.strptime(string, "%Y-%m-%d %H:%M:%S.%f")
+    return datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
