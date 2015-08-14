@@ -2012,9 +2012,9 @@ def mail_alarm():
         proc = Process(target=parallel_send_email,
                        args=(item[2], item[1], item[3], item[5], mother_lang_id),
                        kwargs={"optional_info": {
-                                   "expected": item[10] + (item[11] - item[10])/3 if item[10] != None and item[11] != None else None,
-                                   "new_due": item[11] if item[11] != None else None,
-                                   "hero": item[15] if item[15] != None else None
+                                   "expected": string2Date(item[10]) + (string2Date(item[11]) - string2Date(item[10]))/3 if item[10] != None and item[11] != None else None,
+                                   "new_due": string2Date(item[11]) if item[11] != None else None,
+                                   "hero": str(item[15]) if item[15] != None else None
                                   }
                               }
                        )

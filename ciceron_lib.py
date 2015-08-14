@@ -583,3 +583,6 @@ def pick_random_translator(conn, number, from_lang, to_lang):
     result = cursor.fetchall()
 
     return result
+
+def string2Date(string):
+    return datetime.strptime(string, "%Y-%m-%d %H:%M:%S.%f")
