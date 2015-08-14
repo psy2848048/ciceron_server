@@ -2009,22 +2009,30 @@ def mail_alarm():
         cursor = g.db.execute(query_mother_lang, [user_id])
         mother_lang_id = cursor.fetchall()[0][0]
 
-        proc = Process(target=parallel_send_email,
-                       args=(item[2], item[1], item[3], item[5], mother_lang_id),
-                       kwargs={"optional_info": {
+        #proc = Process(target=parallel_send_email,
+        #               args=(item[2], item[1], item[3], item[5], mother_lang_id),
+        #               kwargs={"optional_info": {
+        #                           "expected": string2Date(item[10]) + (string2Date(item[11]) - string2Date(item[10]))/3 if item[10] != None and item[11] != None else None,
+        #                           "new_due": string2Date(item[11]) if item[11] != None else None,
+        #                           "hero": str(item[15]) if item[15] != None else None
+        #                          }
+        #                      }
+        #               )
+
+        #process_pool.append(proc)
+
+        parallel_send_email(item[2], item[1], item[3], item[5], mother_lang_id,
+                       optional_info={
                                    "expected": string2Date(item[10]) + (string2Date(item[11]) - string2Date(item[10]))/3 if item[10] != None and item[11] != None else None,
                                    "new_due": string2Date(item[11]) if item[11] != None else None,
                                    "hero": str(item[15]) if item[15] != None else None
                                   }
-                              }
                        )
 
-        process_pool.append(proc)
-
-    for i in process_pool:
-        i.start()
-    for i in process_pool:
-        i.join()
+    #for i in process_pool:
+    #    i.start()
+    #for i in process_pool:
+    #    i.join()
 
     query = "UPDATE F_NOTIFICATION SET is_read=1 WHERE is_read=0"
     g.db.execute(query)
