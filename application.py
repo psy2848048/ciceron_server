@@ -1952,14 +1952,16 @@ def publicize():
 @app.route('/api/scheduler/ask_expected_time', methods = ["GET"])
 #@exception_detector
 def ask_expected_time():
-    query = """SELECT ongoing_worker_id, id FROM F_REQUESTS 
-        WHERE isSos= 0 AND status_id = 1 AND expected_time is null 
+    # Future implementation: Join with noti table
+    query = """SELECT fact.ongoing_worker_id, fact.id FROM F_REQUESTS fact
+        LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id
+        WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null AND noti.noti_type_id is null
         AND (
-          (CURRENT_TIMESTAMP > datetime(start_translating_time, '+30 minutes') AND (CURRENT_TIMESTAMP - start_translating_time) < ((due_time - start_translating_time)/3) AND due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
+          (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND (CURRENT_TIMESTAMP - fact.start_translating_time) < ((fact.due_time - fact.start_translating_time)/3) AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
         OR 
-          ((CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/3) AND (CURRENT_TIMESTAMP - start_translating_time) < ((due_time - start_translating_time)/2) AND due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
+          ((CURRENT_TIMESTAMP - fact.start_translating_time) > ((fact.due_time - fact.start_translating_time)/3) AND (CURRENT_TIMESTAMP - fact.start_translating_time) < ((fact.due_time - fact.start_translating_time)/2) AND fact.due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
         )"""
-    cursor = g.db.execute(query)
+    cursor = g.db.execute(query) 
     rs = cursor.fetchall()
     for item in rs:
         store_notiTable(g.db, item[0], 1, None, item[1])
@@ -1990,7 +1992,7 @@ def delete_sos():
     for item in rs:
         store_notiTable(g.db, item[0], 12, None, item[1])
 
-    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
+    g.db.execute("""UPDATE F_REQUESTS SET is_paid=0, status_id = -1
                      WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     g.db.commit()
     return make_response(json.jsonify(message="Cleaned"), 200)
