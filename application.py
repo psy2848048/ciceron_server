@@ -1919,8 +1919,8 @@ def publicize():
     cursor = g.db.execute(query_no_expected_time)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, rs[0], 5, rs[1], rs[2])
-        store_notiTable(g.db, rs[1], 9, rs[0], rs[2])
+        store_notiTable(g.db, item[0], 5, item[1], item[2])
+        store_notiTable(g.db, item[1], 9, item[0], item[2])
 
     # Expired deadline
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
@@ -1929,8 +1929,8 @@ def publicize():
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, rs[1], 11, rs[0], rs[2])
-        store_notiTable(g.db, rs[0],  3, rs[1], rs[2])
+        store_notiTable(g.db, item[1], 11, item[0], item[2])
+        store_notiTable(g.db, item[0],  3, item[1], item[2])
 
     # No translators
     query_no_translators = """SELECT client_user_id, id
@@ -1939,7 +1939,7 @@ def publicize():
     cursor = g.db.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, rs[0], 12, None, rs[1])
+        store_notiTable(g.db, item[0], 12, None, item[1])
 
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
         WHERE isSos = 0 AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
@@ -1962,7 +1962,7 @@ def ask_expected_time():
     cursor = g.db.execute(query)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, rs[0], 1, None, rs[1])
+        store_notiTable(g.db, item[0], 1, None, item[1])
 
     g.db.commit()
     return make_response(json.jsonify(
@@ -1978,8 +1978,8 @@ def delete_sos():
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, rs[1], 11, rs[0], rs[2])
-        store_notiTable(g.db, rs[0],  3, rs[1], rs[2])
+        store_notiTable(g.db, item[1], 11, item[0], item[2])
+        store_notiTable(g.db, item[0],  3, item[1], item[2])
 
     # No translators
     query_no_translators = """SELECT client_user_id, id
@@ -1988,7 +1988,7 @@ def delete_sos():
     cursor = g.db.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, rs[0], 12, None, rs[1])
+        store_notiTable(g.db, item[0], 12, None, item[1])
 
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0
                      WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
