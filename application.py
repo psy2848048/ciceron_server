@@ -104,56 +104,56 @@ def parallel_send_email(user_name, user_email, noti_type, request_id, language_i
              "user": user_email,
              "link": 'http://ciceron.me'}
             
-    elif noti_type == 4:
+    elif noti_type == 3:
         message = template.translator_exceeded_due(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me'}
 
-    elif noti_type == 5:
+    elif noti_type == 4:
         message = template.translator_extended_due(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me',
              "new_due": optional_info.get('new_due')}
 
-    elif noti_type == 6:
+    elif noti_type == 5:
         message = template.translator_no_answer_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me'}
 
-    elif noti_type == 7:
+    elif noti_type == 6:
         message = template.client_take_ticket(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me',
              'hero': optional_info.get('hero')}
 
-    elif noti_type == 8:
+    elif noti_type == 7:
         message = template.client_check_expected_time(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me'}
 
-    elif noti_type == 9:
+    elif noti_type == 8:
         message = template.client_giveup_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me',
              "hero": optional_info.get('hero')}
 
-    elif noti_type == 10:
+    elif noti_type == 9:
         message = template.client_no_answer_expected_time_go_to_stoa(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me'}
 
-    elif noti_type == 11:
+    elif noti_type == 10:
         message = template.client_complete(language_id) %{"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me',
              "hero": optional_info.get('hero')}
 
-    elif noti_type == 12:
+    elif noti_type == 11:
         message = template.client_incomplete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me'}
 
-    elif noti_type == 13:
+    elif noti_type == 12:
         message = template.client_no_hero(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me'}
@@ -1976,7 +1976,7 @@ def delete_sos():
     # Expired deadline
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
-        WHERE isSos = 1 AND status_id = 1 AND CURRENT_TIMESTAMP > due_time """
+        WHERE isSos = 1 AND status_id = 1 and ongoing_worker_id is not null AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
