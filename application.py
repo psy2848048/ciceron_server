@@ -2038,7 +2038,7 @@ def mail_alarm():
                 i.join()
             process_pool = []
 
-    query = "UPDATE F_NOTIFICATION SET is_read=1 WHERE is_read=0"
+    query = "UPDATE F_NOTIFICATION SET is_read=1 WHERE is_read=0 AND CURRENT_TIMESTAMP > datetime(ts, '+3 minutes')"
     g.db.execute(query)
     g.db.commit()
 
