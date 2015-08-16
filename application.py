@@ -1086,6 +1086,9 @@ def post_translate_item():
     g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=datetime('now') WHERE id = ?", [requester_default_group_id, translator_default_group_id, request_id])
     update_user_record(g.db, client_id=requester_id, translator_id=translator_id)
 
+    # Delete users in queue
+    g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ?", [request_id])
+
     # Notification
     query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
