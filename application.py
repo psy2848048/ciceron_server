@@ -101,7 +101,7 @@ def parallel_send_email(user_name, user_email, noti_type, request_id, language_i
 
     elif noti_type == 2:
         message = template.translator_complete(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_email,
+             "user": user_name,
              "link": 'http://ciceron.me'}
             
     elif noti_type == 3:
@@ -1871,7 +1871,7 @@ def record_user_location():
 #@exception_detector
 def get_notification():
     user_id = get_user_id(g.db, session['useremail'])
-    query = """SELECT user_name, noti_type_id, request_id, target_user_name, ts
+    query = """SELECT user_name, noti_type_id, request_id, target_user_name, ts, is_read
         FROM V_NOTIFICATION WHERE user_id = ? """
     if 'since' in request.args.keys():
         query += "AND ts < datetime(%s, 'unixepoch') " % request.args.get('since')
@@ -1888,6 +1888,7 @@ def get_notification():
         row['request_id'] = item[2]
         row['target_username'] = item[3]
         row['ts'] = item[4]
+        row['is_read'] = parameter_to_bool(item[5])
 
         result.push(row)
 
