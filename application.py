@@ -1824,7 +1824,7 @@ def register_or_update_register_id():
     user_id = get_user_id(g.db, session['useremail'])
 
     record_id = get_new_id(g.db, "D_MACHINES")
-    cursor = g.db.execute("SELECT count(*) FROM D_MACHINES WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?"
+    cursor = g.db.execute("SELECT count(*) FROM D_MACHINES WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?",
             [buffer(device_os), user_id])
     num = cursor.fetchall()[0][0]
 
@@ -1907,6 +1907,100 @@ def read_notification():
 
     return make_response(json.jsonify(
         message="10 notis are marked as read"), 200)
+
+@app.route('/api/payback', methods = ["GET", "POST"])
+@login_required
+#@exception_detector
+def register_payback():
+    if request.method == "GET":
+        # GET payback list
+        user_id = get_user_id(g.db, session['useremail'])
+        cursor = g.db.execute("""SELECT id, order_no, bank_name, account_no, request_time, amount
+            FROM RETURN_MONEY_BANK_ACCOUNT
+            WHERE is_returned=0 AND user_id=?
+            ORDER BY id DESC""", [user_id])
+
+        rs = cursor.fetchall()
+        result = []
+        for item in rs:
+            item = {
+                    'id': item[0],
+                    'orderNo': str(item[1]),
+                    'bankName': str(item[2]),
+                    'accountNo': item[3],
+                    'requestTime': item[4],
+                    'amount': item[5]
+                    }
+            result.append(item)
+
+        return make_response(json.jsonify(
+            data=result), 200)
+
+    elif request.method == "POST":
+        # POST new payback request
+        parameters = parse_request(request)
+
+        user_id = get_user_id(g.db, session['useremail'])
+        bank_name = parameters['bankName']
+        account_no = parameters['accountNo']
+        amount = float(parameters['amount'])
+
+        # Test whether requested amount is exceeded the money in user's account
+        cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?",  [user_id])
+        revenue_amount = cursor.fetchall()[0][0]
+
+        if revenue_amount < amount:
+            return make_response(json.jsonify(
+                message="User cannot paid back. Revenue: %f, Requested amount: %f" % (revenue_amount, amount)), 402)
+
+        new_id = get_new_id(g.db, "RETURN_MONEY_BANK_ACCOUNT")
+        order_no = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
+        g.db.execute("INSERT INTO RETURN_MONEY_BANK_ACCOUNT VALUES (?,?,?,?,?,CURRENT_TIMESTAMP,?,0,null)",
+                [new_id, order_no, user_id, bank_name, account_no, amount])
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Payback request is successfully received"), 200)
+        
+@app.route('/api/payback/<str_id>/<order_no>', methods = ["PUT", "DELETE"])
+@login_required
+#@exception_detector
+def revise_payback(str_id, order_no):
+    if request.method == "PUT":
+        user_id = get_user_id(g.db, session['useremail'])
+        parameters = parse_request(request)
+
+        bank_name = parameters.get('bankName')
+        account_no = parameters.get('accountNo')
+        amount = float(parameters.get('amount')) if parameters.get('amount') != None else None
+
+        if bank_name != None:
+            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET bank_name = ? WHERE id = ? AND order_no = ? AND user_id", [buffer(bank_name), int(str_id), order_no, user_id])
+        if account_no != None:
+            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET account_no = ? WHERE id = ? AND order_no = ? AND user_id = ?", [account_no, int(str_id), order_no, user_id])
+        if amount != None:
+            # Test whether requested amount is exceeded the money in user's account
+            cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?",  [user_id])
+            revenue_amount = cursor.fetchall()[0][0]
+
+            if revenue_amount < amount:
+                return make_response(json.jsonify(
+                    message="User cannot paid back. Revenue: %f, Requested amount: %f" % (revenue_amount, amount)), 402)
+
+            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET amount = ? WHERE id = ? AND order_no = ? AND user_id = ?", [account_no, int(str_id), order_no, user_id])
+            
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Payback request is updated"), 200)
+
+    elif request.method == "DELETE":
+        user_id = get_user_id(g.db, session['useremail'])
+        g.db.execute("DELETE FROM RETURN_MONEY_BANK_ACCOUNT WHERE id=? AND order_no=?", [int(str_id), order_no])
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Payback request has just been deleted."), 200)
 
 ################################################################################
 #########                      SCHEDULER API                           #########
@@ -2074,55 +2168,102 @@ def language_assigner():
     g.db.commit()
     return make_response(json.jsonify(message="Language added successfully"), 200)
 
-@app.route('/api/admin/return_money', methods = ["GET", "POST"])
+@app.route('/api/admin/payback_list', methods=["GET", "POST"])
 #@exception_detector
 @admin_required
 def return_money():
     if request.method == "POST":
+        # We've not prepared for card payback.
+
+        #parameters = parse_request(request)
+        #user_id = get_user_id(session['useremail'])
+        #where_to_return = parameters['user_whereToReturn']
+        #payment_id = parameters['user_PaymentId']
+        #money_amount = parameters['user_revenue']
+
+        ## Logic flow
+        ##   1) Check how much money in user's revenue
+        ##     - If request amount is exceeded user's revenue, reject refund request.
+        ##   2) Send via paypal
+
+        ## SANDBOX
+        #API_ID = "APP-80W284485P519543T"
+        #API_USER = "contact-facilitator_api1.ciceron.me"
+        #API_PASS = 'R8H3MF9EQYTNHD22'
+        #API_SIGNATURE = 'ABMADzBsLmPPJmWRmjvj6KuGeZ4MAoDQ7X0sCtehblA93Yolgrjto1tO'
+
+        ## Live
+        ## API_ID = 'Should be issued later'
+        ## API_USERNAME = 'contact_api1.ciceron.me'
+        ## API_PASS = 'GJ5JNF596R3VNBK4'
+        ## API_SIGNATURE = 'AiPC9BjkCyDFQXbSkoZcgqH3hpacAqbVr1jqSkiaKlwohFFSWhFvOxwI'
+
+        ## END POINT = https://svcs.sandbox.paypal.com/AdaptivePayments/Pay
+        ## POST
+        ## Input header:
+        ## X-PAYPAL-APPLICATION-ID = API_ID
+        ## X-PAYPAL-SECURITY-USERID = API_USER
+        ## X-PAYPAL-SECURITY-PASSWORD = API_PASS
+        ## X-PAYPAL-SECURITY-SIGNATURE = API_SIGNATURE
+        ## X-PAYPAL-DEVICE-IPADDRESS = IP_ADDRESS
+        ## X-PAYPAL-REQUEST-DATA-FORMAT = 'JSON'
+        ## X-PAYPAL-RESPONSE-DATA-FORMAT = 'JSON'
+
+        #body = {"returnUrl":"http://example.com/returnURL.htm",
+        #        "requestEnvelope":
+        #           {"errorLanguage":"en_KR"},
+        #        "currencyCode":"USD",
+        #        "receiverList":{
+        #            "receiver":
+        #            [{"email":"psy2848048@gmail.com","amount":"10.00",}]
+        #            },
+        #        "cancelUrl":"http://example.com/cancelURL.htm",
+        #        "actionType":"PAY"}
+
         parameters = parse_request(request)
-        user_id = get_user_id(session['useremail'])
-        where_to_return = parameters['user_whereToReturn']
-        payment_id = parameters['user_PaymentId']
-        money_amount = parameters['user_revenue']
+        id_order = parameters['id']
+        order_no = parameters['order_no']
 
-        # Logic flow
-        #   1) Check how much money in user's revenue
-        #     - If request amount is exceeded user's revenue, reject refund request.
-        #   2) Send via paypal
+        cursor = g.db.execute("SELECT user_id, amount FROM RETURN_MONEY_BANK_ACCOUNT WHERE id = ? AND order_no = ?", [int(id_order), buffer(order_no)])
+        rs = cursor.fetchall()
+        user_id = rs[0][0]
+        amount = rs[0][1]
 
-        # SANDBOX
-        API_ID = "APP-80W284485P519543T"
-        API_USER = "contact-facilitator_api1.ciceron.me"
-        API_PASS = 'R8H3MF9EQYTNHD22'
-        API_SIGNATURE = 'ABMADzBsLmPPJmWRmjvj6KuGeZ4MAoDQ7X0sCtehblA93Yolgrjto1tO'
+        g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET is_returned=1, return_time=CURRENT_TIMESTAMP WHERE id=? AND order_no=?", [id_order, order_no])
+        g.db.execute("UPDATE REVENUE SET amount = amount - ? WHERE id = ?", [amount, user_id])
 
-        # Live
-        # API_ID = 'Should be issued later'
-        # API_USERNAME = 'contact_api1.ciceron.me'
-        # API_PASS = 'GJ5JNF596R3VNBK4'
-        # API_SIGNATURE = 'AiPC9BjkCyDFQXbSkoZcgqH3hpacAqbVr1jqSkiaKlwohFFSWhFvOxwI'
+        # Notification
+        cursor = g.db.execute("SELECT user_id FROM RETURN_MONEY_BANK_ACCOUNT WHERE  id=? AND order_no=?", [id_order, order_no])
+        user_id_no = cursor.fetchall()[0][0]
+        store_notiTable(g.db, user_id_no, 14, None, None)
 
-        # END POINT = https://svcs.sandbox.paypal.com/AdaptivePayments/Pay
-        # POST
-        # Input header:
-        # X-PAYPAL-APPLICATION-ID = API_ID
-        # X-PAYPAL-SECURITY-USERID = API_USER
-        # X-PAYPAL-SECURITY-PASSWORD = API_PASS
-        # X-PAYPAL-SECURITY-SIGNATURE = API_SIGNATURE
-        # X-PAYPAL-DEVICE-IPADDRESS = IP_ADDRESS
-        # X-PAYPAL-REQUEST-DATA-FORMAT = 'JSON'
-        # X-PAYPAL-RESPONSE-DATA-FORMAT = 'JSON'
+        g.db.commit()
+        return make_response(json.jsonify(
+            message="Payed back. Order no: %s" % order_no), 200)
 
-        body = {"returnUrl":"http://example.com/returnURL.htm",
-                "requestEnvelope":
-                   {"errorLanguage":"en_KR"},
-                "currencyCode":"USD",
-                "receiverList":{
-                    "receiver":
-                    [{"email":"psy2848048@gmail.com","amount":"10.00",}]
-                    },
-                "cancelUrl":"http://example.com/cancelURL.htm",
-                "actionType":"PAY"}
+    elif request.method == "GET":
+        cursor = g.db.execute("""SELECT
+            fact.id, fact.order_no, fact.user_id, user.email, fact.bank_name, fact.account_no, fact.request_time, fact.amount, fact.is_returned, fact.return_time
+            FROM RETURN_MONEY_BANK_ACCOUNT fact
+            LEFT OUTER JOIN D_USERS user ON fact.user_id = user.id
+            WHERE fact.is_returned=0
+                ORDER BY fact.id DESC""")
+        rs = cursor.fetchall()
+        result = []
+        for item in rs:
+            item = {
+                    'id': item[0],
+                    'orderNo': str(item[1]),
+                    'user_email': str(item[3]),
+                    'bankName': str(item[4]),
+                    'accountNo': str(item[5]),
+                    'requestTime': item[6],
+                    'amount': item[7]
+                    }
+            result.append(item)
+
+        return make_response(json.jsonify(
+            data=result), 200)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

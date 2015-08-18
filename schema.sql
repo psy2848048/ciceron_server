@@ -355,15 +355,15 @@ CREATE TABLE USER_ACTIONS (
     log_time TIMESTAMP
 );
 
-CREATE TABLE RETURN_MONEY (
+CREATE TABLE RETURN_MONEY_BANK_ACCOUNT (
     id INT,
-    user_id INT,
-    where_to_return TEXT,
-    payment_id TEXT,
-    request_time TIMESTAMP,
-    is_returned INT,
     order_no TEXT,
+    user_id INT,
+    bank_name TEXT,
+    account_no INT,
+    request_time TIMESTAMP,
     amount DECIMAL(10,2),
+    is_returned INT,
     return_time TIMESTAMP
 );
 
@@ -388,6 +388,7 @@ INSERT INTO D_NOTI_TYPE VALUES (11, 'not_finish_request');
 INSERT INTO D_NOTI_TYPE VALUES (12, 'no_translator_comes');
 
 INSERT INTO D_NOTI_TYPE VALUES (13, 'youve_got_badge');
+INSERT INTO D_NOTI_TYPE VALUES (14, 'paid_back');
 
 CREATE TABLE F_NOTIFICATION (
     user_id INT,
