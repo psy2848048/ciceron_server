@@ -179,7 +179,6 @@ def teardown_request(exception):
 def loginCheck():
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
-        registration_id = request.args.get('registration_id', None)
 
         #if client_os is not None and registration_id is not None:
         #    check_and_update_reg_key(g.db, client_os, registration_id)
@@ -723,8 +722,15 @@ def requests():
 
         # Notification
         rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
+        gcm_regKeys = []
         for item in rs:
             store_notiTable(g.db, item[0], 0, None, request_id)
+            regKeys_oneuser = get_device_id(g.db, item[0])
+            gcm_keys.extend(regKeys_oneuser)
+
+        message_dict = get_noti_data(10, get_user_name(g.db, item[0]), request_id)
+        if len(gcm_regKeys) > 0:
+            gcm_noti = gcm_server.send(gcm_regKeys, message_dict)
 
         g.db.commit()
 
@@ -925,9 +931,9 @@ def pick_request():
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
 
         # Notification
-        store_notiTable(g.db, request_user_id, 6, user_id, request_id)
-        g.db.commit()
+        send_noti_suite(gcm_server, g.db, request_user_id, 6, user_id, request_id)
 
+        g.db.commit()
         return make_response(json.jsonify(
             message = "You are now tranlator of request #%d" % request_id
             ), 200)
@@ -1010,10 +1016,11 @@ def expected_time(str_request_id):
                 [expected_time, request_id])
 
         # Notification
-        query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
+        query = "SELECT client_user_id, expected_time FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0][0], 7, rs[0][1], request_id)
+        send_noti_suite(gcm_server, g.db, rs[0][0], 7, rs[0][1], request_id, optional_info={"expected": rs[0][1]})
+
         g.db.commit()
         return make_response(json.jsonify(message="Thank you for responding!"), 200)
 
@@ -1037,7 +1044,8 @@ def expected_time(str_request_id):
         query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0], 8, rs[1], request_id)
+        send_noti_suite(gcm_server, g.db, rs[0][0], 8, rs[0][1], request_id, optional_info={"hero": get_user_name(g.db, rs[0][1])})
+
         g.db.commit()
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
 
@@ -1093,7 +1101,7 @@ def post_translate_item():
     query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    store_notiTable(g.db, rs[0][0], 10, rs[0][1], request_id)
+    send_noti_suite(gcm_server, g.db, rs[0][0], 10, rs[0][1], request_id, optional_info={"hero": get_user_name(g.db, rs[0][1])})
 
     g.db.commit()
 
@@ -1467,7 +1475,7 @@ def client_rate_request(str_request_id):
     query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    store_notiTable(g.db, rs[0][0], 2, rs[0][1], request_id)
+    send_noti_suite(gcm_server, g.db, rs[0][0], 2, rs[0][1], request_id)
 
     g.db.commit()
 
@@ -1615,7 +1623,8 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0][0], 4, rs[0][1], request_id)
+        send_noti_suite(gcm_server, g.db, rs[0][0], 4, rs[0][1], request_id,
+                optional_info={"hero": get_user_name(g.db, rs[0][1])})
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1686,7 +1695,7 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        store_notiTable(g.db, rs[0][0], 3, rs[0][1], request_id)
+        send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
 
         g.db.commit()
 
@@ -2235,7 +2244,7 @@ def return_money():
         # Notification
         cursor = g.db.execute("SELECT user_id FROM RETURN_MONEY_BANK_ACCOUNT WHERE  id=? AND order_no=?", [id_order, order_no])
         user_id_no = cursor.fetchall()[0][0]
-        store_notiTable(g.db, user_id_no, 14, None, None)
+        send_noti_suite(gcm_server, g.db, user_id_no, 14, None, None)
 
         g.db.commit()
         return make_response(json.jsonify(
