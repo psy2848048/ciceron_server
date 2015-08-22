@@ -230,3 +230,20 @@ class mail_format:
         elif language_id == 1:
             return self.client_no_hero_en
 
+    client_paidback_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
+                 <br>
+                 We are glad to inform that your points have just been paid back to your bank account!<br>
+                 Please visit <a href='%(link)s' target='_blank'>here</a> to confirm the status. (And your bank account, too!)<br>
+                 <br>
+                 Best regards,<br>
+                 Ciceron team"""
+
+    def client_paid_back(self, language_id):
+        if language_id == 0:
+            # Later, should be Korean
+            # return client_no_hero_kr
+            return self.client_paidback_en
+        elif language_id == 1:
+            return self.client_paidback_en
+

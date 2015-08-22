@@ -158,6 +158,11 @@ def parallel_send_email(user_name, user_email, noti_type, request_id, language_i
              "user": user_name,
              "link": 'http://ciceron.me'}
 
+    elif noti_type == 14:
+        message = template.client_no_hero(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+             "user": user_name,
+             "link": 'http://ciceron.me'}
+
     send_mail(user_email, "Here is your news, %s" % user_name, message)
 
 ################################################################################
@@ -1799,12 +1804,7 @@ def pay_for_request_process(str_request_id):
 
             g.db.commit()
             #return redirect("success")
-            return make_response("success", 200)
-
-        elif token == session.get('token') and request_id == session.get('pending_reqeust') and not is_success:
-            # REDIRECT TO FAIL PAGE
-            # PAYMENT FAIL
-            return redirect("page_provided_with /user/requests/%d/payment" % request_id)
+            return redirect("http://ciceron.me", code=302)
 
     elif pay_via == "alipay":
         if is_success:
