@@ -1097,6 +1097,8 @@ def post_translate_item():
 
     # Change the state of the request
     g.db.execute("UPDATE F_REQUESTS SET status_id = 2, client_completed_group_id=?, translator_completed_group_id=?, submitted_time=datetime('now') WHERE id = ?", [requester_default_group_id, translator_default_group_id, request_id])
+    g.db.commit()
+
     update_user_record(g.db, client_id=requester_id, translator_id=translator_id)
 
     # Delete users in queue
