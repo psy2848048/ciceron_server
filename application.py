@@ -1930,7 +1930,7 @@ def read_notification():
     return make_response(json.jsonify(
         message="10 notis are marked as read"), 200)
 
-@app.route('/api/payback', methods = ["GET", "POST"])
+@app.route('/api/user/payback', methods = ["GET", "POST"])
 @login_required
 #@exception_detector
 def register_payback():
@@ -1984,7 +1984,7 @@ def register_payback():
         return make_response(json.jsonify(
             message="Payback request is successfully received"), 200)
         
-@app.route('/api/payback/<str_id>/<order_no>', methods = ["PUT", "DELETE"])
+@app.route('/api/user/payback/<str_id>/<order_no>', methods = ["PUT", "DELETE"])
 @login_required
 #@exception_detector
 def revise_payback(str_id, order_no):
