@@ -723,19 +723,18 @@ def requests():
                     None,                 # translatedText_id
                     is_paid]))               # is_paid
 
+        g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
 
         # Notification
         rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
-        gcm_regKeys = []
         for item in rs:
             store_notiTable(g.db, item[0], 0, None, request_id)
             regKeys_oneuser = get_device_id(g.db, item[0])
-            gcm_keys.extend(regKeys_oneuser)
 
-        message_dict = get_noti_data(10, get_user_name(g.db, item[0]), request_id)
-        if len(gcm_regKeys) > 0:
-            gcm_noti = gcm_server.send(gcm_regKeys, message_dict)
+            message_dict = get_noti_data(10, get_user_name(g.db, item[0]), request_id)
+            if len(regKeys_oneuser) > 0:
+                gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
         g.db.commit()
 
@@ -770,10 +769,9 @@ def delete_requests(str_request_id):
 
         g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
                 [request_id, user_id])
+        g.db.commit()
+
         update_user_record(g.db, client_id=user_id)
-
-        # INSERT REFUND PART!!!
-
         g.db.commit()
 
         return make_response(json.jsonify(
@@ -864,6 +862,7 @@ def show_queue():
             g.db.execute("UPDATE F_REQUESTS SET queue_id = ? WHERE id = ?", [queue_id, request_id])
 
         g.db.execute(query, [queue_id, request_id, user_id])
+        g.db.commit()
 
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
         g.db.commit()
@@ -922,7 +921,7 @@ def pick_request():
                 message = "You cannot translate your request. Request ID: %d" % request_id
                 ), 406)
 
-        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? , start_translating_time = datetime('now') WHERE id = ? AND status_id = 0", [user_id, request_id])
+        g.db.execute("UPDATE F_REQUESTS SET status_id = 1, ongoing_worker_id = ? , start_translating_time = CURRENT_TIMESTAMP WHERE id = ? AND status_id = 0", [user_id, request_id])
 
         if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(
@@ -932,11 +931,13 @@ def pick_request():
 
         g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE id = ? and request_id = ? and user_id = ?",
                 [queue_id, request_id, user_id])
+        g.db.commit()
 
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
 
         # Notification
-        send_noti_suite(gcm_server, g.db, request_user_id, 6, user_id, request_id)
+        send_noti_suite(gcm_server, g.db, request_user_id, 6, user_id, request_id,
+                optional_info={"hero": user_id})
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -1019,6 +1020,7 @@ def expected_time(str_request_id):
         expected_time = parameters['expectedTime']
         g.db.execute("UPDATE F_REQUESTS SET expected_time = datetime('%%s', ?) WHERE status_id = 1 AND id = ?",
                 [expected_time, request_id])
+        g.db.commit()
 
         # Notification
         query = "SELECT client_user_id, expected_time FROM F_REQUESTS WHERE id = ?"
@@ -1033,6 +1035,7 @@ def expected_time(str_request_id):
         request_id = int(str_request_id)
         g.db.execute("UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = ?",
                 [request_id])
+        g.db.commit()
 
         query = None
         if session['useremail'] in super_user:
@@ -1043,13 +1046,14 @@ def expected_time(str_request_id):
 
         client_user_id = cursor.fetchall()[0][0]
         translator_user_id = get_user_id(g.db, session['useremail'])
+
         update_user_record(g.db, client_id=client_user_id, translator_id=translator_user_id)
 
         # Notification
         query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 8, rs[0][1], request_id, optional_info={"hero": get_user_name(g.db, rs[0][1])})
+        send_noti_suite(gcm_server, g.db, rs[0][0], 8, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
         g.db.commit()
         return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
@@ -1108,7 +1112,7 @@ def post_translate_item():
     query = "SELECT client_user_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ?"
     cursor.execute(query, [request_id])
     rs = cursor.fetchall()
-    send_noti_suite(gcm_server, g.db, rs[0][0], 10, rs[0][1], request_id, optional_info={"hero": get_user_name(g.db, rs[0][1])})
+    send_noti_suite(gcm_server, g.db, rs[0][0], 10, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
     g.db.commit()
 
@@ -1631,7 +1635,7 @@ def client_incompleted_item_control(str_request_id):
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
         send_noti_suite(gcm_server, g.db, rs[0][0], 4, rs[0][1], request_id,
-                optional_info={"hero": get_user_name(g.db, rs[0][1])})
+                optional_info={"hero": rs[0][1]})
 
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
@@ -1697,12 +1701,15 @@ def client_incompleted_item_control(str_request_id):
         cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id = -1 AND client_user_id = ?", [request_id, user_id])
         points = float(cursor.fetchall()[0][0])
         g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?", [points, user_id])
+        g.db.commit()
 
         # Notification
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
         send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
+
+        update_user_record(g.db, rs[0][1], rs[0][0])
 
         g.db.commit()
 
@@ -1846,6 +1853,8 @@ def register_or_update_register_id():
         g.db.execute("UPDATE D_MACHINES SET reg_key = ? WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?",
             [buffer(reg_key), buffer(device_os), user_id])
 
+    g.db.commit()
+
     return make_response(json.jsonify(message="Succefully updated/inserted"), 200)
 
 @app.route('/api/access_file/<directory>/<filename>')
@@ -1894,14 +1903,14 @@ def get_notification():
     for item in rs:
         row = {}
 
-        row['username'] = item[0]
+        row['username'] = str(item[0])
         row['noti_typeId'] = item[1]
         row['request_id'] = item[2]
-        row['target_username'] = item[3]
-        row['ts'] = item[4]
+        row['target_username'] = str(item[3])
+        row['ts'] = str(item[4])
         row['is_read'] = parameter_to_bool(item[5])
 
-        result.push(row)
+        result.append(row)
 
     return make_response(json.jsonify(
         message="Notifications",
@@ -1912,8 +1921,10 @@ def get_notification():
 #@exception_detector
 def read_notification():
     user_id = get_user_id(g.db, session['useremail'])
-    query = """UPDATE F_NOTIFICATION SET is_read = 1 WHERE ts < datetime(%s, 'unixepoch') ORDER BY ts DESC LIMIT 10 """ % request.args.get('since')
-    g.db.execute(query)
+    query = """UPDATE F_NOTIFICATION SET is_read = 1 WHERE rowid IN (SELECT rowid FROM F_NOTIFICATION WHERE ts < datetime(%s, 'unixepoch') AND user_id = ? ORDER BY ts DESC LIMIT 10) """ % request.args.get('since')
+    print query
+    user_id = get_user_id(g.db, session['useremail'])
+    g.db.execute(query, [user_id])
     g.db.commit()
 
     return make_response(json.jsonify(
@@ -1986,7 +1997,7 @@ def revise_payback(str_id, order_no):
         amount = float(parameters.get('amount')) if parameters.get('amount') != None else None
 
         if bank_name != None:
-            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET bank_name = ? WHERE id = ? AND order_no = ? AND user_id", [buffer(bank_name), int(str_id), order_no, user_id])
+            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET bank_name = ? WHERE id = ? AND order_no = ? AND user_id = ?", [buffer(bank_name), int(str_id), order_no, user_id])
         if account_no != None:
             g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET account_no = ? WHERE id = ? AND order_no = ? AND user_id = ?", [account_no, int(str_id), order_no, user_id])
         if amount != None:
@@ -1998,7 +2009,7 @@ def revise_payback(str_id, order_no):
                 return make_response(json.jsonify(
                     message="User cannot paid back. Revenue: %f, Requested amount: %f" % (revenue_amount, amount)), 402)
 
-            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET amount = ? WHERE id = ? AND order_no = ? AND user_id = ?", [account_no, int(str_id), order_no, user_id])
+            g.db.execute("UPDATE RETURN_MONEY_BANK_ACCOUNT SET amount = ? WHERE id = ? AND order_no = ? AND user_id = ?", [amount, int(str_id), order_no, user_id])
             
         g.db.commit()
 
@@ -2233,9 +2244,9 @@ def return_money():
 
         parameters = parse_request(request)
         id_order = parameters['id']
-        order_no = parameters['order_no']
+        order_no = parameters['orderNo']
 
-        cursor = g.db.execute("SELECT user_id, amount FROM RETURN_MONEY_BANK_ACCOUNT WHERE id = ? AND order_no = ?", [int(id_order), buffer(order_no)])
+        cursor = g.db.execute("SELECT user_id, amount FROM RETURN_MONEY_BANK_ACCOUNT WHERE id = ? AND order_no = ?", [int(id_order), order_no])
         rs = cursor.fetchall()
         user_id = rs[0][0]
         amount = rs[0][1]

@@ -131,7 +131,7 @@ def get_group_id_from_user_and_text(conn, user_id, text, table):
 
 def get_device_id(conn, user_id):
     cursor = conn.execute("SELECT reg_key FROM D_MACHINES WHERE user_id = ? AND is_push_allowed=1", [user_id])
-    return cursor.fetchall()
+    return [str(reg_key) for reg_key in cursor.fetchall()]
 
 def parameter_to_bool(value):
     if value in ['True', 'true', 1, '1', True]:
@@ -599,144 +599,82 @@ def pick_random_translator(conn, number, from_lang, to_lang):
 def string2Date(string):
     return datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
 
-def get_noti_data(noti_type, user_name, request_id, optional_info=None):
-    message = None
+def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
+    message = {
+         "notiType": None,
+         "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+         "user": user_name,
+         "link": None,
+         "expected": None,
+         "hero": None,
+         "new_due": None
+         }
 
     if noti_type == 0:
-        message = {
-             "notiType": 0,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": None
-             }
+        message["notiType"] = 0
+        message["link"] = 'http://ciceron.me',
 
     elif noti_type == 1:
-        message = {
-             "notiType": 1,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": optional_info.get('expected')
-             }
+        message["notiType"] = 1
+        message["link"] = 'http://ciceron.me'
+        message["expected"] = optional_info.get('expected')
 
     elif noti_type == 2:
-        message = {
-             "notiType": 2,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": None,
-             }
+        message["notiType"] = 2
+        message["link"] = 'http://ciceron.me'
             
     elif noti_type == 3:
-        message = {
-             "notiType": 3,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 3
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 4:
-        message = {
-             "notiType": 4,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": None,
-             "new_due": optional_info.get('new_due')
-             }
+        message["notiType"] = 4
+        message["link"] = 'http://ciceron.me'
+        message["new_due"] = optional_info.get('new_due')
 
     elif noti_type == 5:
-        message = {
-             "notiType": 5,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 5
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 6:
-        message = {
-             "notiType": 6,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": None,
-             'hero': optional_info.get('hero')
-             }
+        message["notiType"] = 6
+        message["link"] = 'http://ciceron.me'
+        message['hero'] = get_user_name(conn, optional_info.get('hero'))
 
     elif noti_type == 7:
-        message = {
-             "notiType": 7,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 7
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 8:
-        message = {
-             "notiType": 8,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": None,
-             "hero": optional_info.get('hero')
-             }
+        message["notiType"] = 8
+        message["link"] = 'http://ciceron.me'
+        message["hero"] = get_user_name(conn, optional_info.get('hero'))
 
     elif noti_type == 9:
-        message = {
-             "notiType": 9,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 9
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 10:
-        message = {
-             "notiType": 10,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "link": 'http://ciceron.me',
-             "expected": None,
-             "hero": optional_info.get('hero')
-             }
+        message["notiType"] = 10
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 11:
-        message = {
-             "notiType": 11,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 11
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 12:
-        message = {
-             "notiType": 12,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 12
+        message["link"] = 'http://ciceron.me'
 
     elif noti_type == 14:
-        message = {
-             "notiType": 14,
-             "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
-             "user": user_name,
-             "expected": None,
-             "link": 'http://ciceron.me'
-             }
+        message["notiType"] = 14
+        message["link"] = 'http://ciceron.me'
 
     return message
 
 def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, request_id, optional_info=None):
-    store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id, optional_info=optional_info)
-    message_dict = get_noti_data(noti_type_id, get_user_name(g.db, user_id), optional_info=optional_info)
+    store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id)
+    message_dict = get_noti_data(conn, noti_type_id, get_user_name(g.db, user_id), request_id, optional_info=optional_info)
     regKeys_oneuser = get_device_id(conn, user_id)
     if len(regKeys_oneuser) > 0:
         gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
