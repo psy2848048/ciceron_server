@@ -1906,7 +1906,7 @@ def get_notification():
         row['username'] = str(item[0])
         row['noti_typeId'] = item[1]
         row['request_id'] = item[2]
-        row['target_username'] = str(item[3])
+        row['target_username'] = str(item[3]) if item[3] != None else None
         row['ts'] = str(item[4])
         row['is_read'] = parameter_to_bool(item[5])
 
