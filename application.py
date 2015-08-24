@@ -2034,8 +2034,8 @@ def publicize():
     # No Expected time
     query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
-        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
-        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """
+        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
+        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """
     cursor = g.db.execute(query_no_expected_time)
     rs = cursor.fetchall()
     for item in rs:
@@ -2064,8 +2064,8 @@ def publicize():
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
         WHERE isSos = 0 AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
     g.db.execute("""UPDATE F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
-        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
-        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > ((due_time - start_translating_time)/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """)
+        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
+        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """)
     g.db.commit()
     return make_response(json.jsonify(message="Expired requests are publicized"), 200)
 
@@ -2077,9 +2077,9 @@ def ask_expected_time():
         LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id
         WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null AND noti.noti_type_id is null
         AND (
-          (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND (CURRENT_TIMESTAMP - fact.start_translating_time) < ((fact.due_time - fact.start_translating_time)/3) AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
+          (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND (julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) < ((julianday(fact.due_time) - julianday(fact.start_translating_time))/3) AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
         OR 
-          ((CURRENT_TIMESTAMP - fact.start_translating_time) > ((fact.due_time - fact.start_translating_time)/3) AND (CURRENT_TIMESTAMP - fact.start_translating_time) < ((fact.due_time - fact.start_translating_time)/2) AND fact.due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
+          ((julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) > ((julianday(fact.due_time) - julianday(fact.start_translating_time))/3) AND (julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) < ((julianday(fact.due_time) - julianday(fact.start_translating_time))/2) AND fact.due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
         )"""
     cursor = g.db.execute(query) 
     rs = cursor.fetchall()
