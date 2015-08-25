@@ -770,6 +770,8 @@ def delete_requests(str_request_id):
         g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
                 [request_id, user_id])
         g.db.commit()
+        
+        # Using request_id and client_user_id, delete notification of the request
 
         update_user_record(g.db, client_id=user_id)
         g.db.commit()
@@ -2032,6 +2034,9 @@ def revise_payback(str_id, order_no):
 #@exception_detector
 def publicize():
     # No Expected time
+    # Using ongoing_worker_id and client_user_id, execute update_user_count after commit
+    #    1) Collect ID# in array
+    #    2) Run update loop with ID#
     query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
         WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
@@ -2073,6 +2078,7 @@ def publicize():
 #@exception_detector
 def ask_expected_time():
     # Future implementation: Join with noti table
+    # Add client_user_id and update after commit
     query = """SELECT fact.ongoing_worker_id, fact.id FROM F_REQUESTS fact
         LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id
         WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null AND noti.noti_type_id is null
@@ -2094,6 +2100,7 @@ def ask_expected_time():
 #@exception_detector
 def delete_sos():
     # Expired deadline
+    # Using ongoing_worker_id and client_user_id, and update statistics after commit
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
         WHERE isSos = 1 AND status_id = 1 and ongoing_worker_id is not null AND CURRENT_TIMESTAMP > due_time """
