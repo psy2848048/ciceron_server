@@ -41,7 +41,7 @@ CELERY_BROKER_URL = 'redis://localhost'
 app = Flask(__name__)
 app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
 app.config.from_object(__name__)
-app.project_number = 1021873337108
+app.project_number = 145456889576
 
 # CORS
 cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})
@@ -54,8 +54,8 @@ gcm_server = FlaskGCM()
 gcm_server.init_app(app)
 
 # Celery
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-celery.conf.update(app.config)
+#celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+#celery.conf.update(app.config)
 
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
@@ -415,6 +415,9 @@ def user_profile():
         # Gather IDs of list form information
         user_id = userinfo[0][0]
         badgeList_id = userinfo[0][13]
+
+        # Update statistics
+        update_user_record(g.db, client_id=user_id, translator_id=user_id)
 
         # Get list: other languages translatable
         cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?", [user_id])
@@ -2034,9 +2037,9 @@ def revise_payback(str_id, order_no):
 #@exception_detector
 def publicize():
     # No Expected time
-    # Using ongoing_worker_id and client_user_id, execute update_user_count after commit
-    #    1) Collect ID# in array
-    #    2) Run update loop with ID#
+    translator_list = []
+    client_list = []
+
     query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
         WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
@@ -2044,8 +2047,10 @@ def publicize():
     cursor = g.db.execute(query_no_expected_time)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, item[0], 5, item[1], item[2])
-        store_notiTable(g.db, item[1], 9, item[0], item[2])
+        send_noti_suite(gcm_server, g.db, item[0], 5, item[1], item[2])
+        send_noti_suite(gcm_server, g.db, item[1], 9, item[0], item[2])
+        translator_list.append(item[0])
+        client_list.append(item[1])
 
     # Expired deadline
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
@@ -2054,8 +2059,10 @@ def publicize():
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, item[1], 11, item[0], item[2])
-        store_notiTable(g.db, item[0],  3, item[1], item[2])
+        send_noti_suite(gcm_server, g.db, item[1], 11, item[0], item[2])
+        send_noti_suite(gcm_server, g.db, item[0],  3, item[1], item[2])
+        translator_list.append(item[0])
+        client_list.append(item[1])
 
     # No translators
     query_no_translators = """SELECT client_user_id, id
@@ -2064,7 +2071,8 @@ def publicize():
     cursor = g.db.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, item[0], 12, None, item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 12, None, item[1])
+        client_list.append(item[0])
 
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
         WHERE isSos = 0 AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
@@ -2072,6 +2080,10 @@ def publicize():
         WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
         OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """)
     g.db.commit()
+
+    for user_id in translator_list: update_user_record(g.db, translator_id=user_id)
+    for user_id in client_list:     update_user_record(g.db, client_id=user_id)
+
     return make_response(json.jsonify(message="Expired requests are publicized"), 200)
 
 @app.route('/api/scheduler/ask_expected_time', methods = ["GET"])
@@ -2079,18 +2091,18 @@ def publicize():
 def ask_expected_time():
     # Future implementation: Join with noti table
     # Add client_user_id and update after commit
-    query = """SELECT fact.ongoing_worker_id, fact.id FROM F_REQUESTS fact
+    query = """SELECT fact.ongoing_worker_id, fact.id, fact.client_user_id FROM F_REQUESTS fact
         LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id
         WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null AND noti.noti_type_id is null
         AND (
-          (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND (julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) < ((julianday(fact.due_time) - julianday(fact.start_translating_time))/3) AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
+          (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
         OR 
-          ((julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) > ((julianday(fact.due_time) - julianday(fact.start_translating_time))/3) AND (julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) < ((julianday(fact.due_time) - julianday(fact.start_translating_time))/2) AND fact.due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
+          ((julianday(CURRENT_TIMESTAMP) - julianday(fact.start_translating_time)) > ((julianday(fact.due_time) - julianday(fact.start_translating_time))/3) AND fact.due_time < datetime(CURRENT_TIMESTAMP, '+30 minutes')) 
         )"""
     cursor = g.db.execute(query) 
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, item[0], 1, None, item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 1, None, item[1])
 
     g.db.commit()
     return make_response(json.jsonify(
@@ -2101,14 +2113,19 @@ def ask_expected_time():
 def delete_sos():
     # Expired deadline
     # Using ongoing_worker_id and client_user_id, and update statistics after commit
+    translator_list = []
+    client_list = []
+
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
         WHERE isSos = 1 AND status_id = 1 and ongoing_worker_id is not null AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, item[1], 11, item[0], item[2])
-        store_notiTable(g.db, item[0],  3, item[1], item[2])
+        send_noti_suite(gcm_server, g.db, item[1], 11, item[0], item[2])
+        send_noti_suite(gcm_server, g.db, item[0],  3, item[1], item[2])
+        translator_list.append(item[0])
+        client_list.append(item[1])
 
     # No translators
     query_no_translators = """SELECT client_user_id, id
@@ -2117,11 +2134,16 @@ def delete_sos():
     cursor = g.db.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
-        store_notiTable(g.db, item[0], 12, None, item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 12, None, item[1])
+        client_list.append(item[0])
 
     g.db.execute("""UPDATE F_REQUESTS SET is_paid=0, status_id = -1
                      WHERE status_id in (0,1) AND isSos = 1 AND CURRENT_TIMESTAMP >= datetime(registered_time, '+30 minutes')""")
     g.db.commit()
+
+    for user_id in translator_list: update_user_record(g.db, translator_id=user_id)
+    for user_id in client_list:     update_user_record(g.db, client_id=user_id)
+
     return make_response(json.jsonify(message="Cleaned"), 200)
 
 @app.route('/api/scheduler/mail_alarm', methods = ["GET"])
