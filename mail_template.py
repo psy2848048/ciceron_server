@@ -191,9 +191,9 @@ class mail_format:
         if language_id == 0:
             # Later, should be Korean
             # return client_complete_kr
-            return self.client_complete_kr
+            return self.client_complete_en
         elif language_id == 1:
-            return self.client_complete_kr
+            return self.client_complete_en
 
     client_incomplete_en="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>

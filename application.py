@@ -121,7 +121,7 @@ def parallel_send_email(user_name, user_email, noti_type, request_id, language_i
              "link": 'http://ciceron.me'}
 
     elif noti_type == 6:
-        message = template.client_take_ticket(langauge_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+        message = template.client_take_ticket(language_id) % {"host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
              "user": user_name,
              "link": 'http://ciceron.me',
              'hero': optional_info.get('hero')}
