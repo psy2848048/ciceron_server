@@ -617,7 +617,6 @@ def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
     elif noti_type == 1:
         message["notiType"] = 1
         message["link"] = 'http://ciceron.me'
-        message["expected"] = optional_info.get('expected')
 
     elif noti_type == 2:
         message["notiType"] = 2
@@ -644,6 +643,7 @@ def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
     elif noti_type == 7:
         message["notiType"] = 7
         message["link"] = 'http://ciceron.me'
+        message["expected"] = optional_info.get('expected')
 
     elif noti_type == 8:
         message["notiType"] = 8
