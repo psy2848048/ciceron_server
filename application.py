@@ -2092,8 +2092,8 @@ def ask_expected_time():
     # Future implementation: Join with noti table
     # Add client_user_id and update after commit
     query = """SELECT fact.ongoing_worker_id, fact.id, fact.client_user_id FROM F_REQUESTS fact
-        LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id
-        WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null AND noti.noti_type_id is null
+        LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id AND noti.noti_type_id = 1
+        WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null
         AND (
           (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
         OR 
