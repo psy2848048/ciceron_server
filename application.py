@@ -25,7 +25,7 @@ UPLOAD_FOLDER_REQUEST_DOC = "request_doc"
 UPLOAD_FOLDER_REQUEST_TEXT =  "request_text"
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
-GCM_API_KEY = 'AIzaSyDsuwrNC0owqpm6eznw6mUexFt18rBcq88'
+GCM_API_KEY = 'AIzaSyC4wvRTQZY81dZustxiXLIATsuVKy5xwp8'
 
 SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
@@ -1777,7 +1777,7 @@ def pay_for_request(str_request_id):
 
     elif pay_via == 'alipay':
         from alipay import Alipay
-        alipay_obj = Alipay(pid='my_pid', key='my_key', seller_email='my_email')
+        alipay_obj = Alipay(pid='2088101122136241', key='760bdzec6y9goq7ctyx96ezkz78287de', seller_email='contact@ciceron.me')
         params = {
             'subject': '是写论翻译'.encode('utf-8'),
             'total_fee': '%.2f' % amount,
