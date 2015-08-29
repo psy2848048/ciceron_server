@@ -1848,15 +1848,15 @@ def register_or_update_register_id():
 
     record_id = get_new_id(g.db, "D_MACHINES")
     cursor = g.db.execute("SELECT count(*) FROM D_MACHINES WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?",
-            [buffer(device_os), user_id])
+            [device_os, user_id])
     num = cursor.fetchall()[0][0]
 
     if num == 0:
         g.db.execute("INSERT INTO D_MACHINES VALUES (?, ?, (SELECT id FROM D_MACHINE_OSS WHERE text = ?), ?, ?)",
-            [record_id, user_id, buffer(device_os), buffer(reg_key), 1])
+            [record_id, user_id, device_os, buffer(reg_key), 1])
     else:
         g.db.execute("UPDATE D_MACHINES SET reg_key = ? WHERE os_id = (SELECT id FROM D_MACHINE_OSS WHERE text = ?) AND user_id = ?",
-            [buffer(reg_key), buffer(device_os), user_id])
+            [buffer(reg_key), device_os, user_id])
 
     g.db.commit()
 
