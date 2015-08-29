@@ -131,7 +131,7 @@ def get_group_id_from_user_and_text(conn, user_id, text, table):
 
 def get_device_id(conn, user_id):
     cursor = conn.execute("SELECT reg_key FROM D_MACHINES WHERE user_id = ? AND is_push_allowed=1", [user_id])
-    return [str(reg_key) for reg_key in cursor.fetchall()]
+    return [str(reg_key[0]) for reg_key in cursor.fetchall()]
 
 def parameter_to_bool(value):
     if value in ['True', 'true', 1, '1', True]:
@@ -676,6 +676,7 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
     store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id)
     message_dict = get_noti_data(conn, noti_type_id, get_user_name(g.db, user_id), request_id, optional_info=optional_info)
     regKeys_oneuser = get_device_id(conn, user_id)
+    print "Send push to the device: %s" % regKeys_oneuser
     if len(regKeys_oneuser) > 0:
         gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
         print str(gcm_noti.responses)
