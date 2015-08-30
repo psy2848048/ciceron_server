@@ -742,8 +742,8 @@ def requests():
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId'])
-            ), 200)
+            message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId']),
+            request_id=request_id), 200)
 
 @app.route('/api/requests/<str_request_id>', methods=["DELETE"])
 @login_required
@@ -780,7 +780,8 @@ def delete_requests(str_request_id):
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="Request #%d is successfully deleted!" % request_id), 200)
+            message="Request #%d is successfully deleted!" % request_id,
+            request_id=request_id), 200)
 
 @app.route('/api/user/translations/pending', methods=["GET", "POST"])
 @login_required
@@ -873,7 +874,8 @@ def show_queue():
         g.db.commit()
 
         return make_response(json.jsonify(
-            message = "You are in queue for translating request #%d" % request_id
+            message = "You are in queue for translating request #%d" % request_id,
+            request_id=request_id
             ), 200)
 
 @app.route('/api/user/translations/pending/<str_request_id>', methods=["DELETE"])
@@ -895,7 +897,9 @@ def work_in_queue(str_request_id):
         g.db.execute("DELETE FROM D_QUEUE_LISTS WHERE request_id = ? AND user_id = ? ", [request_id, my_user_id])
         update_user_record(g.db, translator_id=my_user_id)
 
-        return make_response(json.jsonify(message="You've dequeued from request #%d" % request_id), 200)
+        return make_response(json.jsonify(
+            message="You've dequeued from request #%d" % request_id,
+            request_id=request_id), 200)
 
 @app.route('/api/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
@@ -946,7 +950,8 @@ def pick_request():
 
         g.db.commit()
         return make_response(json.jsonify(
-            message = "You are now tranlator of request #%d" % request_id
+            message = "You are now tranlator of request #%d" % request_id,
+            request_id=request_id
             ), 200)
 
     elif request.method == "GET":
@@ -997,7 +1002,8 @@ def working_translate_item(str_request_id):
         request_id = int(str_request_id)
         save_request(g.db, parameters, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
         return make_response(json.jsonify(
-            message="Request id %d is auto saved." % request_id
+            message="Request id %d is auto saved." % request_id,
+            request_id=request_id
             ), 200)
 
 @app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
@@ -1034,7 +1040,9 @@ def expected_time(str_request_id):
         send_noti_suite(gcm_server, g.db, rs[0][0], 7, rs[0][1], request_id, optional_info={"expected": rs[0][1]})
 
         g.db.commit()
-        return make_response(json.jsonify(message="Thank you for responding!"), 200)
+        return make_response(json.jsonify(
+            message="Thank you for responding!",
+            request_id=request_id), 200)
 
     elif request.method == "DELETE":
         request_id = int(str_request_id)
@@ -1061,7 +1069,9 @@ def expected_time(str_request_id):
         send_noti_suite(gcm_server, g.db, rs[0][0], 8, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
         g.db.commit()
-        return make_response(json.jsonify(message="Wish a better tomorrow!"), 200)
+        return make_response(json.jsonify(
+            message="Wish a better tomorrow!",
+            request_id=request_id), 200)
 
 @app.route('/api/user/translations/complete', methods=["POST"])
 #@exception_detector
@@ -1086,7 +1096,8 @@ def post_translate_item():
     if len(rs) == 0:
         return make_response(
             json.jsonify(
-                message="Already completed request %d" % request_id), 410)
+                message="Already completed request %d" % request_id,
+                request_id=request_id), 410)
 
     requester_id = rs[0][0]
     translator_id = rs[0][1]
@@ -1122,7 +1133,8 @@ def post_translate_item():
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="Request id %d is submitted." % request_id
+        message="Request id %d is submitted." % request_id,
+        request_id=request_id
         ), 200)
 
 @app.route('/api/user/translations/complete/<str_request_id>', methods = ["GET"])
@@ -1192,12 +1204,14 @@ def set_title_translator(str_request_id):
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
+            message="The title is set as '%s' to the request #%d" % (title_text, request_id),
+            request_id=request_id),
             200)
 
     else:
         return make_response(json.jsonify(
-                message="Inappropriate method of this request. POST only"),
+                message="Inappropriate method of this request. POST only",
+                request_id=request_id),
             405)
 
 @app.route('/api/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
@@ -1353,7 +1367,7 @@ def delete_item_client(str_request_id):
                 [request_id, user_id])
         g.db.commit()
         return make_response(json.jsonify(
-            message="Request #%d is deleted. USD %.2f is returned as requester's points" % (request_id, points)), 200)
+            message="Request #%d is deleted. USD %.2f is returned as requester's points" % (request_id, points), request_id=request_id), 200)
 
 @app.route('/api/user/requests/ongoing', methods=["GET"])
 #@exception_detector
@@ -1496,7 +1510,8 @@ def client_rate_request(str_request_id):
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="The requester rated to request #%d as %d points (in 0~2). And translator has been earned USD %.2f" % (request_id, feedback_score, pay_amount*return_rate)),
+        message="The requester rated to request #%d as %d points (in 0~2). And translator has been earned USD %.2f" % (request_id, feedback_score, pay_amount*return_rate),
+        request_id=request_id),
         200)
 
 @app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
@@ -1651,7 +1666,8 @@ def client_incompleted_item_control(str_request_id):
 
             return make_response(json.jsonify(
                 message="Request #%d is renewed" % request_id,
-                api=None), 200)
+                api=None,
+                request_id=request_id), 200)
 
         # Change due date w/additional money
         else:
@@ -1661,7 +1677,8 @@ def client_incompleted_item_control(str_request_id):
 
             return make_response(json.jsonify(
                 message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
-                api="/api/user/requests/%d/payment/start"%request_id), 200)
+                api="/api/user/requests/%d/payment/start"%request_id,
+                request_id=request_id), 200)
 
     elif request.method == "POST":
         # It can be used in:
@@ -1684,6 +1701,7 @@ def client_incompleted_item_control(str_request_id):
 
             return make_response(json.jsonify(
                 message="Request #%d is posted back to stoa." % request_id,
+                request_id=request_id,
                 api=None), 200)
 
         # Change due date w/additional money
@@ -1693,6 +1711,7 @@ def client_incompleted_item_control(str_request_id):
 
             return make_response(json.jsonify(
                 message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
+                request_id=request_id,
                 api="/api/user/requests/%d/payment/start"%request_id), 200)
 
     elif request.method == "DELETE":
@@ -1719,7 +1738,8 @@ def client_incompleted_item_control(str_request_id):
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="Your request #%d is deleted. Your points USD %.2f is backed in your account" % [request_id, points]), 200)
+            message="Your request #%d is deleted. Your points USD %.2f is backed in your account" % (request_id, points),
+            request_id=request_id), 200)
 
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 #@exception_detector
