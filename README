@@ -22,6 +22,7 @@ Ciceron server code
   - flask-redis
   - flask-session
   - Flask-Pushjack
+  - Flask-Cache
   - pip install --upgrade --ignore-installed slate==0.3 pdfminer==20110515
   - python-docx
   - lxml

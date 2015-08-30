@@ -13,6 +13,7 @@ from flask.ext.cors import CORS
 from flask.ext.session import Session
 from celery import Celery
 from multiprocessing import Process
+from flask.ext.cache import Cache
 
 DATABASE = '../db/ciceron.db'
 VERSION = '1.0'
@@ -52,6 +53,9 @@ Session(app)
 # Flask-Pushjack
 gcm_server = FlaskGCM()
 gcm_server.init_app(app)
+
+# Flask-Cache
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # Celery
 #celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
@@ -181,6 +185,7 @@ def teardown_request(exception):
 
 @app.route('/api', methods=['GET'])
 #@exception_detector
+@cache.cached(timeout=50, key_prefix='loginStatusCheck')
 def loginCheck():
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
