@@ -490,7 +490,9 @@ def user_profile():
         filename = ""
         path = ""
         if profile_pic and pic_allowed_file(profile_pic.filename):
-            pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], secure_filename(profile_pic.filename))
+            extension = profile_pic.filename.split('.')[-1]
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+            pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], filename)
             print pic_path
             profile_pic.save(pic_path)
 
@@ -617,7 +619,9 @@ def requests():
             filename = ""
             path = ""
             if pic_allowed_file(binary.filename):
-                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_PIC'], secure_filename(binary.filename))
+                extension = binary.filename.split('.')[-1]
+                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_PIC'], filename)
                 binary.save(path)
 
             new_photo_id = get_new_id(g.db, "D_REQUEST_PHOTOS")
@@ -629,7 +633,9 @@ def requests():
             filename = ""
             path = ""
             if sound_allowed_file(binary.filename):
-                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_SOUND'], secure_filename(binary.filename))
+                extension = binary.filename.split('.')[-1]
+                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_SOUND'], filename)
                 binary.save(path)
 
             new_sound_id = get_new_id(g.db, "D_REQUEST_SOUNDS")
@@ -641,7 +647,9 @@ def requests():
             filename = ""
             path = ""
             if doc_allowed_file(binary.filename):
-                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_DOC'], secure_filename(binary.filename))
+                extension = binary.filename.split('.')[-1]
+                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+                path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_DOC'], filename)
                 binary.save(path)
 
             new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
@@ -1758,18 +1766,18 @@ def pay_for_request(str_request_id):
 
     if pay_via == 'paypal':
         # SANDBOX
-        paypalrestsdk.configure(
-                mode="sandbox",
-                client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
-                client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
-        )
+        #paypalrestsdk.configure(
+        #        mode="sandbox",
+        #        client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
+        #        client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
+        #)
 
         # LIVE
-        #paypalrestsdk.set_config(
-        #        mode="live",
-        #        client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
-        #        client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
-        #        )
+        paypalrestsdk.set_config(
+                mode="live",
+                client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
+                client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
+                )
 
         logging.basicConfig(level=logging.INFO)
         logging.basicConfig(level=logging.ERROR)
