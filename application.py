@@ -491,7 +491,7 @@ def user_profile():
         path = ""
         if profile_pic and pic_allowed_file(profile_pic.filename):
             extension = profile_pic.filename.split('.')[-1]
-            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
             pic_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE_PIC'], filename)
             print pic_path
             profile_pic.save(pic_path)
@@ -620,7 +620,7 @@ def requests():
             path = ""
             if pic_allowed_file(binary.filename):
                 extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
                 path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_PIC'], filename)
                 binary.save(path)
 
@@ -634,7 +634,7 @@ def requests():
             path = ""
             if sound_allowed_file(binary.filename):
                 extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
                 path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_SOUND'], filename)
                 binary.save(path)
 
@@ -648,7 +648,7 @@ def requests():
             path = ""
             if doc_allowed_file(binary.filename):
                 extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + extension
+                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
                 path = os.path.join(app.config['UPLOAD_FOLDER_REQUEST_DOC'], filename)
                 binary.save(path)
 
