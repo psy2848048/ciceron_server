@@ -742,15 +742,16 @@ def requests():
         g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
 
-        # Notification
-        rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
-        for item in rs:
-            store_notiTable(g.db, item[0], 0, None, request_id)
-            regKeys_oneuser = get_device_id(g.db, item[0])
+        # Notification for SOS request
+        if isSos == True:
+            rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
+            for item in rs:
+                store_notiTable(g.db, item[0], 0, None, request_id)
+                regKeys_oneuser = get_device_id(g.db, item[0])
 
-            message_dict = get_noti_data(g.db, 10, get_user_name(g.db, item[0]), request_id)
-            if len(regKeys_oneuser) > 0:
-                gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
+                message_dict = get_noti_data(g.db, 10, get_user_name(g.db, item[0]), request_id)
+                if len(regKeys_oneuser) > 0:
+                    gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
         g.db.commit()
 
@@ -1851,7 +1852,6 @@ def pay_for_request_process(str_request_id):
 
             g.db.commit()
             #return redirect("success")
-            return redirect("http://ciceron.me", code=302)
 
     elif pay_via == "alipay":
         if is_success:
@@ -1868,6 +1868,29 @@ def pay_for_request_process(str_request_id):
                     [payment_info_id, request_id, buffer(user), buffer("alipay"), buffer(payment_id), amount])
 
             g.db.commit()
+
+    # Notification for normal request
+    cursor = g.db.execute("SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ?", [request_id])
+    record = cursor.fetchall()
+    try:
+        onerecord = record[0]
+    except Exception as e:
+        print "No record for this request. Request ID: %d" % request_id
+        return redirect("http://ciceron.me", code=302)
+
+    original_lang_id = onerecord[0]
+    target_lang_id = onerecord[1]
+
+    rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
+    for item in rs:
+        store_notiTable(g.db, item[0], 0, None, request_id)
+        regKeys_oneuser = get_device_id(g.db, item[0])
+
+        message_dict = get_noti_data(g.db, 10, get_user_name(g.db, item[0]), request_id)
+        if len(regKeys_oneuser) > 0:
+            gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
+
+    return redirect("http://ciceron.me", code=302)
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
