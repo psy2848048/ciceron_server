@@ -1761,24 +1761,25 @@ def client_incompleted_item_control(str_request_id):
 def pay_for_request(str_request_id):
     parameters = parse_request(request)
 
+    pay_by = parameters.get('pay_by')
     pay_via = parameters.get('pay_via')
     request_id = int(str_request_id)
     amount = float(parameters['pay_amount'])
 
     if pay_via == 'paypal':
         # SANDBOX
-        #paypalrestsdk.configure(
-        #        mode="sandbox",
-        #        client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
-        #        client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
-        #)
+        paypalrestsdk.configure(
+                mode="sandbox",
+                client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
+                client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
+        )
 
         # LIVE
-        paypalrestsdk.set_config(
-                mode="live",
-                client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
-                client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
-                )
+        #paypalrestsdk.set_config(
+        #        mode="live",
+        #        client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
+        #        client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
+        #        )
 
         logging.basicConfig(level=logging.INFO)
         logging.basicConfig(level=logging.ERROR)
@@ -1788,8 +1789,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount),
-            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount)},
+            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by),
+            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -1803,7 +1804,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount)
+        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&pay_by=%s" % (request_id, session['useremail'], amount, pay_by, pay_by)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -1811,15 +1812,17 @@ def pay_for_request(str_request_id):
 
     elif pay_via == 'alipay':
         from alipay import Alipay
-        alipay_obj = Alipay(pid='2088101122136241', key='760bdzec6y9goq7ctyx96ezkz78287de', seller_email='contact@ciceron.me')
+        alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
         params = {
-            'subject': '是写论翻译'.encode('utf-8'),
+            'subject': '是写论翻译'.decode('utf-8'),
+            'out_trade_no': 12345,
+            #'subject': 'TEST',
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'notify_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f" % (request_id, session['useremail'], amount)
+            'notify_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)
             }
-        provided_link = alipay_obj.create_direct_pay_by_user_url(**params)
+        provided_link = alipay_obj.create_forex_trade_wap(**params)
 
         return make_response(json.jsonify(
             message="Link to Alipay is provided.",
@@ -1832,6 +1835,7 @@ def pay_for_request_process(str_request_id):
     request_id = int(str_request_id)
     user = request.args['user_id']
     pay_via = request.args['pay_via']
+    pay_by = request.args['pay_by']
     is_success = True if request.args['status'] == "success" else False
     payment_id = request.args['paymentId']
     payer_id = request.args['PayerID']
@@ -1856,6 +1860,7 @@ def pay_for_request_process(str_request_id):
     elif pay_via == "alipay":
         if is_success:
             # Get & store order ID and price
+            payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
 
             ##############
             ## Complete payment
@@ -1890,7 +1895,18 @@ def pay_for_request_process(str_request_id):
         if len(regKeys_oneuser) > 0:
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
-    return redirect("http://ciceron.me", code=302)
+    if pay_by == "web":
+        return redirect("http://ciceron.me", code=302)
+    elif pay_by == "mobile":
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head></head>
+            <body>
+            <script type='text/javascript'>
+                window.close();
+            </script>
+            </body></html>"""
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
