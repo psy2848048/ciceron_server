@@ -765,43 +765,43 @@ def requests():
             message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId']),
             request_id=request_id), 200)
 
-@app.route('/api/requests/<str_request_id>', methods=["DELETE"])
-@login_required
-#@exception_detector
-def delete_requests(str_request_id):
-    if request.method == "DELETE":
-        request_id = int(str_request_id)
-        user_id = get_user_id(g.db, session['useremail'])
-
-        # Check that somebody is translating this request.
-        # If yes, requester cannot delete this request
-        cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? ",
-                [request_id, user_id])
-        is_my_request = cursor.fetchall()[0][0]
-        if is_my_request == 0:
-            return make_response(json.jsonify(
-                message="This request is not yours!"), 409)
-
-        cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
-                [request_id, user_id])
-
-        num_of_request = cursor.fetchall()[0][0]
-        if num_of_request == 0:
-            return make_response(json.jsonify(
-                message="If translator has taken the request, you cannot delete the request!"), 410)
-
-        g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
-                [request_id, user_id])
-        g.db.commit()
-        
-        # Using request_id and client_user_id, delete notification of the request
-
-        update_user_record(g.db, client_id=user_id)
-        g.db.commit()
-
-        return make_response(json.jsonify(
-            message="Request #%d is successfully deleted!" % request_id,
-            request_id=request_id), 200)
+#@app.route('/api/requests/<str_request_id>', methods=["DELETE"])
+#@login_required
+##@exception_detector
+#def delete_requests(str_request_id):
+#    if request.method == "DELETE":
+#        request_id = int(str_request_id)
+#        user_id = get_user_id(g.db, session['useremail'])
+#
+#        # Check that somebody is translating this request.
+#        # If yes, requester cannot delete this request
+#        cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? ",
+#                [request_id, user_id])
+#        is_my_request = cursor.fetchall()[0][0]
+#        if is_my_request == 0:
+#            return make_response(json.jsonify(
+#                message="This request is not yours!"), 409)
+#
+#        cursor = g.db.execute("SELECT count(id) FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
+#                [request_id, user_id])
+#
+#        num_of_request = cursor.fetchall()[0][0]
+#        if num_of_request == 0:
+#            return make_response(json.jsonify(
+#                message="If translator has taken the request, you cannot delete the request!"), 410)
+#
+#        g.db.execute("DELETE FROM F_REQUESTS WHERE id = ? AND client_user_id = ? AND ongoing_worker_id is null",
+#                [request_id, user_id])
+#        g.db.commit()
+#        
+#        # Using request_id and client_user_id, delete notification of the request
+#
+#        update_user_record(g.db, client_id=user_id)
+#        g.db.commit()
+#
+#        return make_response(json.jsonify(
+#            message="Request #%d is successfully deleted!" % request_id,
+#            request_id=request_id), 200)
 
 @app.route('/api/user/translations/pending', methods=["GET", "POST"])
 @login_required
@@ -1748,9 +1748,9 @@ def client_incompleted_item_control(str_request_id):
         request_id = int(request_id)
         user_id = get_user_id(g.db, session['useremail'])
 
-        g.db.execute("UPDATE F_REQUESTS SET is_paid = 0 WHERE id = ? AND status_id = -1 AND client_user_id = ? ", [request_id, user_id])
+        g.db.execute("UPDATE F_REQUESTS SET is_paid = 0 WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ? ", [request_id, user_id])
 
-        cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id = -1 AND client_user_id = ?", [request_id, user_id])
+        cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ?", [request_id, user_id])
         points = float(cursor.fetchall()[0][0])
         g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?", [points, user_id])
         g.db.commit()
