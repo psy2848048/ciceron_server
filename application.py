@@ -286,13 +286,13 @@ def login():
         session['salt'] = salt
         return make_response(json.jsonify(identifier=salt), 200)
 
-@app.route("/facebook_auth")
+@app.route("/api/facebook_auth")
 def facebook_auth():
     is_signUp = request.args.get('is_signUp', 'N') # 'Y' or 'N'
     platform = request.args('platform', 'web') # 'web', 'mobile'
     return facebook.authorize(callback=url_for('facebook_authorized', is_signUp=is_signUp, platform=platform, _external=True))
 
-@app.route("/facebook_authorized")
+@app.route("/api/facebook_authorized")
 @facebook.authorized_handler
 def facebook_authorized(resp):
     if resp is None or 'access_token' not in resp:
