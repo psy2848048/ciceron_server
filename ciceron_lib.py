@@ -560,7 +560,7 @@ def send_push(conn, gcm_obj,
 
     return response
 
-def send_mail(mail_to, subject, message):
+def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -568,7 +568,7 @@ def send_mail(mail_to, subject, message):
     content = MIMEText(message, 'html', _charset='utf-8')
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
-    msg['From'] = 'Ciceron team <no-reply@ciceron.me>'
+    msg['From'] = 'Ciceron team <%s>' % mail_from
     msg['To'] = str(mail_to)
     msg.attach(content)
 

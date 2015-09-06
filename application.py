@@ -272,6 +272,7 @@ def login():
 def logout():
     # No parameter needed
     if session['logged_in'] == True:
+        cache.clear()
         username_temp = session['useremail']
         session.pop('logged_in', None)
         session.pop('useremail', None)
@@ -383,11 +384,78 @@ def idChecker():
         return make_response(json.jsonify(
             message="Duplicated ID '%s'" % email), 400)
 
-@app.route('/api/password_reset_request', methods=['POST'])
+@app.route('/api/user/create_temporary_password', methods=['POST'])
 #@exception_detector
-def password_reset_request():
+def create_temporary_password():
     parameters = parse_request(request)
     email = parameters['email']
+
+    user_id = get_user_id(g.db, email)
+    if user_id == -1:
+        return make_response(json.jsonify(
+            message="No user exists: %s" % email), 400)
+
+    cursor = g.db.execute("SELECT name FROM D_USERS WHERE id = ?", [user_id])
+    user_name = cursor.fetchall()[0][0]
+
+    generated_password = random_string_gen(size=12)
+    hashed_password = get_hashed_password(generated_password)
+    g.db.execute("UPDATE PASSWORDS SET hashed_pass = ? WHERE user_id = ?",
+            [hashed_password, user_id])
+    g.db.commit()
+
+    subject = "Here is your temporary password"
+    message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
+                 <br>
+                 Here is your temporary password:<br>
+                 <br>
+                 <br>
+                 <h2><b>%(password)s</b></h2>
+                 <br>
+                 <br>
+                 After logging in with this given password, we strongly recommend that you change it as soon as possible for your security!<br>
+                 Have a secure day! :)<br>
+                 <br>
+                 Best regards,<br>
+                 Ciceron team""" % {
+                         'user': user_name,
+                         'password': generated_password,
+                         "host": os.environ.get('HOST', 'http://52.11.126.237:5000')
+                         }
+
+    send_mail(email, subject, message)
+
+    return make_response(json.jsonify(
+        message="Temporary password is issued for %s" % email), 200)
+
+@app.route('/api/user/change_password', methods=['POST'])
+@login_required
+#@exception_detector
+def change_password():
+    parameters = parse_request(request)
+    email = parameters['email']
+    hashed_old_password = parameters['old_password']
+    hashed_new_password = parameters['new_password']
+    user_id = get_user_id(g.db, email)
+
+    # Get hashed_password using user_id for comparing
+    cursor = g.db.execute("SELECT hashed_pass FROM PASSWORDS where user_id = ?",
+            [user_id])
+    rs = cursor.fetchall()
+
+    if len(rs) > 1:
+        # Status code 500 (ERROR)
+        # Description: Same e-mail address tried to be inserted into DB
+        return make_response (json.jsonify(message='Constraint violation error!'), 501)
+
+    elif len(rs) == 1 and str(rs[0][0]) == hashed_old_password:
+        g.db.execute("UPDATE PASSWORDS SET hashed_pass = ? WHERE user_id = ?", [hashed_new_password, user_id])
+        g.db.commit()
+        return make_response (json.jsonify(message='Password successfully changed for user %s' % email), 200)
+
+    else:
+        return make_response (json.jsonify(message='Old password of user %s is incorrect!' % email), 403)
 
 @app.route('/api/user/profile', methods = ['GET', 'POST'])
 @login_required
