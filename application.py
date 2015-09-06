@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory
+from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory, url_for
 from flask_pushjack import FlaskGCM
 from contextlib import closing
 from datetime import datetime, timedelta
@@ -14,6 +14,7 @@ from flask.ext.session import Session
 from celery import Celery
 from multiprocessing import Process
 from flask.ext.cache import Cache
+from flask_oauth import OAuth
 
 DATABASE = '../db/ciceron.db'
 VERSION = '1.0'
@@ -27,6 +28,8 @@ UPLOAD_FOLDER_REQUEST_TEXT =  "request_text"
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
 GCM_API_KEY = 'AIzaSyC4wvRTQZY81dZustxiXLIATsuVKy5xwp8'
+FACEBOOK_APP_ID = 256525961180911
+FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
 
 SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
@@ -60,6 +63,18 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 # Celery
 #celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 #celery.conf.update(app.config)
+
+# Flask-OAuth for facebook
+oauth = OAuth()
+facebook = oauth.remote_app('facebook',
+    base_url='https://graph.facebook.com/',
+    request_token_url=None,
+    access_token_url='/oauth/access_token',
+    authorize_url='https://www.facebook.com/dialog/oauth',
+    consumer_key=FACEBOOK_APP_ID,
+    consumer_secret=FACEBOOK_APP_SECRET,
+    request_token_params={'scope': ('email, ')}
+)
 
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
@@ -183,6 +198,10 @@ def teardown_request(exception):
     if db is not None:
         db.close()
 
+@facebook.tokengetter
+def get_facebook_token():
+    return session.get('facebook_token')
+
 @app.route('/api', methods=['GET'])
 #@exception_detector
 @cache.cached(timeout=50, key_prefix='loginStatusCheck')
@@ -266,6 +285,45 @@ def login():
         salt = random_string_gen()
         session['salt'] = salt
         return make_response(json.jsonify(identifier=salt), 200)
+
+@app.route("/facebook_auth")
+def facebook_auth():
+    is_signUp = request.args.get('is_signUp', 'N') # 'Y' or 'N'
+    platform = request.args('platform', 'web') # 'web', 'mobile'
+    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp=is_signUp, platform=platform, _external=True))
+
+@app.route("/facebook_authorized")
+@facebook.authorized_handler
+def facebook_authorized(resp):
+    if resp is None or 'access_token' not in resp:
+        return make_response(json.jsonify(
+            message="No access token from facebook"), 403)
+
+    session['facebook_token'] = (resp['access_token'], '')
+    data = facebook.get('/me').data
+    platform = request.args.get('platform', 'web')
+
+    if request.args.get('is_signUp') == 'N':
+        session['logged_in'] = True
+        session['useremail'] = data['id']
+
+        if platform == 'web':
+            return redirect('http://ciceron.me')
+        elif platform == 'mobile':
+            return """
+                <!DOCTYPE html>
+                <html>
+                <head></head>
+                <body>
+                <script type='text/javascript'>
+                    window.close();
+                </script>
+                </body></html>"""
+
+    else:
+        return make_response(json.jsonify(
+            email=data['id'],
+            user_name=data['name']), 200)
 
 @app.route('/api/logout', methods=["GET"])
 #@exception_detector
