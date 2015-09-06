@@ -383,6 +383,12 @@ def idChecker():
         return make_response(json.jsonify(
             message="Duplicated ID '%s'" % email), 400)
 
+@app.route('/api/password_reset_request', methods=['POST'])
+#@exception_detector
+def password_reset_request():
+    parameters = parse_request(request)
+    email = parameters['email']
+
 @app.route('/api/user/profile', methods = ['GET', 'POST'])
 @login_required
 #@exception_detector
@@ -1466,17 +1472,25 @@ def client_rate_request(str_request_id):
     parameters = parse_request(request)
     request_id = int(str_request_id)
     feedback_score = int(parameters['request_feedbackScore'])
-    # Input feedback score
-    g.db.execute("UPDATE F_REQUESTS SET feedback_score = ? WHERE id = ?", [feedback_score, request_id])
 
     # Pay back part
-    #query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? AND is_paid = 1 "
-    query_getTranslator = "SELECT ongoing_worker_id, points FROM F_REQUESTS WHERE id = ? "
-
+    query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? AND is_paid = 1"
     cursor = g.db.execute(query_getTranslator, [request_id])
     rs = cursor.fetchall()
+    feedback_score = rs[0][2]
+
+    # If the request is rated, another rate should be blocked
+    if feedback_score != None:
+        return make_response(json.jsonify(
+            message="The request is already rated!",
+            request_id=request_id),
+            403)
+
     translator_id = rs[0][0]
     pay_amount = rs[0][1]
+
+    # Input feedback score
+    g.db.execute("UPDATE F_REQUESTS SET feedback_score = ? WHERE id = ?", [feedback_score, request_id])
 
     #######################################################################
     #  IF RETURN RATE EXISTS, THE BLOCKED CODE BELOW WILL BE IMPLEMENTED  #
@@ -1804,7 +1818,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&pay_by=%s" % (request_id, session['useremail'], amount, pay_by, pay_by)
+        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -1822,7 +1836,7 @@ def pay_for_request(str_request_id):
             'quantity': '1',
             'notify_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)
             }
-        provided_link = alipay_obj.create_forex_trade_wap(**params)
+        provided_link = alipay_obj.create_forex_trade(**params)
 
         return make_response(json.jsonify(
             message="Link to Alipay is provided.",
