@@ -304,6 +304,12 @@ def facebook_authorized(resp):
     platform = request.args.get('platform', 'web')
 
     if request.args.get('is_signUp') == 'N':
+        user_id = get_user_id(g.db, email)
+        if user_id == -1:
+            return make_response(json.jsonify(
+                message='No user signed up with %s' % data['id']
+                ), 403)
+
         session['logged_in'] = True
         session['useremail'] = data['id']
 
