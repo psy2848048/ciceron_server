@@ -1869,6 +1869,7 @@ def pay_for_request(str_request_id):
 
     elif pay_via == "point_only":
         g.db.execute("UPDATE REVENUE SET amount = amount - ? WHERE id = ?", [use_point, user_id])
+        g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
         g.db.commit()
 
         if pay_by == "web":
