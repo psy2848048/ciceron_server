@@ -2293,6 +2293,64 @@ def revise_payback(str_id, order_no):
         return make_response(json.jsonify(
             message="Payback request has just been deleted."), 200)
 
+@app.route('/api/user/be_hero', methods=['POST'])
+@login_required
+#@exception_detector
+def be_hero():
+    parameters = parse_request(request)
+    email = session['useremail']
+
+    name = parameters['name']
+    contact = parameters['contact']
+    school = parameters.get('school', "")
+    major = parameters.get('major', "")
+    language = parameters['language']
+    residence = parameters.get('residence', "")
+    score = parameters.get('score', "")
+
+    doc_no = random_string_gen(size=12)
+
+    subject = "Welcome to Ciceron, hero candidate %s!" % name
+    message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>Dear %(name)s,</h1></span><br>
+                 <br>
+                 Thank you for applying to the hero!<br>
+                 <br>
+                 Please reply this mail with the form below and supporting documents.<br>
+                 <b>Name</b>: %(name)s<br>
+                 <b>Mobile(or email)</b>: %(contact)s<br>
+                 <b><u>(Supporting document needed)</u> Education and school(or occupation)</b>: %(school)s<br>
+                 <b><u>(Supporting document needed)</u> Major</b>: %(major)s<br>
+                 <b>Applying language</b>: %(language)s<br>
+                 <b>Residence</b>: %(residence)s<br>
+                 <b><u>(Supporting document needed)</u> Qualifications, score, or supporting experience(optional)</b>: %(score)s<br>
+                 <br>
+                 Have a wonderful day! :)<br>
+                 We are looking for your reply!<br>
+                 <br>
+                 Best regards,<br>
+                 Ciceron team<br>
+                 <br>
+                 <br>
+                 ##### PLEASE DO NOT DELETE THE TEXT BELOW #####<br>
+                 %(doc_no)s<br>
+                 ##### PLEASE DO NOT DELETE THE TEXT ABOVE #####""" % {
+                         'name': name,
+                         'contact': contact,
+                         'school': school,
+                         'major': major,
+                         'language': language,
+                         'residence': residence,
+                         'score': score,
+                         'doc_no': doc_no,
+                         "host": os.environ.get('HOST', 'http://52.11.126.237:5000')
+                         }
+
+    send_mail(email, subject, message, mail_from='hero@ciceron.me')
+
+    return make_response(json.jsonify(
+        message="Application mail has just sent to %s!" % email), 200)
+
 ################################################################################
 #########                      SCHEDULER API                           #########
 ################################################################################
