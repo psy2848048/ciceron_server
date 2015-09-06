@@ -1704,7 +1704,7 @@ def client_incompleted_item_control(str_request_id):
             g.db.commit()
 
             return make_response(json.jsonify(
-                message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
+                message="Request #%d is renewed. Please execute the API provided with POST method" % request_id,
                 api="/api/user/requests/%d/payment/start"%request_id,
                 request_id=request_id), 200)
 
@@ -1778,7 +1778,27 @@ def pay_for_request(str_request_id):
     pay_by = parameters.get('pay_by')
     pay_via = parameters.get('pay_via')
     request_id = int(str_request_id)
-    amount = float(parameters['pay_amount'])
+    total_amount = float(parameters['pay_amount'])
+    use_point = float(parameters.get('use_point', 0))
+
+    # Check whether the price exceeds the client's money purse.
+    amount = None
+    user_id = get_user_id(g.db, session['useremail'])
+    if use_point > 0:
+        # Check whether use_point exceeds or not
+        cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?", [user_id])
+        current_point = float(cursor.fetchall()[0][0])
+        print "Current_point: %f" % current_point
+        print "Use_point: %f" % use_point
+        print "Diff: %f" % (use_point - current_point)
+
+        if current_point - use_point < -0.00001:
+            return make_response(json.jsonify(
+                message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 402)
+        else:
+            amount = total_amount - use_point
+    else:
+        amount = total_amount
 
     if pay_via == 'paypal':
         # SANDBOX
@@ -1803,8 +1823,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by),
-            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)},
+            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point),
+            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -1818,7 +1838,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)
+        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -1834,13 +1854,35 @@ def pay_for_request(str_request_id):
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'notify_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s" % (request_id, session['useremail'], amount, pay_by)
+            'return_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point)
             }
-        provided_link = alipay_obj.create_forex_trade(**params)
+
+        provided_link = None
+        if pay_by == 'web':
+            provided_link = alipay_obj.create_forex_trade(**params)
+        elif pay_by == 'mobile':
+            provided_link = alipay_obj.create_forex_trade_wap(**params)
 
         return make_response(json.jsonify(
             message="Link to Alipay is provided.",
             link=provided_link), 200)
+
+    elif pay_via == "point_only":
+        g.db.execute("UPDATE REVENUE SET amount = amount - ? WHERE id = ?", [use_point, user_id])
+        g.db.commit()
+
+        if pay_by == "web":
+            return redirect("http://ciceron.me", code=302)
+        elif pay_by == "mobile":
+            return """
+                <!DOCTYPE html>
+                <html>
+                <head></head>
+                <body>
+                <script type='text/javascript'>
+                    window.close();
+                </script>
+                </body></html>"""
 
 @app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
@@ -1848,14 +1890,20 @@ def pay_for_request(str_request_id):
 def pay_for_request_process(str_request_id):
     request_id = int(str_request_id)
     user = request.args['user_id']
+    user_id = get_user_id(g.db, user)
     pay_via = request.args['pay_via']
     pay_by = request.args['pay_by']
     is_success = True if request.args['status'] == "success" else False
-    payment_id = request.args['paymentId']
-    payer_id = request.args['PayerID']
     amount = float(request.args.get('pay_amt'))
+    use_point = float(request.args.get('use_point', 0))
+
+    # Point deduction
+    if use_point > 0:
+        g.db.execute("UPDATE REVENUE SET amount = amount - ? WHERE id = ?", [use_point, user_id])
 
     if pay_via == 'paypal':
+        payment_id = request.args['paymentId']
+        payer_id = request.args['PayerID']
         if is_success:
             payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
             # Paypal payment exeuction
@@ -1876,15 +1924,12 @@ def pay_for_request_process(str_request_id):
             # Get & store order ID and price
             payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
 
-            ##############
-            ## Complete payment
-            ##############
-
             g.db.execute("UPDATE F_REQUESTS SET is_paid = ? WHERE id = ?", [True, request_id])
 
             # Payment information update
             g.db.execute("INSERT INTO PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)",
-                    [payment_info_id, request_id, buffer(user), buffer("alipay"), buffer(payment_id), amount])
+                    #[payment_info_id, request_id, buffer(user), buffer("alipay"), buffer(payment_id), amount])
+                    [payment_info_id, request_id, buffer(user), buffer("alipay"), None, amount])
 
             g.db.commit()
 
