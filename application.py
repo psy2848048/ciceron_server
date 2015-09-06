@@ -289,7 +289,7 @@ def login():
 @app.route("/api/facebook_auth")
 def facebook_auth():
     is_signUp = request.args.get('is_signUp', 'N') # 'Y' or 'N'
-    platform = request.args('platform', 'web') # 'web', 'mobile'
+    platform = request.args.get('platform', 'web') # 'web', 'mobile'
     return facebook.authorize(callback=url_for('facebook_authorized', is_signUp=is_signUp, platform=platform, _external=True))
 
 @app.route("/api/facebook_authorized")
