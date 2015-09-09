@@ -1613,10 +1613,10 @@ def client_rate_request(str_request_id):
 
     cursor = g.db.execute(query_getTranslator, [request_id])
     rs = cursor.fetchall()
-    feedback_score = rs[0][2]
+    formal_feedback_score = rs[0][2]
 
     # If the request is rated, another rate should be blocked
-    if feedback_score != None:
+    if formal_feedback_score != None:
         return make_response(json.jsonify(
             message="The request is already rated!",
             request_id=request_id),
