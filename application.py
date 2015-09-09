@@ -1881,7 +1881,7 @@ def client_incompleted_item_control(str_request_id):
     elif request.method == "DELETE":
         # It can be used in:
         #    1) Say goodbye to translator. And he/she don't want to leave his/her request
-        request_id = int(request_id)
+        request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
 
         g.db.execute("UPDATE F_REQUESTS SET is_paid = 0 WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ? ", [request_id, user_id])
