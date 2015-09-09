@@ -1606,7 +1606,8 @@ def client_rate_request(str_request_id):
     feedback_score = int(parameters['request_feedbackScore'])
 
     # Pay back part
-    query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? AND is_paid = 1"
+    #query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? AND is_paid = 1"
+    query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? "
     cursor = g.db.execute(query_getTranslator, [request_id])
     rs = cursor.fetchall()
     feedback_score = rs[0][2]
@@ -1891,9 +1892,11 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor.execute(query, [request_id])
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
+        if rs[0][1] != None:
+            send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
+            update_user_record(g.db, translator_id=rs[0][1])
 
-        update_user_record(g.db, rs[0][1], rs[0][0])
+        update_user_record(g.db, client_id=rs[0][0])
 
         g.db.commit()
 
