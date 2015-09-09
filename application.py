@@ -1606,8 +1606,11 @@ def client_rate_request(str_request_id):
     feedback_score = int(parameters['request_feedbackScore'])
 
     # Pay back part
-    #query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? AND is_paid = 1"
-    query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? "
+    if session['useremail'] in super_user:
+        query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? "
+    else:
+        query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM F_REQUESTS WHERE id = ? AND is_paid = 1"
+
     cursor = g.db.execute(query_getTranslator, [request_id])
     rs = cursor.fetchall()
     feedback_score = rs[0][2]
