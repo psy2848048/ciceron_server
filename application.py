@@ -1884,11 +1884,12 @@ def client_incompleted_item_control(str_request_id):
         request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
 
-        g.db.execute("UPDATE F_REQUESTS SET is_paid = 0 WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ? ", [request_id, user_id])
-
         cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ?", [request_id, user_id])
         points = float(cursor.fetchall()[0][0])
         g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?", [points, user_id])
+
+        g.db.execute("UPDATE F_REQUESTS SET is_paid = 0, status_id = -2 WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ? ", [request_id, user_id])
+
         g.db.commit()
 
         # Notification
