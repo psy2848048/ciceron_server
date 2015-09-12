@@ -2305,7 +2305,7 @@ def revise_payback(str_id, order_no):
 #@exception_detector
 def be_hero():
     parameters = parse_request(request)
-    email = session['useremail']
+    email = parameters['email']
 
     name = parameters['name']
     contact = parameters['contact']
