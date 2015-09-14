@@ -1174,15 +1174,15 @@ def expected_time(str_request_id):
             query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
-        return make_response(json.jsonify(default_dueTime=rs[0][0]), 200)
+        return make_response(json.jsonify(expectedDue=rs[0][0]), 200)
 
     elif request.method == "POST":
         parameters = parse_request(request)
 
         request_id = int(str_request_id)
-        expected_time = parameters['expectedTime']
-        g.db.execute("UPDATE F_REQUESTS SET expected_time = datetime('%%s', ?) WHERE status_id = 1 AND id = ?",
-                [expected_time, request_id])
+        deltaFromRegTime = parameters['deltaFromNow']
+        g.db.execute("UPDATE F_REQUESTS SET expected_time = datetime('now', '+%d seconds') WHERE status_id = 1 AND id = ?" % deltaFromRegTime,
+                [request_id])
         g.db.commit()
 
         # Notification
@@ -2308,7 +2308,6 @@ def be_hero():
     email = parameters['email']
 
     name = parameters['name']
-    contact = parameters['contact']
     school = parameters.get('school', "")
     major = parameters.get('major', "")
     language = parameters['language']
@@ -2325,7 +2324,6 @@ def be_hero():
                  <br>
                  Please reply this mail with the form below and supporting documents.<br>
                  <b>Name</b>: %(name)s<br>
-                 <b>Mobile(or email)</b>: %(contact)s<br>
                  <b><u>(Supporting document needed)</u> Education and school(or occupation)</b>: %(school)s<br>
                  <b><u>(Supporting document needed)</u> Major</b>: %(major)s<br>
                  <b>Applying language</b>: %(language)s<br>
@@ -2343,7 +2341,6 @@ def be_hero():
                  %(doc_no)s<br>
                  ##### PLEASE DO NOT DELETE THE TEXT ABOVE #####""" % {
                          'name': name,
-                         'contact': contact,
                          'school': school,
                          'major': major,
                          'language': language,
