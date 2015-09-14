@@ -386,7 +386,7 @@ def signup():
         user_id = get_new_id(g.db, "D_USERS")
 
         print "New user id: %d" % user_id
-        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [user_id,
                  buffer(email),
                  buffer(name),
@@ -401,7 +401,8 @@ def signup():
                  0,
                  0,
                  None,
-                 buffer("nothing")])
+                 buffer("nothing"),
+                 0])
 
         g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
             [user_id, buffer(hashed_password)])
@@ -590,7 +591,8 @@ def user_profile():
             user_badgeList=                 badgeList,
             user_isTranslator=              True if userinfo[0][4] == 1 else False,
             user_profileText=               str(userinfo[0][14]),
-            user_keywords=                  keywords
+            user_keywords=                  keywords,
+            user_transRequestState=         userinfo[0][15]
             )
 
         if is_your_profile == True:
@@ -2352,6 +2354,10 @@ def be_hero():
 
     send_mail(email, subject, message, mail_from='hero@ciceron.me')
 
+    user_id = get_user_id(g.db, session['useremail'])
+    g.db.execute("UPDATE D_USERS SET trans_request_state=1 WHERE id = ?", [user_id])
+    g.db.commit()
+
     return make_response(json.jsonify(
         message="Application mail has just sent to %s!" % email), 200)
 
@@ -2535,13 +2541,26 @@ def language_assigner():
     user_id = get_user_id(g.db, user_email)
     new_translation_list_id = get_new_id(g.db, "D_TRANSLATABLE_LANGUAGES")
 
-    g.db.execute("UPDATE D_USERS SET is_translator = 1 WHERE id = ?", [user_id])
+    g.db.execute("UPDATE D_USERS SET is_translator = 1, trans_request_state=2 WHERE id = ?", [user_id])
     cursor = g.db.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ? and language_id = ?",
             [user_id, language_id])
     rs = cursor.fetchall()
     if len(rs) == 0:
         g.db.execute("INSERT INTO D_TRANSLATABLE_LANGUAGES VALUES (?,?,?)",
             [new_translation_list_id, user_id, language_id])
+    g.db.commit()
+    return make_response(json.jsonify(message="Language added successfully"), 200)
+
+@app.route('/api/admin/language_rejector', methods = ["POST"])
+#@exception_detector
+@admin_required
+def language_rejector():
+    parameters = parse_request(request)
+
+    user_email = parameters['email']
+    user_id = get_user_id(g.db, user_email)
+
+    g.db.execute("UPDATE D_USERS SET trans_request_state= CASE WHEN is_translator=0 THEN 0 WHEN is_translator=1 THEN 2 END WHERE id = ?", [user_id])
     g.db.commit()
     return make_response(json.jsonify(message="Language added successfully"), 200)
 
