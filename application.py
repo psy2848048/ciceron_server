@@ -2169,7 +2169,7 @@ def record_user_location():
 #@exception_detector
 def get_notification():
     user_id = get_user_id(g.db, session['useremail'])
-    query = """SELECT user_name, noti_type_id, request_id, target_user_name, ts, is_read, profile_pic_path
+    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, profile_pic_path
         FROM V_NOTIFICATION WHERE user_id = ? """
     if 'since' in request.args.keys():
         query += "AND ts < datetime(%s, 'unixepoch') " % request.args.get('since')
@@ -2182,11 +2182,13 @@ def get_notification():
         row = {}
 
         row['username'] = str(item[0])
-        row['noti_typeId'] = item[1]
-        row['request_id'] = item[2]
-        row['target_username'] = str(item[3]) if item[3] != None else None
-        row['ts'] = str(item[4])
-        row['is_read'] = parameter_to_bool(item[5])
+        row['profilePic'] = item[1]
+        row['noti_typeId'] = item[2]
+        row['request_id'] = item[3]
+        row['target_username'] = str(item[4]) if item[4] != None else None
+        row['target_userProfilePic'] = str(item[7]) if item[7] != None else None
+        row['ts'] = str(item[5])
+        row['is_read'] = parameter_to_bool(item[6])
 
         result.append(row)
 
