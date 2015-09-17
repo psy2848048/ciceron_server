@@ -449,9 +449,9 @@ def idChecker():
         return make_response(json.jsonify(
             message="Duplicated ID '%s'" % email), 400)
 
-@app.route('/api/user/create_temporary_password', methods=['POST'])
+@app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
-def create_temporary_password():
+def create_emergency_code():
     parameters = parse_request(request)
     email = parameters['email']
 
@@ -463,36 +463,65 @@ def create_temporary_password():
     cursor = g.db.execute("SELECT name FROM D_USERS WHERE id = ?", [user_id])
     user_name = cursor.fetchall()[0][0]
 
-    generated_password = random_string_gen(size=12)
-    hashed_password = get_hashed_password(generated_password)
-    g.db.execute("UPDATE PASSWORDS SET hashed_pass = ? WHERE user_id = ?",
-            [hashed_password, user_id])
+    recovery_code = random_string_gen(size=12)
+    hashed_code = get_hashed_password(recovery_code)
+    g.db.execute("REPLACE INTO EMERGENCY_CODE (user_id, code) VALUES (?,?)",
+            [user_id, hashed_code])
     g.db.commit()
 
     subject = "Here is your temporary password"
     message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
-                 Here is your temporary password:<br>
+                 Here is your recovery code:<br>
                  <br>
                  <br>
                  <h2><b>%(password)s</b></h2>
                  <br>
                  <br>
-                 After logging in with this given password, we strongly recommend that you change it as soon as possible for your security!<br>
+                 Please input the code above to <a href="%(page)s">this page.</a><br>
                  Have a secure day! :)<br>
                  <br>
                  Best regards,<br>
                  Ciceron team""" % {
                          'user': user_name,
-                         'password': generated_password,
+                         'password': recovery_code,
+                         'page': "http://ciceron.me",
                          "host": os.environ.get('HOST', 'http://52.11.126.237:5000')
                          }
 
     send_mail(email, subject, message)
 
     return make_response(json.jsonify(
-        message="Temporary password is issued for %s" % email), 200)
+        message="Password recovery code is issued for %s" % email), 200)
+
+@app.route('/api/user/recover_password', methods=['POST'])
+#@exception_detector
+def recover_password():
+    parameters = parse_request(request)
+    email = parameters['email']
+    hashed_code = parameters['code']
+    hashed_new_password = parameters['new_password']
+    user_id = get_user_id(g.db, email)
+
+    # Get hashed_password using user_id for comparing
+    cursor = g.db.execute("SELECT code FROM EMERGENCY_CODE where user_id = ?",
+            [user_id])
+    rs = cursor.fetchall()
+
+    if len(rs) > 1:
+        # Status code 500 (ERROR)
+        # Description: Same e-mail address tried to be inserted into DB
+        return make_response (json.jsonify(message='Constraint violation error!'), 501)
+
+    elif len(rs) == 1 and str(rs[0][0]) == hashed_code:
+        g.db.execute("UPDATE PASSWORDS SET hashed_pass = ? WHERE user_id = ?", [hashed_new_password, user_id])
+        g.db.execute("UPDATE EMERGENCY_CODE SET code = null WHERE user_id = ?", [user_id])
+        g.db.commit()
+        return make_response (json.jsonify(message='Password successfully changed for user %s' % email), 200)
+
+    else:
+        return make_response (json.jsonify(message='Security code incorrect!'), 403)
 
 @app.route('/api/user/change_password', methods=['POST'])
 @login_required

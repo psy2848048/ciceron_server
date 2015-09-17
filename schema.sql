@@ -199,6 +199,12 @@ CREATE TABLE PASSWORDS (
     hashed_pass STRING
 );
 
+CREATE TABLE EMERGENCY_CODE (
+    user_id INT, -- D_USERS
+    code STRING,
+    PRIMARY KEY (user_id)
+);
+
 CREATE TABLE REVENUE (
 id INT, -- D_USER
 amount DECIMAL(10,2)
