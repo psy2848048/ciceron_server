@@ -451,7 +451,7 @@ def idChecker():
 
 @app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
-def create_emergency_code():
+def create_recovery_code():
     parameters = parse_request(request)
     email = parameters['email']
 
