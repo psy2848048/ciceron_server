@@ -2045,15 +2045,16 @@ def pay_for_request(str_request_id):
         if pay_by == "web":
             return redirect("http://ciceron.me", code=302)
         elif pay_by == "mobile":
-            return """
-                <!DOCTYPE html>
-                <html>
-                <head></head>
-                <body>
-                <script type='text/javascript'>
-                    window.close();
-                </script>
-                </body></html>"""
+            return redirect("http://ciceron.me", code=302)
+            #return """
+            #    <!DOCTYPE html>
+            #    <html>
+            #    <head></head>
+            #    <body>
+            #    <script type='text/javascript'>
+            #        window.close();
+            #    </script>
+            #    </body></html>"""
 
 @app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
