@@ -2129,15 +2129,16 @@ def pay_for_request_process(str_request_id):
     if pay_by == "web":
         return redirect("http://ciceron.me", code=302)
     elif pay_by == "mobile":
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head></head>
-            <body>
-            <script type='text/javascript'>
-                window.close();
-            </script>
-            </body></html>"""
+        return redirect("http://ciceron.me", code=302)
+        #return """
+        #    <!DOCTYPE html>
+        #    <html>
+        #    <head></head>
+        #    <body>
+        #    <script type='text/javascript'>
+        #        window.close();
+        #    </script>
+        #    </body></html>"""
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
@@ -2223,6 +2224,7 @@ def get_notification():
         result.append(row)
 
     return make_response(json.jsonify(
+        length=len(result),
         message="Notifications",
         data=result), 200)
 
@@ -2466,7 +2468,7 @@ def ask_expected_time():
     cursor = g.db.execute(query) 
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[0], 1, None, item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 1, item[2], item[1])
 
     g.db.commit()
     return make_response(json.jsonify(
