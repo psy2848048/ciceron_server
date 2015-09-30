@@ -419,7 +419,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
     elif method == "PUT":
         group_id = int(url_group_id)
         group_name = (parameters['group_name']).encode('utf-8')
-        if group_name == u"Documents":
+        if group_name == u"Documents" or group_name == "Documents":
             return -1
         conn.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
         conn.commit()
@@ -430,6 +430,8 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         group_text = get_text_from_id(conn, group_id, table)
         if group_text == "Documents":
             return -1
+        elif group_text == None:
+            return -2
         conn.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
 
         user_id = get_user_id(conn, session['useremail'])

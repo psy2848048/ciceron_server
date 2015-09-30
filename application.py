@@ -1772,10 +1772,14 @@ def modify_client_completed_groups(str_group_id):
 
     elif request.method == "DELETE":
         group_id = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
-        if group_id != -1:
-            return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
-        else:
+        if group_id == -1:
             return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
+
+        elif group_id == -2:
+            return make_response(json.jsonify(message="Already deleted group"), 401)
+
+        else:
+            return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
 
 @app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
 #@exception_detector
