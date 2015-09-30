@@ -2204,6 +2204,12 @@ def record_user_location():
 #@exception_detector
 def get_notification():
     user_id = get_user_id(g.db, session['useremail'])
+
+    # Count whole unread noti
+    query_noti = """SELECT count(*) FROM V_NOTIFICATION WHERE user_id = ? and is_read = 0 """
+    cursor = g.db.execute(query_noti, [user_id])
+    numberOfNoti = cursor.fetchall()[0][0]
+
     query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path
         FROM V_NOTIFICATION WHERE user_id = ? """
     if 'since' in request.args.keys():
@@ -2228,7 +2234,7 @@ def get_notification():
         result.append(row)
 
     return make_response(json.jsonify(
-        length=len(result),
+        numberOfNoti=numberOfNoti,
         message="Notifications",
         data=result), 200)
 
