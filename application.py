@@ -1198,27 +1198,27 @@ def expected_time(str_request_id):
         request_id = int(str_request_id)
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? "
+            query = "SELECT expected_time, due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? "
         else:
-            query = "SELECT due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 "
+            query = "SELECT expected_time, due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 "
         if 'since' in request.args.keys():
             query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
-        return make_response(json.jsonify(expectedDue=rs[0][0]), 200)
+        return make_response(json.jsonify(currentExpectedTime=rs[0][0], currentDueTime=rs[0][1]), 200)
 
     elif request.method == "POST":
         parameters = parse_request(request)
 
         request_id = int(str_request_id)
-        deltaFromRegTime = parameters['deltaFromNow']
+        deltaFromRegTime = int(parameters['deltaFromNow'])
         g.db.execute("UPDATE F_REQUESTS SET expected_time = datetime('now', '+%d seconds') WHERE status_id = 1 AND id = ?" % deltaFromRegTime,
                 [request_id])
         g.db.commit()
 
         # Notification
         query = "SELECT client_user_id, expected_time FROM F_REQUESTS WHERE id = ?"
-        cursor.execute(query, [request_id])
+        cursor= g.db.execute(query, [request_id])
         rs = cursor.fetchall()
         send_noti_suite(gcm_server, g.db, rs[0][0], 7, rs[0][1], request_id, optional_info={"expected": rs[0][1]})
 
