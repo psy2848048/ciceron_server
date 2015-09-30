@@ -2421,7 +2421,7 @@ def publicize():
     # Expired deadline
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
-        WHERE isSos = 0 AND status_id = 1 AND CURRENT_TIMESTAMP > due_time """
+        WHERE isSos = 0 AND status_id = 1 AND is_paid = 1 AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:

@@ -432,7 +432,8 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
             return -1
         conn.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
 
-        default_group_id = get_group_id_from_user_and_text(g.db, session['useremail'], "Documents", table)
+        user_id = get_user_id(conn, session['useremail'])
+        default_group_id = get_group_id_from_user_and_text(conn, user_id, "Documents", table)
         if table.find("TRANSLATOR") >= 0: col = 'translator_completed_group_id'
         else:                             col = 'client_completed_group_id'
         conn.execute("UPDATE F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}, [default_group_id, group_id])
