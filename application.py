@@ -2210,7 +2210,7 @@ def get_notification():
     cursor = g.db.execute(query_noti, [user_id])
     numberOfNoti = cursor.fetchall()[0][0]
 
-    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path
+    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path, expected_time, context
         FROM V_NOTIFICATION WHERE user_id = ? """
     if 'since' in request.args.keys():
         query += "AND ts < datetime(%s, 'unixepoch') " % request.args.get('since')
@@ -2230,8 +2230,10 @@ def get_notification():
         row['target_userProfilePic'] = str(item[7]) if item[7] != None else None
         row['ts'] = str(item[5])
         row['is_read'] = parameter_to_bool(item[6])
-        row['link'] = linkGenerator(item[2], item[3], host="http://ciceron.me")
-        row['abstract'] = "Temp abstract text of this request" # temp
+        row['link'] = linkGenerator(item[2], item[3], host="")
+        row['abstract'] = str(item[9])[:30] if item[9] != None else None
+        row['expectedDue'] = item[8]-datetime.now() if item[8] != None else None
+        row['expectedDue_replied'] = True if item[8] != None else False
 
         result.append(row)
 
