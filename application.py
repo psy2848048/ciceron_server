@@ -2231,6 +2231,7 @@ def get_notification():
         row['ts'] = str(item[5])
         row['is_read'] = parameter_to_bool(item[6])
         row['link'] = linkGenerator(item[2], item[3], host="http://ciceron.me")
+        row['abstract'] = "Temp abstract text of this request" # temp
 
         result.append(row)
 
