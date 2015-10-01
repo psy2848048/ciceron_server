@@ -2210,7 +2210,7 @@ def get_notification():
     cursor = g.db.execute(query_noti, [user_id])
     numberOfNoti = cursor.fetchall()[0][0]
 
-    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path, expected_time, context
+    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path, (julianday(expected_time) - julianday(CURRENT_TIMESTAMP))*24*60*60, context
         FROM V_NOTIFICATION WHERE user_id = ? """
     if 'since' in request.args.keys():
         query += "AND ts < datetime(%s, 'unixepoch') " % request.args.get('since')
@@ -2232,7 +2232,8 @@ def get_notification():
         row['is_read'] = parameter_to_bool(item[6])
         row['link'] = linkGenerator(item[2], item[3], host="")
         row['abstract'] = str(item[9])[:30] if item[9] != None else None
-        row['expectedDue'] = item[8]-datetime.now() if item[8] != None else None
+        #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
+        row['expectedDue'] = item[8] if item[8] != None else None
         row['expectedDue_replied'] = True if item[8] != None else False
 
         result.append(row)
