@@ -1208,7 +1208,7 @@ def expected_time(str_request_id):
         if len(rs) > 0:
             return make_response(json.jsonify(currentExpectedTime=rs[0][0], currentDueTime=rs[0][1]), 200)
         else:
-            return make_response(json.jsonify(message="Outscoped (Completed, canceled, etc)"), 200)
+            return make_response(json.jsonify(message="Outscoped (Completed, canceled, etc)"), 400)
 
     elif request.method == "POST":
         parameters = parse_request(request)
