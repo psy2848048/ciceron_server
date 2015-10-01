@@ -605,6 +605,25 @@ def pick_random_translator(conn, number, from_lang, to_lang):
 def string2Date(string):
     return datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
 
+def linkGenerator(noti_type, request_id, host="http://ciceron.me"):
+    if noti_type in [0, 3, 5, 8, 9]:
+        return host + ('/stoa/%d' % request_id)
+
+    elif noti_type in [1, 4]:
+        return host + ('/translating/%d' % request_id)
+
+    elif noti_type in [2]:
+        return host + ('/activity/%d' % request_id)
+
+    elif noti_type in [6, 7, 11, 12]:
+        return host + ('/processingrequests/%d' % request_id)
+
+    elif noti_type in [10]:
+        return host + ('/donerequests/%d' % request_id)
+
+    else:
+        return None
+
 def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
     message = {
          "notiType": None,
@@ -613,7 +632,8 @@ def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
          "link": None,
          "expected": None,
          "hero": None,
-         "new_due": None
+         "new_due": None,
+         "request_id": request_id
          }
 
     if noti_type == 0:

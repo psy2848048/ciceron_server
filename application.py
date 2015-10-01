@@ -2230,6 +2230,7 @@ def get_notification():
         row['target_userProfilePic'] = str(item[7]) if item[7] != None else None
         row['ts'] = str(item[5])
         row['is_read'] = parameter_to_bool(item[6])
+        row['link'] = linkGenerator(item[2], item[3], host="http://ciceron.me")
 
         result.append(row)
 
