@@ -1701,7 +1701,7 @@ def client_rate_request(str_request_id):
 
     # Notification
     query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
-    cursor.execute(query, [request_id])
+    cursor = g.db.execute(query, [request_id])
     rs = cursor.fetchall()
     send_noti_suite(gcm_server, g.db, rs[0][0], 2, rs[0][1], request_id)
 
