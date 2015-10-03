@@ -34,7 +34,7 @@ FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
 SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
 
-ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'gif', 'png', 'tiff'])
+ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
 VERSION= "2014.12.28"
