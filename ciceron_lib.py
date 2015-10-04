@@ -584,9 +584,9 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
 
 def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     # The query below is original
-    #query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,0)"
+    query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,0)"
     # The query below is that mail alarm is forcefully turned off
-    query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,1)"
+    #query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,1)"
     conn.execute(query, [user_id, noti_type_id, target_user_id, request_id])
 
 def pick_random_translator(conn, number, from_lang, to_lang):
