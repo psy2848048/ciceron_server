@@ -764,7 +764,7 @@ def requests():
         else:
             delta_from_due = 30 * 60
 
-        point = parameters.get('request_points') if isSos == False else 0
+        point = float(parameters.get('request_points')) if isSos == False else 0
 
         if parameters.get('request_context') != None:
             context = parameters.get('request_context').encode('utf-8')
