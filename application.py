@@ -2129,7 +2129,7 @@ def pay_for_request_process(str_request_id):
         store_notiTable(g.db, item[0], 0, None, request_id)
         regKeys_oneuser = get_device_id(g.db, item[0])
 
-        message_dict = get_noti_data(g.db, 10, get_user_name(g.db, item[0]), request_id)
+        message_dict = get_noti_data(g.db, 0, get_user_name(g.db, item[0]), request_id)
         if len(regKeys_oneuser) > 0:
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
