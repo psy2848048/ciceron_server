@@ -2234,7 +2234,14 @@ def get_notification():
         row['ts'] = str(item[5])
         row['is_read'] = parameter_to_bool(item[6])
         row['link'] = linkGenerator(item[2], item[3], host="")
-        row['abstract'] = str(item[9])[:30] if item[9] != None else None
+
+        abstract_text = str(item[9]) if item[9] != None else None
+        if len(abstract_text) > 30:
+            abstract_text = abstract_text[:30]
+        else:
+            abstract_text = abstract_text
+        row['abstract'] = abstract_text
+
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
         row['expectedDue'] = item[8] if item[8] != None else None
         row['expectedDue_replied'] = True if item[8] != None else False
