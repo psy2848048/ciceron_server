@@ -588,6 +588,7 @@ def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     # The query below is that mail alarm is forcefully turned off
     #query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,1)"
     conn.execute(query, [user_id, noti_type_id, target_user_id, request_id])
+    conn.commit()
 
 def pick_random_translator(conn, number, from_lang, to_lang):
     query = """SELECT distinct user.id FROM D_USERS user

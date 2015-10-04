@@ -764,7 +764,7 @@ def requests():
         else:
             delta_from_due = 30 * 60
 
-        point = parameters.get('request_points') if isSos == False else 0
+        point = float(parameters.get('request_points')) if isSos == False else 0
 
         if parameters.get('request_context') != None:
             context = parameters.get('request_context').encode('utf-8')
@@ -2234,13 +2234,7 @@ def get_notification():
         row['ts'] = str(item[5])
         row['is_read'] = parameter_to_bool(item[6])
         row['link'] = linkGenerator(item[2], item[3], host="")
-
-        abstract_text = str(item[9]) if item[9] != None else None
-        if len(abstract_text) > 30:
-            abstract_text = abstract_text[:30]
-        else:
-            abstract_text = abstract_text
-        row['abstract'] = abstract_text
+        row['abstract'] = str(item[9]) if item[9] != None else None
 
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
         row['expectedDue'] = item[8] if item[8] != None else None
