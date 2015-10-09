@@ -628,7 +628,7 @@ def linkGenerator(noti_type, request_id, host="http://ciceron.me"):
 def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
     message = {
          "notiType": None,
-         "host": os.environ.get('HOST', 'http://52.11.126.237:5000'),
+         "host": os.environ.get('HOST', 'http://ciceron.me'),
          "user": user_name,
          "link": None,
          "expected": None,
@@ -639,89 +639,89 @@ def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
 
     if noti_type == 0:
         message["notiType"] = 0
-        message["link"] = 'http://ciceron.me',
+        message["link"] = '/stoa/%d' % request_id
         message["title"] = "New request!"
         message['detail'] = "New ticket is waiting for your help!"
 
     elif noti_type == 1:
         message["notiType"] = 1
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/translating/%d' % request_id
         message["title"] = "When could you finish?"
         message['detail'] = "Inform your deadline to the client!"
 
     elif noti_type == 2:
         message["notiType"] = 2
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/activity/%d' % request_id
         message["title"] = "Check client's feedback :)"
         message['detail'] = "Client left a feedback for your help:) Please check it!"
             
     elif noti_type == 3:
         message["notiType"] = 3
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/stoa/%d' % request_id
         message["title"] = "Deadline exceeded :("
         message['detail'] = "Deadline of your ticket has just exceeded. Client will decide how to deal with."
 
     elif noti_type == 4:
         message["notiType"] = 4
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/translating/%d' % request_id
         message["new_due"] = optional_info.get('new_due')
         message["title"] = "You can work for your ticket more!"
         message['detail'] = "Client has just exteneded the deadline! Please be strict the deadline for this time :)"
 
     elif noti_type == 5:
         message["notiType"] = 5
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/stoa/%d' % request_id
         message["title"] = "No expected deadline :("
         message['detail'] = "Your ticket has just been put back into stoa due to no answer of deadline :( Please make sure to answer deadline until one third of deadline."
 
     elif noti_type == 6:
         message["notiType"] = 6
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/processingrequests/%d' % request_id
         message['hero'] = get_user_name(conn, optional_info.get('hero'))
         message["title"] = "Hero comes!"
         message['detail'] = "Hero has just started working for your ticket!"
 
     elif noti_type == 7:
         message["notiType"] = 7
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/processingrequests/%d' % request_id
         message["expected"] = optional_info.get('expected')
         message["title"] = "Check expected deadline"
         message['detail'] = "Hero thinks that your ticket can be finished by XX:XX:XX"
 
     elif noti_type == 8:
         message["notiType"] = 8
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/stoa/%d' % request_id
         message["hero"] = get_user_name(conn, optional_info.get('hero'))
         message["title"] = "Deadline exceeded :("
         message['detail'] = "Deadline of your ticket has just exceeded. Client will decide how to deal with."
 
     elif noti_type == 9:
         message["notiType"] = 9
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/stoa/%d' % request_id
         message["title"] = "No expected deadline from hero :("
         message['detail'] = "Hero didn't answer when the ticket could be finished. Your request is put into stoa."
 
     elif noti_type == 10:
         message["notiType"] = 10
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/donerequests/%d' % request_id
         message["title"] = "Translation complete!"
         message['detail'] = "Your ticket has just been finished translating! Please rate the translation queality of your ticket!"
 
     elif noti_type == 11:
         message["notiType"] = 11
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/processingrequests/%d' % request_id
         message["title"] = "Deadline exceeded :("
         message['detail'] = "Your hero didn't finish your ticket yet."
 
     elif noti_type == 12:
         message["notiType"] = 12
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/processingrequests/%d' % request_id
         message["title"] = "No hero for your ticket :("
         message['detail'] = "No hero comes for your ticket. You may keep posting in stoa, or delete the ticket."
 
     elif noti_type == 14:
         message["notiType"] = 14
-        message["link"] = 'http://ciceron.me'
+        message["link"] = '/stoa'
         message["title"] = "Point returned :)"
         message['detail'] = "Your points has just paid back to your account!"
 
