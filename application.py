@@ -7,7 +7,6 @@ import hashlib, sqlite3, os, time, requests, sys, paypalrestsdk, logging
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
-from gcm import GCM
 from ciceron_lib import *
 from flask.ext.cors import CORS
 from flask.ext.session import Session

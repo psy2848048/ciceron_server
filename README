@@ -30,10 +30,12 @@ Ciceron server code
 
 * Summary of set up
  1) Env
+  - apt-get install git
   - apt-get install python-virtualenv
   - pip install virtualenv
   - virtualenv venv
   - apt-get install libssl-dev libffi-dev
+  - apt-get install libxml2-dev libxslt1-dev python-dev
 
   - For activate virtual env: execute shell '. venv/bin/activate'
       # DO NOT FORGET DOT!!! DOT MEANS current folder in GNU/UNIX
