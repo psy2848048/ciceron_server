@@ -10,7 +10,6 @@ from decimal import Decimal
 from ciceron_lib import *
 from flask.ext.cors import CORS
 from flask.ext.session import Session
-from celery import Celery
 from multiprocessing import Process
 from flask.ext.cache import Cache
 from flask_oauth import OAuth
@@ -1962,6 +1961,9 @@ def pay_for_request(str_request_id):
     # Check whether the price exceeds the client's money purse.
     amount = None
     user_id = get_user_id(g.db, session['useremail'])
+
+    host_ip = os.environ.get('HOST', app.config['HOST'])
+
     if use_point > 0:
         # Check whether use_point exceeds or not
         cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?", [user_id])
@@ -2001,8 +2003,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point),
-            "cancel_url": "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point)},
+            "return_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point),
+            "cancel_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -2016,7 +2018,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point)
+        red_link = "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -2032,14 +2034,14 @@ def pay_for_request(str_request_id):
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'return_url': "http://52.11.126.237:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (request_id, session['useremail'], amount, pay_by, use_point)
+            'return_url': "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)
             }
 
         provided_link = None
         if pay_by == 'web':
-            provided_link = alipay_obj.create_forex_trade(**params)
+            provided_link = alipay_obj.create_forex_trade_url(**params)
         elif pay_by == 'mobile':
-            provided_link = alipay_obj.create_forex_trade_wap(**params)
+            provided_link = alipay_obj.create_forex_trade_wap_url(**params)
 
         return make_response(json.jsonify(
             message="Link to Alipay is provided.",

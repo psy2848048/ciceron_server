@@ -13,6 +13,10 @@ Ciceron server code
   - libssl-dev
   - libffi-dev
   - redis-server
+  - libxml2-dev
+  - libxslt1-dev
+  - python-dev
+  - nodejs nodejs-dev
 
 * Package dependency (pip install)
   - Flask
@@ -27,6 +31,7 @@ Ciceron server code
   - python-docx
   - lxml
   - Celery
+  - alipay
 
 * Summary of set up
  1) Env
