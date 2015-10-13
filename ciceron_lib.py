@@ -552,6 +552,11 @@ def send_push(conn, gcm_obj,
         # Gather registration IDs
         registration_keys.extend([ item[0] for item in client_infos ])
 
+    notification = {
+            "title": message.get('title').
+            "text": message.get('detail')
+        }
+
     # Send one message to devices at once
     if len(registration_keys) > 0:
         response = gcm_obj.send(registration_keys, message,
@@ -559,7 +564,9 @@ def send_push(conn, gcm_obj,
                     delay_while_idle=delay_while_idle,
                     time_to_live=time_to_live,
                     restricted_package_name=restricted_package_name,
-                    dry_run=dry_run)
+                    dry_run=dry_run,
+                    notification=notification
+                    )
 
     return response
 
