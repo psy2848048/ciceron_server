@@ -553,7 +553,7 @@ def send_push(conn, gcm_obj,
         registration_keys.extend([ item[0] for item in client_infos ])
 
     notification = {
-            "title": message.get('title').
+            "title": message.get('title'),
             "text": message.get('detail')
         }
 
