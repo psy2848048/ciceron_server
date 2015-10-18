@@ -17,7 +17,15 @@ CREATE TABLE D_USERS (
     numOfTranslationCompleted INT,
     badgeList_id INT, -- D_AWARDED_BADGES
     profile_text TEXT,
-    trans_request_state INT
+    trans_request_state INT,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE D_FACEBOOK_USERS (
+    id INT,
+    email STRING,
+    real_id INT,
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE D_TRANSLATABLE_LANGUAGES (
@@ -191,12 +199,14 @@ CREATE TABLE F_REQUESTS (
     tone_id INT, -- D_TONES
     translatedText_id INT, -- D_TRANSLATED_TEXT
     feedback_score INT,
-    start_translating_time TIMESTAMP
+    start_translating_time TIMESTAMP,
+    PRIMARY KEY(id)
 );
 
 CREATE TABLE PASSWORDS (
     user_id INT, -- D_USERS
-    hashed_pass STRING
+    hashed_pass STRING,
+    PRIMARY KEY(user_id)
 );
 
 CREATE TABLE EMERGENCY_CODE (
@@ -221,7 +231,8 @@ CREATE TABLE PAYMENT_INFO (
     translator_id INT,
     is_payed_back BOOL,
     back_amount DOUBLE,
-    back_time TIMESTAMP
+    back_time TIMESTAMP,
+    PRIMARY KEY(id)
 );
 
 CREATE VIEW V_REQUESTS as

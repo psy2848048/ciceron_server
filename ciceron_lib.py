@@ -74,6 +74,15 @@ def get_user_id(conn, text_id):
     else:            result = int(rs[0][0])
     return result
 
+def get_facebook_user_id(conn, text_id):
+    cursor = conn.execute("SELECT id, real_id from D_FACEBOOK_USERS WHERE email = ?",
+            [buffer(text_id)])
+    rs = cursor.fetchall()
+    if len(rs) == 0: result = (-1, None)
+    elif len(rs) > 1: raise Exception('Duplicated facebook user ID')
+    else:            result = (rs[0][0], rs[0][1])
+    return result
+
 def get_user_email(conn, num_id):
     cursor = conn.execute("SELECT email from D_USERS WHERE id = ?",
             [num_id])
@@ -633,9 +642,15 @@ def linkGenerator(noti_type, request_id, host="http://ciceron.me"):
         return None
 
 def get_noti_data(conn, noti_type, user_name, request_id, optional_info=None):
+    HOST = ""
+    if os.environ.get('PURPOSE') == 'PROD':
+        HOST = 'http://ciceron.me'
+    else:
+        HOST = 'http://ciceron.xyz'
+
     message = {
          "notiType": None,
-         "host": os.environ.get('HOST', 'http://ciceron.me'),
+         "host": HOST,
          "user": user_name,
          "link": None,
          "expected": None,
@@ -743,3 +758,47 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
         gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
         print str(gcm_noti.responses)
 
+def signUpQuick(conn, email, hashed_password, name, mother_language_id, external_service_provider=[]):
+    # Duplicate check
+    cursor = conn.execute("select id from D_USERS where email = ?", [buffer(email)])
+    check_data = cursor.fetchall()
+    if len(check_data) > 0:
+        # Status code 400 (BAD REQUEST)
+        # Description: Duplicate ID
+        return False
+
+    # Insert values to D_USERS
+    user_id = get_new_id(conn, "D_USERS")
+
+    print "New user id: %d" % user_id
+    conn.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [user_id,
+             buffer(email),
+             buffer(name),
+             mother_language_id,
+             0,
+             None,
+             None,
+             0,
+             0,
+             0,
+             0,
+             0,
+             0,
+             None,
+             buffer("nothing"),
+             0])
+
+    conn.execute("INSERT INTO PASSWORDS VALUES (?,?)",
+        [user_id, buffer(hashed_password)])
+    conn.execute("INSERT INTO REVENUE VALUES (?,?)",
+        [user_id, 0])
+
+    if 'facebook' in external_service_provider:
+        new_facebook_id = get_new_id(conn, "D_FACEBOOK_USERS")
+        conn.execute("INSERT INTO D_FACEBOOK_USERS VALUES (?,?,?) ",
+                [new_facebook_id, buffer(email), user_id])
+
+    conn.commit()
+
+    return True

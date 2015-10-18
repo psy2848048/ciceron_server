@@ -39,7 +39,11 @@ VERSION= "2014.12.28"
 
 CELERY_BROKER_URL = 'redis://localhost'
 
-HOST = "http://54.149.48.179"
+HOST = ""
+if os.environ.get('PURPOSE') == 'PROD':
+    HOST = 'http://ciceron.me'
+else:
+    HOST = 'http://ciceron.xyz'
 
 # APP setting
 app = Flask(__name__)
@@ -73,7 +77,7 @@ facebook = oauth.remote_app('facebook',
     authorize_url='https://www.facebook.com/dialog/oauth',
     consumer_key=FACEBOOK_APP_ID,
     consumer_secret=FACEBOOK_APP_SECRET,
-    request_token_params={'scope': ('email, ')}
+    request_token_params={'scope': 'email'}
 )
 
 date_format = "%Y-%m-%d %H:%M:%S.%f"
@@ -286,11 +290,13 @@ def login():
         session['salt'] = salt
         return make_response(json.jsonify(identifier=salt), 200)
 
-@app.route("/api/facebook_auth")
+@app.route("/api/facebook_login")
 def facebook_auth():
-    is_signUp = request.args.get('is_signUp', 'N') # 'Y' or 'N'
-    platform = request.args.get('platform', 'web') # 'web', 'mobile'
-    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp=is_signUp, platform=platform, _external=True))
+    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp='N', _external=True))
+
+@app.route("/api/facebook_signUpCheck")
+def facebook_signUpCheck():
+    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp='Y', _external=True))
 
 @app.route("/api/facebook_authorized")
 @facebook.authorized_handler
@@ -300,36 +306,83 @@ def facebook_authorized(resp):
             message="No access token from facebook"), 403)
 
     session['facebook_token'] = (resp['access_token'], '')
-    data = facebook.get('/me').data
-    platform = request.args.get('platform', 'web')
+    user_data = facebook.get('/me').data
 
+    # Login with facebook
     if request.args.get('is_signUp') == 'N':
-        user_id = get_user_id(g.db, email)
-        if user_id == -1:
+        facebook_id, user_id = get_facebook_user_id(g.db, user_data['email'])
+        if facebook_id == -1:
             return make_response(json.jsonify(
-                message='No user signed up with %s' % data['id']
+                message='No user signed up with %s' % user_data['email']
                 ), 403)
 
         session['logged_in'] = True
-        session['useremail'] = data['id']
+        session['useremail'] = get_user_email(g.db, user_id[1])
 
-        if platform == 'web':
-            return redirect('http://ciceron.me')
-        elif platform == 'mobile':
-            return """
-                <!DOCTYPE html>
-                <html>
-                <head></head>
-                <body>
-                <script type='text/javascript'>
-                    window.close();
-                </script>
-                </body></html>"""
+        return make_response(json.jsonify(
+            show_signUpView=False,
+            is_alreadySignedUp=None,
+            email=None,
+            user_name=None), 200)
 
+    # SignUp with facebook
+    elif request.args.get('is_signUp') == 'Y':
+        facebook_id, _ = get_facebook_user_id(g.db, user_data['email'])
+        # Defence duplicated facebook ID signing up
+        if facebook_id != -1:
+            return make_repsonse(json.jsonify(
+                message="You already signed up on facebook"), 403)
+
+        user_id = get_user_id(g.db, user_data['email'])
+        if user_id == -1:
+            return make_response(json.jsonify(
+                show_signUpView=True,
+                is_alreadySignedUp=False,
+                email=user_data['email'],
+                user_name=user_data['name']), 200)
+        else:
+            new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
+            g.db.execute("INSERT INTO D_FACEBOOK_USERS VALUES (?,?,?) ",
+                    [new_facebook_id, buffer(user_data['email'], user_id)])
+            g.db.commit()
+            return make_response(json.jsonify(
+                show_signUpView=True,
+                is_alreadySignedUp=True,
+                email=user_data['email'],
+                user_name=user_data['name']), 200)
+
+@app.route("/api/facebook_connectUser", methods=["POST"])
+@facebook.authorized_handler
+def facebook_connectUser():
+    parameters = parse_request(request)
+    email = parameters['email']
+    user_id = get_user_id(g.db, email)
+    if user_id == -1:
+        make_response(json.jsonify(
+            message="Not registered as normal user"), 403)
+
+    new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
+    g.db.execute("INSERT INTO D_FACEBOOK_USERS VALUES (?,?,?) ",
+            [new_facebook_id, buffer(email), user_id])
+    g.db.commit()
+
+    return make_response(json.jsonify(
+        message="Successfully connected with facebook ID"), 200)
+
+@app.route("/api/facebook_signUp", methods=["POST"])
+def facebook_signUp():
+    parameters = parse_request(request)
+    email = parameters['email']
+    hashed_password = parameters['password']
+    name = (parameters['name']).encode('utf-8')
+    mother_language_id = int(parameters['mother_language_id'])
+    result = signUpQuick(g.db, email, hashed_password, name, mother_language_id, external__service_provider=["facebook"])
+
+    if result == True:
+        return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
     else:
         return make_response(json.jsonify(
-            email=data['id'],
-            user_name=data['name']), 200)
+            message="ID %s is duplicated. Please check the email." % email), 412)
 
 @app.route('/api/logout', methods=["GET"])
 #@exception_detector
@@ -369,7 +422,6 @@ def signup():
         parameters = parse_request(request)
         email = parameters['email']
         hashed_password = parameters['password']
-        facebook_id = parameters.get('facebook_id', None)
         name = (parameters['name']).encode('utf-8')
         mother_language_id = int(parameters['mother_language_id'])
 
@@ -487,7 +539,7 @@ def create_recovery_code():
                          'user': user_name,
                          'password': recovery_code,
                          'page': "http://ciceron.me",
-                         "host": os.environ.get('HOST', 'http://52.11.126.237:5000')
+                         "host": HOST + ':5000'
                          }
 
     send_mail(email, subject, message)
@@ -679,6 +731,10 @@ def user_profile():
 #@exception_detector
 def user_keywords_control(keyword):
     if request.method == "POST":
+        if "%%2C" in keyword or ',' in keyword:
+            return make_response(json.jsonify(
+                message="No commna(',') in keyword"), 400)
+
         keyword_id = get_id_from_text(g.db, keyword, "D_KEYWORDS")
         if keyword_id == -1:
             keyword_id = get_new_id(g.db, "D_KEYWORDS")
@@ -2003,8 +2059,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point),
-            "cancel_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)},
+            "return_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point),
+            "cancel_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -2034,7 +2090,7 @@ def pay_for_request(str_request_id):
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'return_url': "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)
+            'return_url': "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)
             }
 
         provided_link = None
@@ -2122,7 +2178,7 @@ def pay_for_request_process(str_request_id):
         onerecord = record[0]
     except Exception as e:
         print "No record for this request. Request ID: %d" % request_id
-        return redirect("http://ciceron.me", code=302)
+        return redirect(HOST, code=302)
 
     original_lang_id = onerecord[0]
     target_lang_id = onerecord[1]
@@ -2137,9 +2193,9 @@ def pay_for_request_process(str_request_id):
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
     if pay_by == "web":
-        return redirect("http://ciceron.me", code=302)
+        return redirect(HOST, code=302)
     elif pay_by == "mobile":
-        return redirect("http://ciceron.me", code=302)
+        return redirect(HOST, code=302)
         #return """
         #    <!DOCTYPE html>
         #    <html>
@@ -2405,7 +2461,7 @@ def be_hero():
                          'residence': residence,
                          'score': score,
                          'doc_no': doc_no,
-                         "host": os.environ.get('HOST', 'http://52.11.126.237:5000')
+                         "host": HOST + ':5000'
                          }
 
     send_mail(email, subject, message, mail_from='hero@ciceron.me')
