@@ -18,6 +18,8 @@ CREATE TABLE D_USERS (
     badgeList_id INT, -- D_AWARDED_BADGES
     profile_text TEXT,
     trans_request_state INT,
+    nationality INT,
+    residence INT,
     PRIMARY KEY (id)
 );
 
@@ -46,6 +48,20 @@ INSERT INTO D_LANGUAGES VALUES (3, 'Chinese(Mandarin)');
 INSERT INTO D_LANGUAGES VALUES (4, 'Chinese(Cantonese)');
 INSERT INTO D_LANGUAGES VALUES (5, 'Japanese');
 INSERT INTO D_LANGUAGES VALUES (500, 'Others');
+
+CREATE TABLE D_NATIONS (
+    id INT,
+    name STRING
+);
+
+INSERT INTO D_NATIONS VALUES (0, 'Korea');
+INSERT INTO D_NATIONS VALUES (1, 'USA');
+INSERT INTO D_NATIONS VALUES (2, 'UK');
+INSERT INTO D_NATIONS VALUES (3, 'China(Mainland)');
+INSERT INTO D_NATIONS VALUES (4, 'China(Hong Kong, Macao)');
+INSERT INTO D_NATIONS VALUES (5, 'Taiwan');
+INSERT INTO D_NATIONS VALUES (6, 'Japan');
+INSERT INTO D_NATIONS VALUES (500, 'Others');
 
 CREATE TABLE D_USER_KEYWORDS (
     user_id INT,

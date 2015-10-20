@@ -351,14 +351,19 @@ def facebook_authorized(resp):
                 email=user_data['email'],
                 user_name=user_data['name']), 200)
 
-@app.route("/api/facebook_connectUser", methods=["POST"])
+@app.route("/api/facebook_connectUser", methods=["GET"])
 @facebook.authorized_handler
-def facebook_connectUser():
+def facebook_connectUser(resp):
     parameters = parse_request(request)
     email = parameters['email']
     user_id = get_user_id(g.db, email)
+
+    if facebook.get('/me').data['email'] != email:
+        return make_response(json.jsonify(
+            message="DO NOT HACK!!!!"), 403)
+
     if user_id == -1:
-        make_response(json.jsonify(
+        return make_response(json.jsonify(
             message="Not registered as normal user"), 403)
 
     new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
@@ -370,9 +375,15 @@ def facebook_connectUser():
         message="Successfully connected with facebook ID"), 200)
 
 @app.route("/api/facebook_signUp", methods=["POST"])
-def facebook_signUp():
+@facebook.authorized_handler
+def facebook_signUp(resp):
     parameters = parse_request(request)
     email = parameters['email']
+    # OAuth hacking check
+    if facebook.get('/me').data['email'] != email:
+        return make_response(json.jsonify(
+            message="DO NOT HACK!!!!"), 403)
+
     hashed_password = parameters['password']
     name = (parameters['name']).encode('utf-8')
     mother_language_id = int(parameters['mother_language_id'])
@@ -424,6 +435,8 @@ def signup():
         hashed_password = parameters['password']
         name = (parameters['name']).encode('utf-8')
         mother_language_id = int(parameters['mother_language_id'])
+        nationality = int(parameters.get('nationality')) if parameters.get('nationality') != None else None
+        residence = int(parameters.get('residence')) if parameters.get('residence') != None else None
 
         # Duplicate check
         cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
@@ -438,7 +451,7 @@ def signup():
         user_id = get_new_id(g.db, "D_USERS")
 
         print "New user id: %d" % user_id
-        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [user_id,
                  buffer(email),
                  buffer(name),
@@ -454,7 +467,10 @@ def signup():
                  0,
                  None,
                  buffer("nothing"),
-                 0])
+                 0,
+                 nationality,
+                 residence
+                 ])
 
         g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
             [user_id, buffer(hashed_password)])
