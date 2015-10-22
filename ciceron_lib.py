@@ -755,7 +755,7 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
     regKeys_oneuser = get_device_id(conn, user_id)
     print "Send push to the device: %s" % regKeys_oneuser
     if len(regKeys_oneuser) > 0:
-        gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
+        gcm_noti = gcm_server.send(regKeys_oneuser, {'notification': message_dict})
         print str(gcm_noti.responses)
 
 def signUpQuick(conn, email, hashed_password, name, mother_language_id, external_service_provider=[]):
