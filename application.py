@@ -2075,8 +2075,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point),
-            "cancel_url": "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)},
+            "return_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point),
+            "cancel_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -2090,7 +2090,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)
+        red_link = "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -2106,7 +2106,7 @@ def pay_for_request(str_request_id):
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'return_url': "http://%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)
+            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)
             }
 
         provided_link = None
