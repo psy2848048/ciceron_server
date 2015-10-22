@@ -454,7 +454,8 @@ CREATE VIEW V_NOTIFICATION as
     users2.profile_pic_path target_profile_pic_path,  --16
     fact.ts ts, --17
     fact.is_read is_read, --18
-    users.profile_pic_path user_profile_pic_path
+    users.profile_pic_path user_profile_pic_path,
+    req.status_id status_id
   FROM F_NOTIFICATION fact
   LEFT OUTER JOIN D_USERS users ON fact.user_id = users.id
   LEFT OUTER JOIN D_USERS users2 ON fact.target_user_id = users2.id
