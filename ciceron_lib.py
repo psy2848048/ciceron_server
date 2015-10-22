@@ -758,20 +758,20 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
         gcm_noti = gcm_server.send(regKeys_oneuser, {'notification': message_dict})
         print str(gcm_noti.responses)
 
-def signUpQuick(conn, email, hashed_password, name, mother_language_id, external_service_provider=[]):
+def signUpQuick(conn, email, hashed_password, name, mother_language_id, nationality_id=None, residence_id=None, external_service_provider=[]):
     # Duplicate check
     cursor = conn.execute("select id from D_USERS where email = ?", [buffer(email)])
     check_data = cursor.fetchall()
     if len(check_data) > 0:
         # Status code 400 (BAD REQUEST)
         # Description: Duplicate ID
-        return False
+        return 412
 
     # Insert values to D_USERS
     user_id = get_new_id(conn, "D_USERS")
 
     print "New user id: %d" % user_id
-    conn.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    conn.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [user_id,
              buffer(email),
              buffer(name),
@@ -787,7 +787,9 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, external
              0,
              None,
              buffer("nothing"),
-             0])
+             0,
+             nationality_id,
+             residence_id])
 
     conn.execute("INSERT INTO PASSWORDS VALUES (?,?)",
         [user_id, buffer(hashed_password)])
@@ -801,4 +803,4 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, external
 
     conn.commit()
 
-    return True
+    return 200

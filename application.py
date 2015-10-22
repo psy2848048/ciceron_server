@@ -387,11 +387,13 @@ def facebook_signUp(resp):
     hashed_password = parameters['password']
     name = (parameters['name']).encode('utf-8')
     mother_language_id = int(parameters['mother_language_id'])
-    result = signUpQuick(g.db, email, hashed_password, name, mother_language_id, external__service_provider=["facebook"])
+    nationality_id = int(parameters['nationality_id'])
+    residence_id = int(parameters['residence_id'])
+    result = signUpQuick(g.db, email, hashed_password, name, mother_language_id, nationality_id, residence_id, external__service_provider=["facebook"])
 
-    if result == True:
+    if result == 200:
         return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
-    else:
+    elif result == 412:
         return make_response(json.jsonify(
             message="ID %s is duplicated. Please check the email." % email), 412)
 
@@ -435,53 +437,17 @@ def signup():
         hashed_password = parameters['password']
         name = (parameters['name']).encode('utf-8')
         mother_language_id = int(parameters['mother_language_id'])
-        nationality = int(parameters.get('nationality')) if parameters.get('nationality') != None else None
-        residence = int(parameters.get('residence')) if parameters.get('residence') != None else None
+        nationality_id = int(parameters.get('nationality_id')) if parameters.get('nationality_id') != None else None
+        residence_id = int(parameters.get('residence_id')) if parameters.get('residence_id') != None else None
 
-        # Duplicate check
-        cursor = g.db.execute("select id from D_USERS where email = ?", [buffer(email)])
-        check_data = cursor.fetchall()
-        if len(check_data) > 0:
-            # Status code 400 (BAD REQUEST)
-            # Description: Duplicate ID
-            return make_response(json.jsonify(
-                message="ID %s is duplicated. Please check the email." % email), 412)
-
-        # Insert values to D_USERS
-        user_id = get_new_id(g.db, "D_USERS")
-
-        print "New user id: %d" % user_id
-        g.db.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                [user_id,
-                 buffer(email),
-                 buffer(name),
-                 mother_language_id,
-                 0,
-                 None,
-                 None,
-                 0,
-                 0,
-                 0,
-                 0,
-                 0,
-                 0,
-                 None,
-                 buffer("nothing"),
-                 0,
-                 nationality,
-                 residence
-                 ])
-
-        g.db.execute("INSERT INTO PASSWORDS VALUES (?,?)",
-            [user_id, buffer(hashed_password)])
-        g.db.execute("INSERT INTO REVENUE VALUES (?,?)",
-            [user_id, 0])
-
-        g.db.commit() 
+        status = signUpQuick(g.db, email, hashed_password, name, mother_language_id, nationality_id, residence_id)
 
         # Status code 200 (OK)
         # Description: Signed up successfully
-        return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
+        if status == 200:
+            return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
+        elif status == 412:
+            return make_response(json.jsonify(message="Duplicate email: %s" % email), 412)
     
     return '''
         <!doctype html>

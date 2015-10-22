@@ -617,7 +617,7 @@ class CiceronTestCase(unittest.TestCase):
         		request_points=0,
                 request_context="Wow!"
         		))
-        rv = self.app.get('/requests')
+        rv = self.app.get('/api/requests')
         print rv.data
 
         self.signUp(email="jun.hang.lee@sap.com",
@@ -636,30 +636,30 @@ class CiceronTestCase(unittest.TestCase):
         	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
         	    )
 
-        self.app.post('/user/profile', data=dict(
+        self.app.post('/api/user/profile', data=dict(
             user_isTranslator=1))
 
-        self.app.post('/user/translations/ongoing', data=dict(request_id=0))
-        self.app.post('/user/translations/ongoing', data=dict(request_id=1))
+        self.app.post('/api/user/translations/ongoing', data=dict(request_id=0))
+        self.app.post('/api/user/translations/ongoing', data=dict(request_id=1))
         print "Preparation done"
 
         print "1. Set expected time"
-        rv = self.app.get('/user/translations/ongoing/0/expected')
-        rv = self.app.post('/user/translations/ongoing/0/expected',data=dict(
+        rv = self.app.get('/api/user/translations/ongoing/0/expected')
+        rv = self.app.post('/api/user/translations/ongoing/0/expected',data=dict(
             expectedTime=datetime.datetime.now() + datetime.timedelta(days=5)))
         print rv.data
 
         print "2. Give up translating"
-        rv = self.app.delete('/user/translations/ongoing/1/expected')
+        rv = self.app.delete('/api/user/translations/ongoing/1/expected')
         print rv.data
 
         print "Check the result"
         print "1) My current job"
-        rv = self.app.get('/user/translations/ongoing')
+        rv = self.app.get('/api/user/translations/ongoing')
         print rv.data
 
         print "2) Current newsfeed"
-        rv = self.app.get('/requests')
+        rv = self.app.get('/api/requests')
         print rv.data
 
     def test_paypal(self):
