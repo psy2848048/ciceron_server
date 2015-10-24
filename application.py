@@ -1533,6 +1533,27 @@ def translation_incompleted_items_all():
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
     return make_response(json.jsonify(data=result), 200)
 
+@app.route('/api/user/translations/incomplete/<str_request_id>', methods = ["GET"])
+#@exception_detector
+@login_required
+@translator_checker
+def translation_incompleted_items_each(str_request_id):
+    if request.method == "GET":
+        request_id = int(str_request_id)
+        user_id = get_user_id(g.db, session['useremail'])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,1) AND ongoing_worker_id = ? AND request_id = ? "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,1) AND ongoing_worker_id = ? AND request_id = ? AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += " ORDER BY registered_time DESC LIMIT 20"
+        cursor = g.db.execute(query, [user_id, request_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
+        return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/requests/pending', methods=["GET"])
 #@exception_detector
 @login_required
@@ -1870,11 +1891,28 @@ def client_incompleted_items():
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/incomplete/<str_request_id>', methods = ["PUT", "DELETE", "POST"])
+@app.route('/api/user/requests/incomplete/<str_request_id>', methods = ["GET", "PUT", "DELETE", "POST"])
 #@exception_detector
 @login_required
 def client_incompleted_item_control(str_request_id):
-    if request.method == "PUT":
+    if request.method == "GET":
+        request_id = int(str_request_id)
+        user_id = get_user_id(g.db, session['useremail'])
+        query = None
+        if session['useremail'] in super_user:
+            query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? AND request_id = ? "
+        else:
+            query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? AND request_id = ? AND is_paid = 1 "
+        if 'since' in request.args.keys():
+            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += " ORDER BY registered_time DESC LIMIT 20"
+        cursor = g.db.execute(query, [user_id, request_id])
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
+        return make_response(json.jsonify(data=result), 200)
+
+
+    elif request.method == "PUT":
         # Only update due_time and price
 
         # It can be used in:
