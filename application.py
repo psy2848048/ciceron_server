@@ -2507,8 +2507,8 @@ def publicize():
 
     query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
-        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND is_paid = 1 AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
-        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND is_paid = 1 AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """
+        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
+        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """
     cursor = g.db.execute(query_no_expected_time)
     rs = cursor.fetchall()
     for item in rs:
@@ -2520,7 +2520,7 @@ def publicize():
     # Expired deadline
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
-        WHERE isSos = 0 AND status_id = 1 AND is_paid = 1 AND CURRENT_TIMESTAMP > due_time """
+        WHERE isSos = 0 AND status_id = 1 AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
@@ -2532,7 +2532,7 @@ def publicize():
     # No translators
     query_no_translators = """SELECT client_user_id, id
         FROM F_REQUESTS
-        WHERE isSos = 0 AND status_id = 0 AND is_paid = 1 AND CURRENT_TIMESTAMP > due_time """
+        WHERE isSos = 0 AND status_id = 0 AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
@@ -2540,10 +2540,10 @@ def publicize():
         client_list.append(item[0])
 
     g.db.execute("""UPDATE F_REQUESTS SET status_id = -1
-        WHERE isSos = 0 AND is_paid = 1 AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
+        WHERE isSos = 0 AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
     g.db.execute("""UPDATE F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
-        WHERE (isSos= 0 AND is_paid = 1 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
-        OR    (isSos= 0 AND is_paid = 1 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """)
+        WHERE (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/2) AND datetime(start_translating_time, '+30 minutes') < due_time)
+        OR    (isSos= 0 AND status_id = 1 AND expected_time is null AND (julianday(CURRENT_TIMESTAMP) - julianday(start_translating_time)) > ((julianday(due_time) - julianday(start_translating_time))/3) AND datetime(start_translating_time, '+30 minutes') > due_time) """)
     g.db.commit()
 
     for user_id in translator_list: update_user_record(g.db, translator_id=user_id)
@@ -2558,7 +2558,7 @@ def ask_expected_time():
     # Add client_user_id and update after commit
     query = """SELECT fact.ongoing_worker_id, fact.id, fact.client_user_id FROM F_REQUESTS fact
         LEFT OUTER JOIN V_NOTIFICATION noti ON fact.id = noti.request_id AND noti.noti_type_id = 1
-        WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND fact.is_paid = 1 AND noti.is_read is null
+        WHERE fact.isSos= 0 AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null
         AND (
           (CURRENT_TIMESTAMP > datetime(fact.start_translating_time, '+30 minutes') AND fact.due_time > datetime(CURRENT_TIMESTAMP, '+30 minutes'))
         OR 
@@ -2583,7 +2583,7 @@ def delete_sos():
 
     query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
         FROM F_REQUESTS
-        WHERE isSos = 1 AND status_id = 1 and ongoing_worker_id is not null AND CURRENT_TIMESTAMP > due_time AND is_paid = 1"""
+        WHERE isSos = 1 AND status_id = 1 and ongoing_worker_id is not null AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
@@ -2595,7 +2595,7 @@ def delete_sos():
     # No translators
     query_no_translators = """SELECT client_user_id, id
         FROM F_REQUESTS
-        WHERE isSos = 1 AND status_id = 0 AND CURRENT_TIMESTAMP > due_time ANd is_paid = 1"""
+        WHERE isSos = 1 AND status_id = 0 AND CURRENT_TIMESTAMP > due_time """
     cursor = g.db.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
