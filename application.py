@@ -436,7 +436,7 @@ def signup():
         email = parameters['email']
         hashed_password = parameters['password']
         name = (parameters['name']).encode('utf-8')
-        if parameters['mother_language_id'] is not None:
+        if 'mother_language_id' in parameters:
             mother_language_id = int(parameters['mother_language_id'])
         else:
             return make_response(json.jsonify(message="Some parameters are missing"), 400)
