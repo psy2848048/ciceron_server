@@ -2384,7 +2384,7 @@ def register_paybacki_email():
                  <br>
                  Thank you for being with Ciceron!<br>
                  Is it fun to work with us? We wish that it had been, and would be good time!<br>
-                 If there is any problem with our system, don'y hesitate to contact us by <a href="contact@ciceron.me">this mail!</a><br>
+                 If there is any problem with our system, don'y hesitate to contact us by <a href="mailto:contact@ciceron.me">this mail!</a><br>
                  <br>
                  For your refund request, please fill out the information below and reply to us!<br>
                  <br>
