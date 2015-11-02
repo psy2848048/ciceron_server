@@ -926,7 +926,7 @@ def requests():
                 store_notiTable(g.db, item[0], 0, None, request_id)
                 regKeys_oneuser = get_device_id(g.db, item[0])
 
-                message_dict = get_noti_data(g.db, 10, get_user_name(g.db, item[0]), request_id)
+                message_dict = get_noti_data(g.db, 10, item[0], request_id)
                 if len(regKeys_oneuser) > 0:
                     gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
@@ -1970,7 +1970,14 @@ def client_incompleted_item_control(str_request_id):
         user_id = get_user_id(g.db, session['useremail'])
 
         cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ?", [request_id, user_id])
-        points = float(cursor.fetchall()[0][0])
+        points = None
+        if cursor.fetchone()[0] is not None:
+            points = float(cursor.fetchone()[0])
+        else:
+            return make_response(json.jsonify(
+                message="The point has already refunded about this request.",
+                request_id=request_id), 402)
+            
         g.db.execute("UPDATE REVENUE SET amount = amount + ? WHERE id = ?", [points, user_id])
 
         g.db.execute("UPDATE F_REQUESTS SET is_paid = 0, status_id = -2 WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ? ", [request_id, user_id])
@@ -2100,9 +2107,9 @@ def pay_for_request(str_request_id):
         g.db.commit()
 
         if pay_by == "web":
-            return redirect("http://ciceron.me", code=302)
+            return redirect(HOST, code=302)
         elif pay_by == "mobile":
-            return redirect("http://ciceron.me", code=302)
+            return redirect(HOST, code=302)
             #return """
             #    <!DOCTYPE html>
             #    <html>
@@ -2179,7 +2186,7 @@ def pay_for_request_process(str_request_id):
         store_notiTable(g.db, item[0], 0, None, request_id)
         regKeys_oneuser = get_device_id(g.db, item[0])
 
-        message_dict = get_noti_data(g.db, 0, get_user_name(g.db, item[0]), request_id)
+        message_dict = get_noti_data(g.db, 0, item[0], request_id)
         if len(regKeys_oneuser) > 0:
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
@@ -2275,6 +2282,8 @@ def get_notification():
     for item in rs:
         row = {}
 
+        isAlert, alertType, link = getRoutingAddressAndAlertType(g.db, user_id, item[3], item[2])
+
         row['username'] = str(item[0])
         row['profilePic'] = str(item[1]) if item[1] != None else None
         row['noti_typeId'] = item[2]
@@ -2283,7 +2292,9 @@ def get_notification():
         row['target_userProfilePic'] = str(item[7]) if item[7] != None else None
         row['ts'] = str(item[5])
         row['is_read'] = parameter_to_bool(item[6])
-        row['link'] = linkGenerator(item[2], item[3], host="")
+        row['link'] = link
+        row['isAlert'] = isAlert
+        row['alertType'] = alertType
         row['abstract'] = str(item[9]) if item[9] != None else None
         row['request_status'] = item[10]
 
