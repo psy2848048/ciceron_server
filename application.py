@@ -1902,7 +1902,8 @@ def client_incompleted_item_control(str_request_id):
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
         cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 4, rs[0][1], request_id,
+        if rs[0][0] is not None:
+            send_noti_suite(gcm_server, g.db, rs[0][0], 4, rs[0][1], request_id,
                 optional_info={"hero": rs[0][1]})
 
         user_id = get_user_id(g.db, session['useremail'])
