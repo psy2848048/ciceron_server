@@ -1882,7 +1882,6 @@ def client_incompleted_item_control(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
 
-
     elif request.method == "PUT":
         # Only update due_time and price
 
@@ -1901,7 +1900,7 @@ def client_incompleted_item_control(str_request_id):
 
         # Notification
         query = "SELECT ongoing_worker_id, client_user_id FROM F_REQUESTS WHERE id = ?"
-        cursor.execute(query, [request_id])
+        cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
         send_noti_suite(gcm_server, g.db, rs[0][0], 4, rs[0][1], request_id,
                 optional_info={"hero": rs[0][1]})
@@ -1927,6 +1926,7 @@ def client_incompleted_item_control(str_request_id):
             return make_response(json.jsonify(
                 message="Request #%d is renewed. Please execute the API provided with POST method" % request_id,
                 api="/api/user/requests/%d/payment/start"%request_id,
+                additional_price=additional_price,
                 request_id=request_id), 200)
 
     elif request.method == "POST":
@@ -1961,6 +1961,7 @@ def client_incompleted_item_control(str_request_id):
             return make_response(json.jsonify(
                 message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
                 request_id=request_id,
+                additional_price=additional_price,
                 api="/api/user/requests/%d/payment/start"%request_id), 200)
 
     elif request.method == "DELETE":
