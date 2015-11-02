@@ -1893,7 +1893,7 @@ def client_incompleted_item_control(str_request_id):
         parameters = parse_request(request)
 
         # Addional time: unit is second, counted from NOW
-        additional_time_in_sec = parameters['user_additionalTime']
+        additional_time_in_sec = int(parameters['user_additionalTime'])
         additional_price = 0
         if parameters.get('user_additionalPrice') != None:
             additional_price = float(parameters['user_additionalPrice'])
@@ -1937,7 +1937,7 @@ def client_incompleted_item_control(str_request_id):
         parameters = parse_request(request)
 
         # Addional time: unit is second, counted from NOW
-        additional_time_in_sec = parameters['user_additionalTime']
+        additional_time_in_sec = int(parameters['user_additionalTime'])
         additional_price = 0
         if parameters.get('user_additionalPrice') != None:
             additional_price = float(parameters['user_additionalPrice'])
