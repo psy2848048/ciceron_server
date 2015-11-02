@@ -1971,9 +1971,10 @@ def client_incompleted_item_control(str_request_id):
         user_id = get_user_id(g.db, session['useremail'])
 
         cursor = g.db.execute("SELECT points FROM F_REQUESTS WHERE id = ? AND status_id IN (-1,0) AND client_user_id = ?", [request_id, user_id])
+        ret = cursor.fetchone()[0]
         points = None
-        if cursor.fetchone()[0] is not None:
-            points = float(cursor.fetchone()[0])
+        if ret is not None:
+            points = float(ret)
         else:
             return make_response(json.jsonify(
                 message="The point has already refunded about this request.",
