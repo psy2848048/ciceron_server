@@ -1001,7 +1001,6 @@ def show_queue():
         cursor = g.db.execute(query_pending, [my_user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs)
-        print result
 
         return make_response(json.jsonify(data=result), 200)
 
@@ -1158,8 +1157,8 @@ def pick_request():
             query_ongoing = """SELECT * FROM V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = ? AND is_paid = 1 """
 
         if 'since' in request.args.keys():
-            query_ongoing += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
-        query_ongoing += "ORDER BY registered_time DESC LIMIT 20"
+            query_ongoing += "AND start_translating_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query_ongoing += "ORDER BY start_translating_time DESC LIMIT 20"
 
         my_user_id = get_user_id(g.db, session['useremail'])
         cursor = g.db.execute(query_ongoing, [my_user_id])
@@ -1181,7 +1180,7 @@ def working_translate_item(str_request_id):
         else:
             query = "SELECT * FROM V_REQUESTS WHERE status_id = 1 AND request_id = ? AND is_paid = 1 "
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+            query += "AND start_translating_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id])
 
         rs = cursor.fetchall()
@@ -1211,7 +1210,7 @@ def expected_time(str_request_id):
         else:
             query = "SELECT expected_time, due_time FROM F_REQUESTS WHERE status_id = 1 AND id = ? AND is_paid = 1 "
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+            query += "AND start_translating_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         cursor = g.db.execute(query, [request_id])
         rs = cursor.fetchall()
         if len(rs) > 0:
@@ -1345,7 +1344,7 @@ def translation_completed_items_detail(str_request_id):
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND request_id = ? AND ongoing_worker_id = ? AND is_paid = 1 "
     if 'since' in request.args.keys():
-        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += "ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [request_id, user_id])
     rs = cursor.fetchall()
@@ -1366,7 +1365,7 @@ def translation_completed_items_all():
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ? AND is_paid = 1 "
     if 'since' in request.args.keys():
-        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
 
     cursor = g.db.execute(query, [user_id])
@@ -1475,7 +1474,7 @@ def translation_completed_items_in_group(str_group_id):
         else:
             query = "SELECT * FROM V_REQUESTS WHERE ongoing_worker_id = ? AND translator_completed_group_id = ? AND is_paid = 1 "
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+            query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
         query += " ORDER BY submitted_time DESC LIMIT 20"
         cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
@@ -1597,8 +1596,8 @@ def show_ongoing_list_client():
         else:
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND status_id = 1 AND is_paid = 1 "
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
-        query += " ORDER BY submitted_time DESC LIMIT 20"
+            query += "AND start_translating_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += " ORDER BY start_translating_time DESC LIMIT 20"
         cursor = g.db.execute(query, [user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1617,8 +1616,8 @@ def show_ongoing_item_client(str_request_id):
         else:
             query = "SELECT * FROM V_REQUESTS WHERE request_id = ? AND client_user_id = ? AND status_id = 1 AND is_paid = 1 "
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
-        query += " ORDER BY registered_time DESC LIMIT 20"
+            query += "AND start_translating_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += " ORDER BY start_translating_time DESC LIMIT 20"
         cursor = g.db.execute(query, [request_id, user_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1635,7 +1634,7 @@ def client_completed_items():
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND is_paid = 1 "
     if 'since' in request.args.keys():
-        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
@@ -1654,8 +1653,8 @@ def client_completed_items_detail(str_request_id):
     else:
         query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = ? AND request_id = ? AND is_paid = 1 "
     if 'since' in request.args.keys():
-        query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
-    query += " ORDER BY registered_time DESC LIMIT 20"
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+    query += " ORDER BY submitted_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id, request_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1837,8 +1836,8 @@ def client_completed_items_in_group(str_group_id):
         else:
             query = "SELECT * FROM V_REQUESTS WHERE client_user_id = ? AND client_completed_group_id = ? AND is_paid = 1 "
         if 'since' in request.args.keys():
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
-        query += "ORDER BY request_id DESC"
+            query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+        query += "ORDER BY submitted_time DESC"
         cursor = g.db.execute(query, [my_user_id, group_id])
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1856,7 +1855,7 @@ def client_incompleted_items():
         query = "SELECT * FROM V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = ? AND is_paid = 1 "
     if 'since' in request.args.keys():
         query += "AND registered_time < datetime(%s, 'unixepoch') " % request.args.get('since')
-    query += " ORDER BY request_id DESC LIMIT 20"
+    query += " ORDER BY registered_time DESC LIMIT 20"
     cursor = g.db.execute(query, [user_id])
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -2236,13 +2235,12 @@ def register_or_update_register_id():
 @app.route('/api/access_file/<directory>/<filename>')
 @login_required
 def access_file(directory, filename):
-    print directory
-    print filename
+    print request.remote_addr
     return send_from_directory(directory, filename)
 
 @app.route('/api/mail_img/<directory>/<filename>')
 def mail_img(directory, filename):
-    return send_from_directory(directory, filename)
+    return send_from_directory('img', filename)
 
 @app.route('/api/action_record', methods = ["POST"])
 @login_required
