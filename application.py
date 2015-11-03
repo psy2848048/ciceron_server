@@ -2002,6 +2002,35 @@ def client_incompleted_item_control(str_request_id):
             message="Your request #%d is deleted. Your points USD %.2f is backed in your account" % (request_id, points),
             request_id=request_id), 200)
 
+@app.route('/api/user/requests/<str_request_id>/payment/checkPromoCode', methods = ["GET"])
+#@exception_detector
+@login_required
+def check_promotionCode(str_request_id):
+    user_id = get_user_id(g.db, session['useremail'])
+    parameters = parse_request(request)
+
+    code = parameters['promotionCode']
+
+    isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, code)
+    isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, code)
+    if isCommonCode in [1, 2]:
+        return make_response(json.jsonify(
+            promoType=None, message=commonMessage, code=isCommonCode, point=0), 402)
+    elif isIndivCode in [1, 2]:
+        return make_response(json.jsonify(
+            promoType=None, message=indivMessage, code=isIndivCode, point=0), 402)
+
+    elif isCommonCode == 0:
+        return make_response(json.jsonify(
+            promoType='common', message=commonMessage, code=0, point=commonPoint), 200)
+    elif isIndivCode == 0:
+        return make_response(json.jsonify(
+            promoType='indiv', message=indivMessage, code=0, point=indivPoint), 200)
+
+    else:
+        return make_response(json.jsonify(
+            promoType=None, message="There is no promo code matched,", code=3, point=0), 402)
+        
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 #@exception_detector
 @login_required
@@ -2014,12 +2043,16 @@ def pay_for_request(str_request_id):
     total_amount = float(parameters['pay_amount'])
     use_point = float(parameters.get('use_point', 0))
 
+    promo_type = parameters.get('promo_type', 'null')
+    promo_code = parameters.get('promo_code', 'null')
+
     # Check whether the price exceeds the client's money purse.
     amount = None
     user_id = get_user_id(g.db, session['useremail'])
 
     host_ip = os.environ.get('HOST', app.config['HOST'])
 
+    # Point deduction
     if use_point > 0:
         # Check whether use_point exceeds or not
         cursor = g.db.execute("SELECT amount FROM REVENUE WHERE id = ?", [user_id])
@@ -2035,6 +2068,15 @@ def pay_for_request(str_request_id):
             amount = total_amount - use_point
     else:
         amount = total_amount
+
+    # Promo code deduction
+    if promo_type != None:
+        isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, code)
+        isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, code)
+        if isCommonCode == 0:
+            amount = amount - commonPoint
+        elif isIndivCode == 0:
+            amount = amount - indivPoint
 
     if pay_via == 'paypal':
         # SANDBOX
@@ -2059,8 +2101,8 @@ def pay_for_request(str_request_id):
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point),
-            "cancel_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)},
+            "return_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (HOST, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code),
+            "cancel_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (HOST, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -2074,7 +2116,7 @@ def pay_for_request(str_request_id):
                 paypal_link = item['href']
                 break
 
-        red_link = "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point)
+        red_link = "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)
         if bool(rs) is True:
             return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
         else:
@@ -2090,7 +2132,7 @@ def pay_for_request(str_request_id):
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f" % (HOST, request_id, session['useremail'], amount, pay_by, use_point)
+            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (HOST, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)
             }
 
         provided_link = None
@@ -2135,6 +2177,9 @@ def pay_for_request_process(str_request_id):
     amount = float(request.args.get('pay_amt'))
     use_point = float(request.args.get('use_point', 0))
 
+    promo_type = parameters.get('promo_type', 'null')
+    promo_code = parameters.get('promo_code', 'null')
+
     # Point deduction
     if use_point > 0:
         g.db.execute("UPDATE REVENUE SET amount = amount - ? WHERE id = ?", [use_point, user_id])
@@ -2170,6 +2215,11 @@ def pay_for_request_process(str_request_id):
                     [payment_info_id, request_id, buffer(user), buffer("alipay"), None, amount])
 
             g.db.commit()
+
+    if promo_type == 'common':
+        commonPromotionCodeExecutor(g.db, user_id, promo_code)
+    elif promo_type == 'indiv':
+        individualPromotionCodeExecutor(g.db, user_id, promo_code)
 
     # Notification for normal request
     cursor = g.db.execute("SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ?", [request_id])

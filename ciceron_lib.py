@@ -858,3 +858,77 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
     conn.commit()
 
     return 200
+
+def commonPromotionCodeChecker(conn, user_id, code):
+    # return: (val1, val2, message)
+    #          val1: is valid code? (codeType)
+    #          val2: How much?
+    #          message: Message
+    query_commonPromotionCode= """
+        SELECT id, benefitPoint, expireTime FROM USEDPROMOTION_COMMON WHERE text = ? """
+    cursor = conn.execute(query_commonPromotionCode, [buffer(code)])
+    ret = cursor.fetchone()
+
+    if len(ret) == 0:
+        return (3, 0, "There is no promo code matched.")
+
+    code_id = ret[0]
+    benefitPoint = ret[1]
+    expireTime = ret[2]
+
+    if expireTime < datetime.now():
+        return (2, 0, "This promo code is expired.")
+
+    query_userCheck = """
+        SELECT count(*) FROM USEDPROMOTION_COMMON WHERE id = ? AND user_id = ? """
+
+    cursor = conn.execute(query_userCheck, [code_id, user_id])
+    cnt = cursor.fetchone()[0]
+
+    if cnt > 0:
+        return (1, 0, "You've already used this code.")
+
+    else:
+        return (0, benefitPoint, "You may use this code.")
+
+def commonPromotionCodeExecutor(conn, user_id, code):
+    query_searchPromoCodeId = """
+        SELECT id FROM PROMOTIONCODES_COMMON WHERE text = ? """
+    cursor = conn.execute(query_searchPromoCodeId, [buffer(code)])
+    code_id = cursor.fetchone()[0]
+    query_commonPromotionCodeExeutor = """
+        INSERT INTO USEDPROMOTION_COMMON VALUES (?,?)"""
+    conn.execute(query_commonPromotionCodeExeutor, [code_id, user_id])
+    conn.commit()
+
+def individualPromotionCodeChecker(conn, user_id, code):
+    # return: (val1, val2)
+    #          val1: is valid code?
+    #          val2: How much?
+    query_individualPromotionCode= """
+        SELECT benefitPoint, expireTime, is_used FROM PROMOTIONCODES_USER WHERE user_id = ? AND text = ? """
+    cursor = conn.execute(query_individualPromotionCode, [user_id, buffer(code)])
+    ret = cursor.fetchone()
+
+    if len(ret) == 0:
+        return (3, 0, "There is no promo code matched.")
+
+    benefitPoint = ret[0]
+    expireTime = ret[1]
+    isUsed = ret[2]
+
+    if expireTime < datetime.now():
+        return (2, 0, "This promo code is expired.")
+
+    if isUsed == 1:
+        return (1, 0, "You've already used this code.")
+
+    else:
+        return (0, benefitPoint, "You may use this code.")
+
+def individualPromotionCodeExecutor(conn, user_id, code):
+    query_commonPromotionCodeExeutor = """
+        UPDATE PROMOTIONCODES_USER SET is_used = 1 WHERE user_id = ? AND text = ? """
+    conn.execute(query_commonPromotionCodeExeutor, [user_id, buffer(code)])
+    conn.commit()
+

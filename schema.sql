@@ -473,3 +473,27 @@ CREATE VIEW V_NOTIFICATION as
   LEFT OUTER JOIN D_USERS users2 ON fact.target_user_id = users2.id
   LEFT OUTER JOIN D_NOTI_TYPE noti ON fact.noti_type_id = noti.id
   LEFT OUTER JOIN V_REQUESTS req ON fact.request_id = req.request_id;
+
+CREATE TABLE PROMOTIONCODES_COMMON (
+    id INT,
+    text VARCHAR(10),
+    benefitPoint DECIMAL(10, 2),
+    expireTime TIMESTAMP,
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE USEDPROMOTION_COMMON (
+    id INT,
+    user_id INT,
+    PRIMARY KEY(id, user_id)
+);
+
+CREATE TABLE PROMOTIONCODES_USER (
+    id INT,
+    user_id INT,
+    text VARCHAR(10),
+    benefitPoint DECIMAL(10,2),
+    expireTime TIMESTAMP,
+    is_used INT,
+    PRIMARY KEY(id)
+);
