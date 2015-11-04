@@ -2070,9 +2070,9 @@ def pay_for_request(str_request_id):
         amount = total_amount
 
     # Promo code deduction
-    if promo_type != None:
-        isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, code)
-        isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, code)
+    if promo_type != 'null':
+        isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, promo_code)
+        isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, promo_code)
         if isCommonCode == 0:
             amount = amount - commonPoint
         elif isIndivCode == 0:
