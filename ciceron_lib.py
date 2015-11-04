@@ -636,7 +636,10 @@ def pick_random_translator(conn, number, from_lang, to_lang):
     return result
 
 def string2Date(string):
-    return datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
+    try:
+        return datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
+    except:
+        return datetime.strptime(string, "%Y-%m-%d")
 
 def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
     requesterNoti = [6, 7, 8, 9, 10, 11, 12]
@@ -865,16 +868,16 @@ def commonPromotionCodeChecker(conn, user_id, code):
     #          val2: How much?
     #          message: Message
     query_commonPromotionCode= """
-        SELECT id, benefitPoint, expireTime FROM USEDPROMOTION_COMMON WHERE text = ? """
-    cursor = conn.execute(query_commonPromotionCode, [buffer(code)])
+        SELECT id, benefitPoint, expireTime FROM PROMOTIONCODES_COMMON WHERE text = ? """
+    cursor = conn.execute(query_commonPromotionCode, [code])
     ret = cursor.fetchone()
 
-    if len(ret) == 0:
+    if ret == None:
         return (3, 0, "There is no promo code matched.")
 
     code_id = ret[0]
     benefitPoint = ret[1]
-    expireTime = ret[2]
+    expireTime = string2Date(ret[2])
 
     if expireTime < datetime.now():
         return (2, 0, "This promo code is expired.")
@@ -894,7 +897,7 @@ def commonPromotionCodeChecker(conn, user_id, code):
 def commonPromotionCodeExecutor(conn, user_id, code):
     query_searchPromoCodeId = """
         SELECT id FROM PROMOTIONCODES_COMMON WHERE text = ? """
-    cursor = conn.execute(query_searchPromoCodeId, [buffer(code)])
+    cursor = conn.execute(query_searchPromoCodeId, [code])
     code_id = cursor.fetchone()[0]
     query_commonPromotionCodeExeutor = """
         INSERT INTO USEDPROMOTION_COMMON VALUES (?,?)"""
@@ -907,14 +910,14 @@ def individualPromotionCodeChecker(conn, user_id, code):
     #          val2: How much?
     query_individualPromotionCode= """
         SELECT benefitPoint, expireTime, is_used FROM PROMOTIONCODES_USER WHERE user_id = ? AND text = ? """
-    cursor = conn.execute(query_individualPromotionCode, [user_id, buffer(code)])
+    cursor = conn.execute(query_individualPromotionCode, [user_id, code])
     ret = cursor.fetchone()
 
-    if len(ret) == 0:
+    if ret == None:
         return (3, 0, "There is no promo code matched.")
 
     benefitPoint = ret[0]
-    expireTime = ret[1]
+    expireTime = string2Date(ret[1])
     isUsed = ret[2]
 
     if expireTime < datetime.now():
@@ -929,6 +932,6 @@ def individualPromotionCodeChecker(conn, user_id, code):
 def individualPromotionCodeExecutor(conn, user_id, code):
     query_commonPromotionCodeExeutor = """
         UPDATE PROMOTIONCODES_USER SET is_used = 1 WHERE user_id = ? AND text = ? """
-    conn.execute(query_commonPromotionCodeExeutor, [user_id, buffer(code)])
+    conn.execute(query_commonPromotionCodeExeutor, [user_id, code])
     conn.commit()
 

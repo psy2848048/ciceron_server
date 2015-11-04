@@ -2002,14 +2002,14 @@ def client_incompleted_item_control(str_request_id):
             message="Your request #%d is deleted. Your points USD %.2f is backed in your account" % (request_id, points),
             request_id=request_id), 200)
 
-@app.route('/api/user/requests/<str_request_id>/payment/checkPromoCode', methods = ["GET"])
+@app.route('/api/user/requests/<str_request_id>/payment/checkPromoCode', methods = ["POST"])
 #@exception_detector
 @login_required
 def check_promotionCode(str_request_id):
     user_id = get_user_id(g.db, session['useremail'])
     parameters = parse_request(request)
 
-    code = parameters['promotionCode']
+    code = parameters['promotionCode'].upper()
 
     isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, code)
     isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, code)
