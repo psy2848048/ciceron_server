@@ -2177,8 +2177,8 @@ def pay_for_request_process(str_request_id):
     amount = float(request.args.get('pay_amt'))
     use_point = float(request.args.get('use_point', 0))
 
-    promo_type = parameters.get('promo_type', 'null')
-    promo_code = parameters.get('promo_code', 'null')
+    promo_type = request.args('promo_type', 'null')
+    promo_code = request.args('promo_code', 'null')
 
     # Point deduction
     if use_point > 0:
