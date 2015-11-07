@@ -1227,11 +1227,13 @@ def expected_time(str_request_id):
                 [request_id])
         g.db.commit()
 
+        user_id = get_user_id(session['useremail'])
+
         # Notification
         query = "SELECT client_user_id, expected_time FROM F_REQUESTS WHERE id = ?"
         cursor= g.db.execute(query, [request_id])
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 7, rs[0][1], request_id, optional_info={"expected": rs[0][1]})
+        send_noti_suite(gcm_server, g.db, rs[0][0], 7, user_id, request_id, optional_info={"expected": rs[0][1]})
 
         g.db.commit()
         return make_response(json.jsonify(
