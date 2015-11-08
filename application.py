@@ -1227,7 +1227,7 @@ def expected_time(str_request_id):
                 [request_id])
         g.db.commit()
 
-        user_id = get_user_id(session['useremail'])
+        user_id = get_user_id(g.db, session['useremail'])
 
         # Notification
         query = "SELECT client_user_id, expected_time FROM F_REQUESTS WHERE id = ?"
