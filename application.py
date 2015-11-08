@@ -1910,8 +1910,8 @@ def client_incompleted_item_control(str_request_id):
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
         if additional_price == 0:
-            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0 WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is null" % additional_time_in_sec, [request_id, user_id])
-            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 1 WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null" % additional_time_in_sec, [request_id, user_id])
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, registered_time = datetime('now') WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is null" % additional_time_in_sec, [request_id, user_id])
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 1, registered_time=datetime('now') WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null" % additional_time_in_sec, [request_id, user_id])
             g.db.commit()
 
             return make_response(json.jsonify(
@@ -1947,7 +1947,7 @@ def client_incompleted_item_control(str_request_id):
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
         if additional_price == 0:
-            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, ongoing_worker_id = null WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null" % additional_time_in_sec, [request_id, user_id])
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, ongoing_worker_id = null, registered_time=datetime('now') WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null" % additional_time_in_sec, [request_id, user_id])
             g.db.commit()
 
             return make_response(json.jsonify(
@@ -1957,7 +1957,7 @@ def client_incompleted_item_control(str_request_id):
 
         # Change due date w/additional money
         else:
-            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, is_paid = 0, points = points + ?, ongoing_worker_id = null WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null" % additional_time_in_sec, [additional_price, request_id, user_id])
+            g.db.execute("UPDATE F_REQUESTS SET due_time = datetime('now', '+%d seconds'), status_id = 0, is_paid = 0, points = points + ?, ongoing_worker_id = null, registered_time=datetime('now') WHERE id = ? AND status_id = -1 AND client_user_id = ? AND ongoing_worker_id is not null" % additional_time_in_sec, [additional_price, request_id, user_id])
             g.db.commit()
 
             return make_response(json.jsonify(
