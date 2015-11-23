@@ -409,7 +409,8 @@ def logout():
         # Status code 200 (OK)
         # Logout success
         return make_response(json.jsonify(
-                   message = "User %s is logged out" % username_temp
+                   message = "Logged out",
+                   email=username_temp
                ), 200)
     else:
         # Status code 403 (ERROR)
@@ -449,7 +450,10 @@ def signup():
         # Status code 200 (OK)
         # Description: Signed up successfully
         if status == 200:
-            return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
+            return make_response(json.jsonify(
+                message="Registration successful",
+                email=email
+                ), 200)
         elif status == 412:
             return make_response(json.jsonify(message="Duplicate email: %s" % email), 412)
     
