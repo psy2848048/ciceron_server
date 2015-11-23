@@ -1245,6 +1245,7 @@ def expected_time(str_request_id):
         g.db.commit()
         return make_response(json.jsonify(
             message="Thank you for responding!",
+            currentExpectedTime=rs[0][1],
             request_id=request_id), 200)
 
     elif request.method == "DELETE":
