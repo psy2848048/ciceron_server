@@ -484,12 +484,14 @@ def idChecker():
         # Status code 200 (OK)
         # Description: Inputted e-mail ID is available
         return make_response(json.jsonify(
-            message="You may use the ID %s" % email), 200)
+            message="You may use the ID %s" % email,
+            email=email), 200)
     else:
         # Status code 400 (BAD)
         # Description: Inputted e-mail ID is duplicated with other's one
         return make_response(json.jsonify(
-            message="Duplicated ID '%s'" % email), 400)
+            message="Duplicated ID '%s'" % email,
+            email=email), 400)
 
 @app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
@@ -938,7 +940,7 @@ def requests():
 
         return make_response(json.jsonify(
             message="Request has been posted!",
-            email=parameters['request_clientId'],
+            user_email=parameters['request_clientId'],
             request_id=request_id), 200)
 
 #@app.route('/api/requests/<str_request_id>', methods=["DELETE"])
