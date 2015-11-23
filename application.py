@@ -1234,7 +1234,7 @@ def expected_time(str_request_id):
     elif request.method == "DELETE":
         cursor = g.db.cursor()
         request_id = int(str_request_id)
-        cursor.execute("UPDATE F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = %s", (request_id, ))
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = %s", (request_id, ))
         g.db.commit()
 
         query = None
