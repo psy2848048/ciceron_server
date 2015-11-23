@@ -412,7 +412,8 @@ def logout():
         # Status code 200 (OK)
         # Logout success
         return make_response(json.jsonify(
-                   message = "User %s is logged out" % username_temp
+                   message = "Logged out",
+                   email=username_temp
                ), 200)
     else:
         # Status code 403 (ERROR)
@@ -452,7 +453,10 @@ def signup():
         # Status code 200 (OK)
         # Description: Signed up successfully
         if status == 200:
-            return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
+            return make_response(json.jsonify(
+                message="Registration successful",
+                email=email
+                ), 200)
         elif status == 412:
             return make_response(json.jsonify(message="Duplicate email: %s" % email), 412)
     
@@ -485,12 +489,14 @@ def idChecker():
         # Status code 200 (OK)
         # Description: Inputted e-mail ID is available
         return make_response(json.jsonify(
-            message="You may use the ID %s" % email), 200)
+            message="You may use the ID %s" % email,
+            email=email), 200)
     else:
         # Status code 400 (BAD)
         # Description: Inputted e-mail ID is duplicated with other's one
         return make_response(json.jsonify(
-            message="Duplicated ID '%s'" % email), 400)
+            message="Duplicated ID '%s'" % email,
+            email=email), 400)
 
 @app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
@@ -946,7 +952,8 @@ def requests():
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId']),
+            message="Request has been posted!",
+            user_email=parameters['request_clientId'],
             request_id=request_id), 200)
 
 @app.route('/api/user/translations/pending', methods=["GET", "POST"])
@@ -1221,6 +1228,7 @@ def expected_time(str_request_id):
         g.db.commit()
         return make_response(json.jsonify(
             message="Thank you for responding!",
+            currentExpectedTime=rs[0][1],
             request_id=request_id), 200)
 
     elif request.method == "DELETE":
