@@ -937,7 +937,8 @@ def requests():
         g.db.commit()
 
         return make_response(json.jsonify(
-            message="Request ID %d  has been posted by %s" % (request_id, parameters['request_clientId']),
+            message="Request has been posted!",
+            email=parameters['request_clientId'],
             request_id=request_id), 200)
 
 #@app.route('/api/requests/<str_request_id>', methods=["DELETE"])
