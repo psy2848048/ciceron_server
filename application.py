@@ -1933,10 +1933,19 @@ def client_incompleted_item_control(str_request_id):
             cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 1, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, request_id, user_id))
             g.db.commit()
 
+            cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
+            rs = cursor.fetchone()
+            request_registeredTime = rs[0]
+            request_dueTime = rs[1]
+            request_points = rs[2]
+
             return make_response(json.jsonify(
                 message="Request #%d is renewed" % request_id,
                 api=None,
-                request_id=request_id), 200)
+                request_id=request_id,
+                request_registeredTime=request_registeredTime,
+                request_dueTime=request_dueTime,
+                request_points=request_points), 200)
 
         # Change due date w/additional money
         else:
@@ -1944,11 +1953,20 @@ def client_incompleted_item_control(str_request_id):
             cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 1, is_paid = true, points = points + %s WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, additional_price, request_id, user_id))
             g.db.commit()
 
+            cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
+            rs = cursor.fetchone()
+            request_registeredTime = rs[0]
+            request_dueTime = rs[1]
+            request_points = rs[2]
+
             return make_response(json.jsonify(
                 message="Request #%d is renewed. Please execute the API provided with POST method" % request_id,
                 api="/api/user/requests/%d/payment/start"%request_id,
                 additional_price=additional_price,
-                request_id=request_id), 200)
+                request_id=request_id,
+                request_registeredTime=request_registeredTime,
+                request_dueTime=request_dueTime,
+                request_points=request_points), 200)
 
     elif request.method == "POST":
         # It can be used in:
@@ -1970,21 +1988,39 @@ def client_incompleted_item_control(str_request_id):
             cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, request_id, user_id) )
             g.db.commit()
 
+            cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
+            rs = cursor.fetchone()
+            request_registeredTime = rs[0]
+            request_dueTime = rs[1]
+            request_points = rs[2]
+
             return make_response(json.jsonify(
                 message="Request #%d is posted back to stoa." % request_id,
                 request_id=request_id,
-                api=None), 200)
+                api=None,
+                request_registeredTime=request_registeredTime,
+                request_dueTime=request_dueTime,
+                request_points=request_points), 200) 
 
         # Change due date w/additional money
         else:
             cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, is_paid = false, points = points + %s, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, additional_price, request_id, user_id))
             g.db.commit()
 
+            cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
+            rs = cursor.fetchone()
+            request_registeredTime = rs[0]
+            request_dueTime = rs[1]
+            request_points = rs[2]
+
             return make_response(json.jsonify(
                 message="Request #%d is renewed. Please execute the API provided with POST methid" % request_id,
                 request_id=request_id,
                 additional_price=additional_price,
-                api="/api/user/requests/%d/payment/start"%request_id), 200)
+                api="/api/user/requests/%d/payment/start"%request_id,
+                request_registeredTime=request_registeredTime,
+                request_dueTime=request_dueTime,
+                request_points=request_points), 200)
 
     elif request.method == "DELETE":
         # It can be used in:
@@ -2023,6 +2059,7 @@ def client_incompleted_item_control(str_request_id):
 
         return make_response(json.jsonify(
             message="Your request #%d is deleted. Your points USD %.2f is backed in your account" % (request_id, points),
+            points=points,
             request_id=request_id), 200)
 
 @app.route('/api/user/requests/<str_request_id>/payment/checkPromoCode', methods = ["POST"])
