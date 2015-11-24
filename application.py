@@ -704,7 +704,9 @@ def user_profile():
 
         g.db.commit()
         return make_response(json.jsonify(
-            message="Your profile is susccessfully updated!"), 200)
+            message="Your profile is susccessfully updated!",
+            user_profileText=profileText,
+            user_profilePicPath=pic_path), 200)
 
 @app.route('/api/user/profile/keywords/<keyword>', methods = ['GET', 'POST', 'DELETE'])
 @login_required
