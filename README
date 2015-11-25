@@ -17,6 +17,7 @@ Ciceron server code
   - libxslt1-dev
   - python-dev
   - nodejs nodejs-dev
+  - postgresql postgresql-contrib (sudo -u postgres psql postgres -> \password [pasword])
 
 * Package dependency (pip install)
   - Flask
@@ -32,6 +33,7 @@ Ciceron server code
   - lxml
   - Celery
   - alipay
+  - psycopg2
 
 * Summary of set up
  1) Env

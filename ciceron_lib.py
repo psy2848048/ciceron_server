@@ -4,36 +4,6 @@ from datetime import datetime, timedelta
 from functools import wraps
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
-# hashed ID maker for REVUNUE table
-def hashed_id_maker(conn):
-    cursor = conn.execute( "SELECT password_hashed FROM Users WHERE string_id = ?", [buffer(session['username'])])
-    password_hashed = cursor.fetchall()[0][0]
-
-    hash_maker = hashlib.md5()
-
-    hash_maker.update(app.config['VERSION'])
-    hash_maker.update(session['username'])
-    hash_maker.update(password_hashed)
-    hash_maker.update(app.config['VERSION'])
-    hashed_ID = hash_maker.digest()
-
-    return hashed_ID
-
-# hashed ID maker for REVUNUE table
-def hashed_other_id_maker(conn, string_id):
-    cursor = conn.execute( "SELECT password_hashed FROM Users WHERE string_id = ?", [buffer(string_id)])
-    password_hashed = cursor.fetchall()[0][0]
-
-    hash_maker = hashlib.md5()
-
-    hash_maker.update(app.config['VERSION'])
-    hash_maker.update(string_id)
-    hash_maker.update(password_hashed)
-    hash_maker.update(app.config['VERSION'])
-    hashed_ID = hash_maker.digest()
-
-    return hashed_ID
-
 def get_hashed_password(password, salt=None):
     hash_maker = hashlib.sha256()
 
@@ -60,23 +30,26 @@ def random_string_gen(size=6, chars=string.letters + string.digits):
 #        conn.execute("UPDATE RegKey_android SET reg_key = ? WHERE id = ?", [buffer(registration_id), buffer(user_id)])
 
 def get_id_from_text(conn, text, table):
-    cursor = conn.execute("SELECT id from %s WHERE text = ?" % table, [buffer(text)])
+    query = "SELECT id from CICERON.%s WHERE text = " % table
+    query += "%s"
+    cursor = conn.cursor()
+    cursor.execute(query, (text, ))
     rs = cursor.fetchall()
     if len(rs) == 0: result = -1
     else:            result = int(rs[0][0])
     return result
 
 def get_user_id(conn, text_id):
-    cursor = conn.execute("SELECT id from D_USERS WHERE email = ?",
-            [buffer(text_id)])
+    cursor = conn.cursor()
+    cursor.execute("SELECT id from CICERON.D_USERS WHERE email = %s", (text_id, ))
     rs = cursor.fetchall()
     if len(rs) == 0: result = -1
     else:            result = int(rs[0][0])
     return result
 
 def get_facebook_user_id(conn, text_id):
-    cursor = conn.execute("SELECT id, real_id from D_FACEBOOK_USERS WHERE email = ?",
-            [buffer(text_id)])
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, real_id from CICERON.D_FACEBOOK_USERS WHERE email = %s", (text_id, ))
     rs = cursor.fetchall()
     if len(rs) == 0: result = (-1, None)
     elif len(rs) > 1: raise Exception('Duplicated facebook user ID')
@@ -84,7 +57,8 @@ def get_facebook_user_id(conn, text_id):
     return result
 
 def get_user_email(conn, num_id):
-    cursor = conn.execute("SELECT email from D_USERS WHERE id = ?",
+    cursor = conn.cursor()
+    cursor.execute("SELECT email from CICERON.D_USERS WHERE id = %s",
             [num_id])
     rs = cursor.fetchall()
     if len(rs) == 0: result = None
@@ -92,7 +66,8 @@ def get_user_email(conn, num_id):
     return result
 
 def get_user_name(conn, num_id):
-    cursor = conn.execute("SELECT name from D_USERS WHERE id = ?",
+    cursor = conn.cursor()
+    cursor.execute("SELECT name from CICERON.D_USERS WHERE id = %s",
             [num_id])
     rs = cursor.fetchall()
     if len(rs) == 0: result = None
@@ -100,38 +75,47 @@ def get_user_name(conn, num_id):
     return result
 
 def get_text_from_id(conn, id_num, table):
-    cursor = conn.execute("SELECT text from %s WHERE id = ?" % table, [id_num])
+    query = "SELECT text from CICERON.%s WHERE id = " % table
+    query += "%s"
+    cursor = conn.cursor()
+    cursor.execute(query, (id_num, ))
     rs = cursor.fetchall()
     if len(rs) == 0: result = None
     else:            result = str(rs[0][0])
     return result
 
 def get_new_id(conn, table):
-    cursor = conn.execute("SELECT max(id) FROM %s " % table)
-    current_id_list = cursor.fetchall()
-    new_id = None
-    if current_id_list[0][0] is None: new_id = 0
-    else:                         new_id = int(current_id_list[0][0]) + 1
-    return new_id
+    cursor = conn.cursor()
+    cursor.execute("SELECT nextval('CICERON.SEQ_%s') " % table)
+    current_id_list = cursor.fetchone()
+    return int(current_id_list[0])
 
 def get_path_from_id(conn, id_num, table):
-    cursor = conn.execute("SELECT path from %s WHERE id = ?" % table, [id_num])
+    query = "SELECT path from CICERON.%s WHERE id = " % table
+    query += "%s"
+    cursor = conn.cursor()
+    cursor.execute(query, (id_num, ))
     rs = cursor.fetchall()
     if len(rs) == 0: result = None
     else:            result = str(rs[0][0])
     return result
 
 def get_main_text(conn, text_id, table):
-    path = get_path_from_id(conn, text_id, table)
-    if path is None: return None
+    cursor = conn.cursor()
+    query = "SELECT text FROM CICERON.%s WHERE id =" % table
+    query += "%s "
+    cursor.execute(query, (text_id, ) )
+    main_text = cursor.fetchone()
+    if main_text is not None:
+        return main_text[0]
     else:
-        words = ""
-        f = codecs.open(path, 'r', 'utf-8')
-        words = ('').join(f.readlines())
-        return words
+        return None
 
 def get_group_id_from_user_and_text(conn, user_id, text, table):
-    cursor = conn.execute("SELECT id FROM %s WHERE user_id = ? AND text = ?" % table, [user_id, buffer(text)])
+    cursor = conn.cursor()
+    query = "SELECT id FROM CICERON.%s " % table
+    query += "WHERE user_id = %s AND text = %s "
+    cursor.execute(query, (user_id, text) )
     rs = cursor.fetchall()
     if len(rs) == 0:
         return -1
@@ -139,27 +123,15 @@ def get_group_id_from_user_and_text(conn, user_id, text, table):
         return rs[0][0]
 
 def get_device_id(conn, user_id):
-    cursor = conn.execute("SELECT reg_key FROM D_MACHINES WHERE user_id = ? AND is_push_allowed=1", [user_id])
-    return [str(reg_key[0]) for reg_key in cursor.fetchall()]
+    cursor = conn.cursor()
+    cursor.execute("SELECT reg_key FROM CICERON.D_MACHINES WHERE user_id = %s AND is_push_allowed = true", (user_id, ) )
+    return [reg_key[0] for reg_key in cursor.fetchall()]
 
 def parameter_to_bool(value):
     if value in ['True', 'true', 1, '1', True]:
         return True
     else:
         return False
-
-def bool_value_converter(array):
-    new_list = []
-    for item in array:
-        if type(item) == 'bool':
-            if item == True:
-                new_list.append(1)
-            else:
-                new_list.append(0)
-        else:
-            new_list.append(item)
-
-    return new_list
 
 def login_required(f):
     @wraps(f)
@@ -200,7 +172,8 @@ def exception_detector(f):
 def translator_checker(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        cursor = g.db.execute("SELECT is_translator FROM D_USERS WHERE email = ?", [buffer(session['useremail'])])
+        cursor = g.db.cursor()
+        cursor.execute("SELECT is_translator FROM CICERON.D_USERS WHERE email = %s", (session['useremail'], ) )
         rs = cursor.fetchall()
         if len(rs) == 0 or rs[0][0] == 0:
             return make_response(
@@ -214,7 +187,8 @@ def translator_checker(f):
     return decorated_function
 
 def strict_translator_checker(conn, user_id, request_id):
-    cursor = conn.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM D_USERS WHERE id = ?", [user_id])
+    cursor = conn.cursor()
+    cursor.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM CICERON.D_USERS WHERE id = %s ", (user_id, ))
     rs = cursor.fetchall()
     if len(rs) == 0 or rs[0][0] == 0 or rs[0][0] == 'False' or rs[0][0] == 'false':
         return False
@@ -222,18 +196,17 @@ def strict_translator_checker(conn, user_id, request_id):
     # Get language list
     mother_language_id = rs[0][1]
 
-    cursor = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
-                 [user_id])
+    cursor.execute("SELECT language_id FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s ", (user_id, ))
     language_list = [ item[0] for item in cursor.fetchall() ]
     language_list.append(mother_language_id)
 
     # Check request language
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? "
+        query = "SELECT original_lang_id, target_lang_id FROM CICERON.F_REQUESTS WHERE id = %s "
     else:
-        query = "SELECT original_lang_id, target_lang_id FROM F_REQUESTS WHERE id = ? AND is_paid IN (1, 'True', 'true')"
-    cursor = conn.execute(query, [request_id])
+        query = "SELECT original_lang_id, target_lang_id FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
+    cursor.execute(query, (request_id, ) )
     rs = cursor.fetchall()[0]
     original_lang_id = rs[0]
     target_lang_id = rs[1]
@@ -248,15 +221,6 @@ def strict_translator_checker(conn, user_id, request_id):
         #           message = "You are not translator. This API is only for translators."
         #           ), 401)
 
-def char_counter(filePathName):
-    f = open(filePathName, 'r')
-    words=0
-    for lines in f.readlines():
-        words += len(lines.decode('utf-8'))
-    f.close()
-
-    return words
-
 def crossdomain(f, origin='*', methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
                 automatic_options=True):
@@ -270,19 +234,29 @@ def crossdomain(f, origin='*', methods=None, headers=None,
     return decorator
 
 def getProfile(conn, user_id):
-    cursor = conn.execute("SELECT * FROM D_USERS WHERE id = ?", [user_id])
+    cursor = conn.cursor()
+    query_userinfo = """
+        SELECT  
+            id, email, name, mother_language_id, is_translator,
+            other_language_list_id, profile_pic_path,
+            numOfRequestPending, numOfRequestOngoing, numOfRequestCompleted,
+            numOfTranslationPending, numOfTranslationOngoing, numOfTranslationCompleted,
+            badgeList_id, profile_text, trans_request_state, nationality, residence
+        FROM CICERON.D_USERS WHERE id = %s
+        """
+    cursor.execute(query_userinfo, (user_id, ))
     userinfo = cursor.fetchone()
 
-    cursor2 = conn.execute("SELECT language_id FROM D_TRANSLATABLE_LANGUAGES WHERE user_id = ?",
-        [user_id])
-    other_language_list = ",".join( [ str(item[0]) for item in cursor2.fetchall() ] )
-    cursor3 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE user_id = ?",
-        [user_id])
-    badgeList = (',').join([ str(item[0]) for item in cursor3.fetchall() ])
+    cursor.execute("SELECT language_id FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s",
+        (user_id, ))
+    other_language_list = ",".join( [ str(item[0]) for item in cursor.fetchall() ] )
+    cursor.execute("SELECT badge_id FROM CICERON.D_AWARDED_BADGES WHERE user_id = %s",
+        (user_id, ))
+    badgeList = (',').join([ str(item[0]) for item in cursor.fetchall() ])
 
     # GET list: user's keywords
-    cursor4 = conn.execute("SELECT key.text FROM D_USER_KEYWORDS ids JOIN D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = ?", [user_id])
-    keywords = (',').join([ str(item[0]) for item in cursor4.fetchall() ])
+    cursor.execute("SELECT key.text FROM CICERON.D_USER_KEYWORDS ids JOIN CICERON.D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = %s", (user_id, ))
+    keywords = (',').join([ str(item[0]) for item in cursor.fetchall() ])
 
     result=dict(
         user_email=                     str(userinfo[1]),
@@ -310,44 +284,47 @@ def getProfile(conn, user_id):
 
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     result = []
+    cursor = g.db.cursor()
 
     for row in rs:
         request_id = row[0]
         # For fetching translators in queue
-        cursor2 = conn.execute("SELECT * FROM V_QUEUE_LISTS WHERE request_id = ? ORDER BY user_id",
-                [request_id])
+        cursor.execute("SELECT * FROM CICERON.V_QUEUE_LISTS WHERE request_id = %s ORDER BY user_id",
+                (request_id, ) )
 
         queue_list = []
-        for q_item in cursor2.fetchall():
+        for q_item in cursor.fetchall():
             profile = getProfile(conn, q_item[2])
             queue_list.append(profile)
 
         # For getting word count of the request
-        cursor2 = conn.execute("SELECT path FROM D_REQUEST_TEXTS  WHERE id = ?", [row[30]])
-        list_txt = cursor2.fetchall()
+        cursor.execute("SELECT path, text FROM CICERON.D_REQUEST_TEXTS  WHERE id = %s ", (row[30], ) )
+        list_txt = cursor.fetchall()
 
+        main_text = None
         if len(list_txt) == 0 or len(list_txt[0]) == 0:
             num_of_words = None
         else:
-            num_of_words = char_counter(list_txt[0][0])
+            num_of_words = len(list_txt[0][1])
+            main_text = list_txt[0][1]
 
         item = dict(
                 request_id=row[0],
-                request_clientId=str(row[2]),
-                request_clientName=str(row[3]),
-                request_clientPicPath=str(row[4]) if row[4] is not None else None,
+                request_clientId=row[2],
+                request_clientName=row[3],
+                request_clientPicPath=row[4],
                 request_originalLang=row[13],
                 request_targetLang=row[15],
-                request_isSos= True if row[17] == 1 else False,
+                request_isSos=row[17],
                 request_format=row[19],
                 request_subject=row[21],
-                request_isText= True if row[29] == 1 else False,
-                request_text=get_main_text(conn, row[30], "D_REQUEST_TEXTS"),
-                request_isPhoto= True if row[31] == 1 else False,
+                request_isText=row[29],
+                request_text=main_text,
+                request_isPhoto=row[31],
                 request_photoPath=get_path_from_id(g.db, row[32], "D_REQUEST_PHOTOS"),
-                request_isSound= True if row[35] == 1 else False,
+                request_isSound=row[35],
                 request_soundPath=get_path_from_id(g.db, row[36], "D_REQUEST_SOUNDS"),
-                request_isFile= True if row[33] == 1 else False,
+                request_isFile=row[33],
                 request_filePath=get_path_from_id(g.db, row[34], "D_REQUEST_FILES"),
                 request_context=None, # For marking
                 request_status=row[18],
@@ -358,13 +335,13 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_words=num_of_words,
                 request_points=row[28],
                 request_translatorsInQueue=queue_list,
-                request_translatorId=str(row[6]) if row[6] is not None else None,
-                request_translatorName=str(row[7]) if row[7] is not None else None,
-                request_translatorPicPath=str(row[8]) if row[8] is not None else None,
+                request_translatorId=row[6],
+                request_translatorName=row[7],
+                request_translatorPicPath=row[8],
                 request_translatorBadgeList="",  # For marking
                 request_translatedText=None, # For marking
-                request_translatorComment=str(row[40]) if row[40] is not None else None,
-                request_translatedTone= str(row[42]) if row[42] is not None else None,
+                request_translatorComment=row[40],
+                request_translatedTone=row[42],
                 request_submittedTime=row[26],
                 request_feedbackScore=row[54],
                 request_title=None # For marking
@@ -372,38 +349,38 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
         if purpose == "newsfeed":
             # Show context if normal request, or show main text
-            if row[17] == 1: # True
-                item['request_context'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
+            if row[17] == True: # True
+                item['request_context'] = main_text
                 item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
             else:
-                item['request_context']=str(row[38]) if row[38] is not None else None
-                item['request_text']=None
-                item['request_soundPath']=None
-                item['request_photoPath']=None
-                item['request_filePath']=None
+                item['request_context'] = row[38]
+                item['request_text'] = None
+                item['request_soundPath'] = None
+                item['request_photoPath'] = None
+                item['request_filePath'] = None
 
         elif purpose == "pending_client":
             # Show context if normal request, or show main text
-            if row[17] == 1: # True
+            if row[17] == True: # True
                 item['request_context'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
                 item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
             else:
-                item['request_context']=str(row[38]) if row[38] is not None else None
+                item['request_context'] = row[38]
 
         elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
-            if row[17] == 0: # False
-                item['request_context'] = str(row[38]) if row[38] is not None else None
+            if row[17] == False: # False
+                item['request_context'] = row[38]
             item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
-            item['request_title']=str(row[46]) if row[46] is not None else None
+            item['request_title']=row[46]
 
         elif purpose == "ongoing_client":
-            if row[17] == 0: # False
-                item['request_context'] = str(row[38]) if row[38] is not None else None
+            if row[17] == False: # False
+                item['request_context'] = row[38]
 
         if purpose.startswith('complete') or purpose.startswith('ongoing'):
             # For getting translator's badges
-            cursor2 = conn.execute("SELECT badge_id FROM D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM D_USERS WHERE email = ? LIMIT 1)", [buffer(row[6])])
-            badge_list = (",").join([ str(row[0]) for row in cursor2.fetchall() ])
+            cursor.execute("SELECT badge_id FROM CICERON.D_AWARDED_BADGES WHERE id = (SELECT badgeList_id FROM CICERON.D_USERS WHERE id = %s LIMIT 1)", (row[5], ))
+            badge_list = (",").join([ row[0] for row in cursor.fetchall() ])
             item['request_translatorBadgeList'] = badge_list
 
             # Add profile for translator
@@ -417,66 +394,83 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
 def complete_groups(conn, parameters, table, method, url_group_id=None, since=None):
     if method == "GET":
+        cursor = conn.cursor()
+
         my_user_id = get_user_id(conn, session['useremail'])
-        query = "SELECT id, text FROM %s WHERE user_id = ? "
+        query = "SELECT id, text FROM CICERON.%s WHERE user_id = " % table
+        query += "%s "
         if since != None:
-            query += "AND registered_time < datetime(%s, 'unixepoch') " % since
+            query += "AND registered_time < to_timestamp(%s) " % since
         query += "ORDER BY id DESC"
-        cursor = conn.execute(query % table, [my_user_id])
+        cursor.execute(query, (my_user_id, ) )
         rs = cursor.fetchall()
 
-        result = [ dict(id=row[0], name=str(row[1])) for row in rs ]
+        result = [ dict(id=row[0], name=row[1]) for row in rs ]
         return result
 
     elif method == "POST":
-        group_name = (parameters['group_name']).encode('utf-8')
+        cursor = conn.cursor()
+        group_name = parameters['group_name']
         if group_name == "Documents":
             return -1
 
         my_user_id = get_user_id(conn, session['useremail'])
 
         new_group_id = get_new_id(conn, table)
-        conn.execute("INSERT INTO %s VALUES (?,?,?)" % table,
-            [new_group_id, my_user_id, buffer(group_name)])
+        query = "INSERT INTO CICERON.%s VALUES " % table
+        query += "(%s, %s, %s)"
+        cursor.execute(query, (new_group_id, my_user_id, group_name))
         conn.commit()
         return group_name
 
     elif method == "PUT":
+        cursor = conn.cursor()
         group_id = int(url_group_id)
-        group_name = (parameters['group_name']).encode('utf-8')
+        group_name = parameters['group_name']
         if group_name == u"Documents" or group_name == "Documents":
             return -1
-        conn.execute("UPDATE %s SET text = ? WHERE id = ?" % table, [buffer(group_name), group_id])
+
+        query = "UPDATE CICERON.%s " % table
+        query += "SET text = %s WHERE id = %s "
+        cursor.execute(query, (group_name, group_id) )
         conn.commit()
         return group_name
 
     elif method == 'DELETE':
+        cursor = conn.cursor()
+
         group_id = int(url_group_id)
         group_text = get_text_from_id(conn, group_id, table)
         if group_text == "Documents":
             return -1
         elif group_text == None:
             return -2
-        conn.execute("DELETE FROM %s WHERE id = ?" % table, [group_id])
+
+        query = "DELETE FROM CICERON.%s " % table
+        query += "WHERE id = %s"
+        cursor.execute(query , (group_id, ))
 
         user_id = get_user_id(conn, session['useremail'])
         default_group_id = get_group_id_from_user_and_text(conn, user_id, "Documents", table)
         if table.find("TRANSLATOR") >= 0: col = 'translator_completed_group_id'
         else:                             col = 'client_completed_group_id'
-        conn.execute("UPDATE F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}, [default_group_id, group_id])
+
+        query_update_temp = "UPDATE CICERON.F_REQUESTS SET %(col)s = ? WHERE %(col)s = ?" % {'col':col}
+        query_update = query_update_temp.replace("?", "%s")
+        cursor.execute(query_update, (default_group_id, group_id))
 
         conn.commit()
         return group_id
 
 def save_request(conn, parameters, str_request_id, result_folder):
+    cursor = conn.cursor()
+
     request_id = int(str_request_id)
-    new_translatedText = (parameters.get("request_translatedText", None)).encode('utf-8')
+    new_translatedText = parameters.get("request_translatedText", None)
     new_comment = parameters.get("request_comment", None)
-    if new_comment != None:
-        new_comment = new_comment.encode('utf-8')
     new_tone = parameters.get("request_tone", None)
 
-    cursor = conn.execute("SELECT translatedText, comment_id, tone_id FROM V_REQUESTS WHERE request_id = ?", [request_id])
+    cursor.execute("SELECT translatedText, comment_id, tone_id FROM CICERON.V_REQUESTS WHERE request_id = %s ", (request_id, ) )
     rs = cursor.fetchall()
 
     translatedText_path = rs[0][0]
@@ -489,48 +483,45 @@ def save_request(conn, parameters, str_request_id, result_folder):
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             translatedText_path = os.path.join(result_folder, filename)
             new_result_id = get_new_id(conn, "D_TRANSLATED_TEXT")
-            conn.execute("INSERT INTO D_TRANSLATED_TEXT VALUES (?,?)", [new_result_id, buffer(translatedText_path)])
-            conn.execute("UPDATE F_REQUESTS SET translatedText_id = ? WHERE id = ?", [new_result_id, request_id])
-
-        f = open(translatedText_path, 'wb')
-        f.write(new_translatedText)
-        f.close()
+            cursor.execute("INSERT INTO CICERON.D_TRANSLATED_TEXT (id, path, text) VALUES (%s,%s,%s)", (new_result_id, translatedText_path, new_translatedText))
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET translatedText_id = %s WHERE id = %s", (new_result_id, request_id))
 
     # Save new comment
     if new_comment != None:
         if comment_id != None:
-            conn.execute("UPDATE D_COMMENTS SET text = ? WHERE id = ?", [buffer(new_comment), comment_id])
+            cursor.execute("UPDATE CICERON.D_COMMENTS SET text = %s WHERE id = %s", (new_comment, comment_id))
         else:
             comment_id = get_new_id(conn, "D_COMMENTS")
-            conn.execute("INSERT INTO D_COMMENTS VALUES (?,?)", [comment_id, buffer(new_comment)])
-            conn.execute("UPDATE F_REQUESTS SET comment_id = ? WHERE id = ?", [comment_id, request_id])
+            cursor.execute("INSERT INTO CICERON.D_COMMENTS VALUES (%s,%s)", (comment_id, new_comment))
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET comment_id = %s WHERE id = %s", (comment_id, request_id))
 
     # Save new tone
     if new_tone != None:
         if tone_id != None:
-            conn.execute("UPDATE D_TONES SET text = ? WHERE id = ?", [buffer(new_tone), tone_id])
-            conn.execute("UPDATE F_REQUESTS SET tone_id = ? WHERE id = ?", [tone_id, request_id])
+            cursor.execute("UPDATE CICERON.D_TONES SET text = %s WHERE id = %s", (new_tone, tone_id))
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET tone_id = %s WHERE id = %s", (tone_id, request_id))
         else:
             tone_id = get_new_id(conn, "D_TONES")
-            conn.execute("INSERT INTO D_TONES VALUES (?,?)", [tone_id, buffer(new_tone)])
-            conn.execute("UPDATE F_REQUESTS SET tone_id = ? WHERE id = ?", [tone_id, request_id])
+            cursor.execute("INSERT INTO CICERON.D_TONES VALUES (%s,%s)", (tone_id, new_tone))
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET tone_id = %s WHERE id = %s", (tone_id, request_id))
 
     conn.commit()
 
 def update_user_record(conn, client_id=None, translator_id=None):
+    cursor = conn.cursor()
     if client_id is not None:
-        conn.execute("""UPDATE D_USERS SET 
-                numOfRequestPending = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 0 AND client_user_id = ?),
-                numOfRequestOngoing = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 1 AND client_user_id = ?),
-                numOfRequestCompleted = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 2 AND client_user_id = ?)
-                WHERE id = ?""", [client_id, client_id, client_id, client_id])
+        cursor.execute("""UPDATE CICERON.D_USERS SET 
+                numOfRequestPending = (SELECT count(id) FROM CICERON.F_REQUESTS WHERE status_id = 0 AND client_user_id = %s),
+                numOfRequestOngoing = (SELECT count(id) FROM CICERON.F_REQUESTS WHERE status_id = 1 AND client_user_id = %s),
+                numOfRequestCompleted = (SELECT count(id) FROM CICERON.F_REQUESTS WHERE status_id = 2 AND client_user_id = %s)
+                WHERE id = %s """, (client_id, client_id, client_id, client_id))
 
     if translator_id is not None:
-        conn.execute("""UPDATE D_USERS SET 
-                numOfTranslationPending = (SELECT count(queue.id) FROM F_REQUESTS fact LEFT OUTER JOIN D_QUEUE_LISTS queue ON fact.queue_id = queue.id WHERE fact.status_id = 0 AND queue.user_id = ?),
-                numOfTranslationOngoing = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = ?),
-                numOfTranslationCompleted = (SELECT count(id) FROM F_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = ?)
-                WHERE id = ?""", [translator_id, translator_id, translator_id, translator_id])
+        cursor.execute("""UPDATE CICERON.D_USERS SET 
+                numOfTranslationPending = (SELECT count(queue.id) FROM CICERON.F_REQUESTS fact LEFT OUTER JOIN CICERON.D_QUEUE_LISTS queue ON fact.queue_id = queue.id WHERE fact.status_id = 0 AND queue.user_id = %s ),
+                numOfTranslationOngoing = (SELECT count(id) FROM CICERON.F_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = %s ),
+                numOfTranslationCompleted = (SELECT count(id) FROM CICERON.F_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = %s )
+                WHERE id = %s """, (translator_id, translator_id, translator_id, translator_id))
 
     conn.commit()
 
@@ -569,9 +560,10 @@ def send_push(conn, gcm_obj,
               dry_run=None):
     
     registration_keys = []
+    cursor = conn.cursor()
     for user in user_ids:
         user_number = get_user_id(conn, user)
-        cursor = conn.execute("SELECT reg_key FROM D_MACHINES WHERE user_id = ? AND is_push_allowed = 1", [user_number])
+        cursor.execute("SELECT reg_key FROM CICERON.D_MACHINES WHERE user_id = %s AND is_push_allowed = true", (user_number, ) )
         client_infos = cursor.fetchall()
 
         # Gather registration IDs
@@ -615,22 +607,26 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     a.quit()
 
 def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
+    cursor = conn.cursor()
+    new_noti_id = get_new_id(conn, "F_NOTIFICATION")
     # The query below is original
-    query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,0)"
+    query = "INSERT INTO CICERON.F_NOTIFICATION VALUES (%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,false)"
     # The query below is that mail alarm is forcefully turned off
     #query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,1)"
-    conn.execute(query, [user_id, noti_type_id, target_user_id, request_id])
+    cursor.execute(query, (new_noti_id, user_id, noti_type_id, target_user_id, request_id) )
     conn.commit()
 
 def pick_random_translator(conn, number, from_lang, to_lang):
-    query = """SELECT distinct user.id FROM D_USERS user
-        JOIN V_TRANSLATABLE_LANGUAGES trans ON user.id = trans.user_id
-        JOIN V_TRANSLATABLE_LANGUAGES trans2 ON user.id = trans2.user_id
-        WHERE (user.mother_language_id = ? AND trans.translatable_language_id = ?)
-           OR (trans.translatable_language_id = ? AND user.mother_language_id = ?)
-           OR (trans.translatable_language_id = ? AND trans2.translatable_language_id = ?)
-           ORDER BY RANDOM() LIMIT %d""" % number
-    cursor = conn.execute(query, [from_lang, to_lang, from_lang, to_lang, from_lang, to_lang])
+    cursor = conn.cursor()
+
+    query = """SELECT distinct usr.id FROM CICERON.D_USERS usr
+        JOIN CICERON.V_TRANSLATABLE_LANGUAGES trans ON usr.id = trans.user_id
+        JOIN CICERON.V_TRANSLATABLE_LANGUAGES trans2 ON usr.id = trans2.user_id
+        WHERE (usr.mother_language_id = %s AND trans.translatable_language_id = %s)
+           OR (trans.translatable_language_id = %s AND usr.mother_language_id = %s)
+           OR (trans.translatable_language_id = %s AND trans2.translatable_language_id = %s)
+           OFFSET RANDOM()*(SELECT count(*) FROM CICERON.V_REQUESTS) LIMIT %s """
+    cursor.execute(query, (from_lang, to_lang, from_lang, to_lang, from_lang, to_lang, number))
     result = cursor.fetchall()
 
     return result
@@ -642,6 +638,7 @@ def string2Date(string):
         return datetime.strptime(string, "%Y-%m-%d")
 
 def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
+    cursor = conn.cursor()
     requesterNoti = [6, 7, 8, 9, 10, 11, 12]
     translatorNotiType = [0, 1, 2, 3, 4, 5]
 
@@ -655,8 +652,8 @@ def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
     alertType = None
     link = None
 
-    queryGetStatus = "SELECT is_paid, status_id, ongoing_worker_id FROM F_REQUESTS WHERE id = ? "
-    cursor = conn.execute(queryGetStatus, [request_id])
+    queryGetStatus = "SELECT is_paid, status_id, ongoing_worker_id FROM CICERON.F_REQUESTS WHERE id = %s "
+    cursor.execute(queryGetStatus, (request_id,) )
     row = cursor.fetchone()
     is_paid = row[0]
     status_id = row[1]
@@ -817,7 +814,8 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
 
 def signUpQuick(conn, email, hashed_password, name, mother_language_id, nationality_id=None, residence_id=None, external_service_provider=[]):
     # Duplicate check
-    cursor = conn.execute("select id from D_USERS where email = ?", [buffer(email)])
+    cursor = conn.cursor()
+    cursor.execute("select id from CICERON.D_USERS where email = %s", (email, ))
     check_data = cursor.fetchall()
     if len(check_data) > 0:
         # Status code 400 (BAD REQUEST)
@@ -828,12 +826,13 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
     user_id = get_new_id(conn, "D_USERS")
 
     print "New user id: %d" % user_id
-    conn.execute("INSERT INTO D_USERS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            [user_id,
-             buffer(email),
-             buffer(name),
+    cursor.execute("""INSERT INTO CICERON.D_USERS
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (user_id,
+             email,
+             name,
              mother_language_id,
-             0,
+             False,
              None,
              None,
              0,
@@ -843,20 +842,20 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
              0,
              0,
              None,
-             buffer("nothing"),
+             "nothing",
              0,
              nationality_id,
-             residence_id])
+             residence_id))
 
-    conn.execute("INSERT INTO PASSWORDS VALUES (?,?)",
-        [user_id, buffer(hashed_password)])
-    conn.execute("INSERT INTO REVENUE VALUES (?,?)",
-        [user_id, 0])
+    cursor.execute("INSERT INTO CICERON.PASSWORDS VALUES (%s,%s)",
+        (user_id, hashed_password))
+    cursor.execute("INSERT INTO CICERON.REVENUE VALUES (%s,%s)",
+        (user_id, 0))
 
     if 'facebook' in external_service_provider:
         new_facebook_id = get_new_id(conn, "D_FACEBOOK_USERS")
-        conn.execute("INSERT INTO D_FACEBOOK_USERS VALUES (?,?,?) ",
-                [new_facebook_id, buffer(email), user_id])
+        cursor.execute("INSERT INTO CICERON.D_FACEBOOK_USERS VALUES (%s,%s,%s) ",
+                (new_facebook_id, email, user_id))
 
     conn.commit()
 
@@ -867,9 +866,10 @@ def commonPromotionCodeChecker(conn, user_id, code):
     #          val1: is valid code? (codeType)
     #          val2: How much?
     #          message: Message
+    cursor = conn.cursor()
     query_commonPromotionCode= """
-        SELECT id, benefitPoint, expireTime FROM PROMOTIONCODES_COMMON WHERE text = ? """
-    cursor = conn.execute(query_commonPromotionCode, [code])
+        SELECT id, benefitPoint, expireTime FROM CICERON.PROMOTIONCODES_COMMON WHERE text = %s """
+    cursor.execute(query_commonPromotionCode, (code, ))
     ret = cursor.fetchone()
 
     if ret == None:
@@ -883,9 +883,9 @@ def commonPromotionCodeChecker(conn, user_id, code):
         return (2, 0, "This promo code is expired.")
 
     query_userCheck = """
-        SELECT count(*) FROM USEDPROMOTION_COMMON WHERE id = ? AND user_id = ? """
+        SELECT count(*) FROM CICERON.USEDPROMOTION_COMMON WHERE id = %s AND user_id = %s """
 
-    cursor = conn.execute(query_userCheck, [code_id, user_id])
+    cursor.execute(query_userCheck, (code_id, user_id))
     cnt = cursor.fetchone()[0]
 
     if cnt > 0:
@@ -895,22 +895,24 @@ def commonPromotionCodeChecker(conn, user_id, code):
         return (0, benefitPoint, "You may use this code.")
 
 def commonPromotionCodeExecutor(conn, user_id, code):
+    cursor = conn.cursor()
     query_searchPromoCodeId = """
-        SELECT id FROM PROMOTIONCODES_COMMON WHERE text = ? """
-    cursor = conn.execute(query_searchPromoCodeId, [code])
+        SELECT id FROM CICERON.PROMOTIONCODES_COMMON WHERE text = %s """
+    cursor = conn.execute(query_searchPromoCodeId, (code ))
     code_id = cursor.fetchone()[0]
     query_commonPromotionCodeExeutor = """
-        INSERT INTO USEDPROMOTION_COMMON VALUES (?,?)"""
-    conn.execute(query_commonPromotionCodeExeutor, [code_id, user_id])
+        INSERT INTO CICERON.USEDPROMOTION_COMMON VALUES (%s,%s)"""
+    cursor.execute(query_commonPromotionCodeExeutor, (code_id, user_id))
     conn.commit()
 
 def individualPromotionCodeChecker(conn, user_id, code):
     # return: (val1, val2)
     #          val1: is valid code?
     #          val2: How much?
+    cursor = conn.cursor()
     query_individualPromotionCode= """
-        SELECT benefitPoint, expireTime, is_used FROM PROMOTIONCODES_USER WHERE user_id = ? AND text = ? """
-    cursor = conn.execute(query_individualPromotionCode, [user_id, code])
+        SELECT benefitPoint, expireTime, is_used FROM CICERON.PROMOTIONCODES_USER WHERE user_id = %s AND text = %s """
+    cursor.execute(query_individualPromotionCode, (user_id, code))
     ret = cursor.fetchone()
 
     if ret == None:
@@ -930,8 +932,9 @@ def individualPromotionCodeChecker(conn, user_id, code):
         return (0, benefitPoint, "You may use this code.")
 
 def individualPromotionCodeExecutor(conn, user_id, code):
+    cursor = conn.cursor()
     query_commonPromotionCodeExeutor = """
-        UPDATE PROMOTIONCODES_USER SET is_used = 1 WHERE user_id = ? AND text = ? """
-    conn.execute(query_commonPromotionCodeExeutor, [user_id, code])
+        UPDATE CICERON.PROMOTIONCODES_USER SET is_used = true WHERE user_id = %s AND text = %s """
+    cursor.execute(query_commonPromotionCodeExeutor, (user_id, code))
     conn.commit()
 
