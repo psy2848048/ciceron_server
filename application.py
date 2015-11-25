@@ -588,7 +588,7 @@ def change_password():
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
-    email = parameters['email']
+    email = session['useremail']
     hashed_old_password = parameters['old_password']
     hashed_new_password = parameters['new_password']
     user_id = get_user_id(g.db, email)
