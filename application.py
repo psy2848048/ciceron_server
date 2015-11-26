@@ -670,6 +670,7 @@ def user_profile():
 
         profileText = parameters.get('user_profileText', None)
         profile_pic = request.files.get('user_profilePic', None)
+        picPath = None
 
         # Start logic
         # Get user number
