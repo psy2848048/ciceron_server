@@ -18,6 +18,7 @@ Ciceron server code
   - python-dev
   - nodejs nodejs-dev
   - postgresql postgresql-contrib (sudo -u postgres psql postgres -> \password [pasword])
+  - libpq-dev
 
 * Package dependency (pip install)
   - Flask

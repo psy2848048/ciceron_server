@@ -83,7 +83,7 @@ facebook = oauth.remote_app('facebook',
 )
 
 date_format = "%Y-%m-%d %H:%M:%S.%f"
-super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
+super_user = ["pjh0308@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
 
 def pic_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
