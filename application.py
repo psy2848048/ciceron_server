@@ -1012,9 +1012,9 @@ def show_queue():
         translator_email = parameters.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT queue_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s "
+            query = "SELECT queue_id, client_user_id, status_id FROM CICERON.F_REQUESTS WHERE id = %s "
         else:
-            query = "SELECT queue_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
+            query = "SELECT queue_id, client_user_id, status_id FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
 
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
@@ -1024,6 +1024,7 @@ def show_queue():
         if translator_email == None: user_id = get_user_id(g.db, session['useremail'])
         else:                        user_id = get_user_id(g.db, translator_email)
         request_user_id = rs[0][1]
+        status_id = rs[0][2]
 
         if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(
@@ -1033,8 +1034,14 @@ def show_queue():
 
         if user_id == request_user_id:
             return make_response(json.jsonify(
-                message = "You cannot translate your request. Request ID: %d" % request_id
+                message = "You cannot translate your request. Request ID: %d" % request_id,
+                request_id=request_id
                 ), 406)
+
+        if status_id in [-2, -1, 1, 2]:
+            return make_response(json.jsonify(
+                message="Gone ticket. (Canceled or translated by others)"
+                ), 410)
 
         queue_id = rs[0][0]
         cursor.execute("SELECT user_id FROM CICERON.D_QUEUE_LISTS WHERE id = %s AND user_id = %s", (queue_id, user_id))
