@@ -460,6 +460,11 @@ def signup():
         elif status == 412:
             return make_response(json.jsonify(message="Duplicate email: %s" % email), 412)
     
+        elif status == 417:
+            return make_response(json.jsonify(
+                message="'%s' is not email" % email,
+                email=email
+                ), 417)
     return '''
         <!doctype html>
         <title>Sign up</title>
@@ -2581,6 +2586,39 @@ def register_payback():
         return make_response(json.jsonify(
             message="Payback request is successfully received"), 200)
         
+@app.route('/api/user/point_detail', methods = ["GET"])
+@login_required
+#@exception_detector
+def point_detail():
+    cursor = g.db.cursor()
+    user_id = get_user_id(g.db, session['useremail'])
+
+    query = """
+    SELECT * FROM (
+    SELECT 2 as message_id, request_time, -1 * amount as points, is_returned, return_time FROM CICERON.RETURN_MONEY_BANK_ACCOUNT WHERE user_id = %s
+    UNION
+    SELECT 1 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
+    FROM CICERON.F_REQUESTS WHERE status_id = 2 AND is_paid = true AND ongoing_worker_id = %s
+    UNION
+    SELECT 0 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
+    FROM CICERON.F_REQUESTS WHERE status_id = -2 AND is_paid = false AND client_user_id = %s) total
+    order by request_time desc"""
+    cursor.execute(query, (user_id, user_id, user_id))
+    rs = cursor.fetchall()
+
+    result = []
+    for message_id, requested_time, points, is_returned, return_time in rs:
+        item = {
+            'message_id': message_id,
+            'requested_time': requested_time,
+            'points': points,
+            'is_returned': is_returned,
+            'return_time': return_time
+        }
+        result.append(item)
+
+    return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/payback_email', methods = ["GET"])
 @login_required
 #@exception_detector

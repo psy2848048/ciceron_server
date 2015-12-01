@@ -303,9 +303,9 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
         main_text = None
         if len(list_txt) == 0 or len(list_txt[0]) == 0:
-            num_of_words = None
+            num_of_words = 0
         else:
-            num_of_words = len(list_txt[0][1])
+            num_of_words = len(list_txt[0][1].decode('utf-8'))
             main_text = list_txt[0][1]
 
         item = dict(
@@ -821,6 +821,9 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
         # Status code 400 (BAD REQUEST)
         # Description: Duplicate ID
         return 412
+
+    if '@' not in email:
+        return 417
 
     # Insert values to D_USERS
     user_id = get_new_id(conn, "D_USERS")
