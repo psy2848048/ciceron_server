@@ -2437,7 +2437,7 @@ def access_request_file(doc_id, fake_filename):
     else:
         return send_file(io.BytesIO(request_file[0]), attachment_filename=fake_filename)
 
-@app.route('/api/mail_img/img/<filename>')
+@app.route('/api/access_file/img/<filename>')
 def mail_img(filename):
     return send_from_directory('img', filename)
 
@@ -2594,7 +2594,7 @@ def register_paybacki_email():
     subject = 'Please reply for your refund request'
 
     doc_no = random_string_gen(size=12)
-    message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
+    message="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(name)s,</h1></span><br>
                  <br>
                  Thank you for being with Ciceron!<br>
@@ -2683,7 +2683,7 @@ def be_hero():
     doc_no = random_string_gen(size=12)
 
     subject = "Welcome to Ciceron, hero candidate %s!" % name
-    message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
+    message="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(name)s,</h1></span><br>
                  <br>
                  Thank you for applying to the hero!<br>
