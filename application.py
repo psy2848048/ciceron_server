@@ -1998,7 +1998,7 @@ def client_incompleted_item_control(str_request_id):
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
         if additional_price == 0:
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, request_id, user_id) )
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s", (additional_time_in_sec, request_id, user_id) )
             g.db.commit()
 
             cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
@@ -2017,7 +2017,7 @@ def client_incompleted_item_control(str_request_id):
 
         # Change due date w/additional money
         else:
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, is_paid = false, points = points + %s, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, additional_price, request_id, user_id))
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, is_paid = false, points = points + %s, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s ", (additional_time_in_sec, additional_price, request_id, user_id))
             g.db.commit()
 
             cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
@@ -2362,7 +2362,7 @@ def register_or_update_register_id():
 
     if num == 0:
         cursor.execute("INSERT INTO CICERON.D_MACHINES VALUES (%s, %s, (SELECT id FROM CICERON.D_MACHINE_OSS WHERE text = %s), %s, %s)",
-            (record_id, user_id, device_os, reg_key, 1))
+            (record_id, user_id, device_os, True, reg_key))
     else:
         cursor.execute("UPDATE CICERON.D_MACHINES SET reg_key = %s WHERE os_id = (SELECT id FROM CICERON.D_MACHINE_OSS WHERE text = %s) AND user_id = %s",
             (reg_key, device_os, user_id))
@@ -2484,8 +2484,9 @@ def get_notification():
     cursor.execute(query_noti, (user_id, ))
     numberOfNoti = cursor.fetchall()[0][0]
 
-    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path, (expected_time - CURRENT_TIMESTAMP) as expectedDue, context, status_id
-        FROM CICERON.V_NOTIFICATION WHERE user_id = %s """
+    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path,
+               CASE WHEN expected_time is not null THEN (expected_time - CURRENT_TIMESTAMP) ELSE null END as expectedDue, context, status_id
+            FROM CICERON.V_NOTIFICATION WHERE user_id = %s"""
     if 'since' in request.args.keys():
         query += "AND ts < to_timestamp(%s) " % request.args.get('since')
     query += "ORDER BY ts DESC LIMIT 10 "
@@ -2513,7 +2514,7 @@ def get_notification():
         row['request_status'] = item[10]
 
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
-        row['expectedDue'] = item[8]
+        row['expectedDue'] = item[8].total_seconds() if item[8] != None else None
         row['expectedDue_replied'] = item[8]
 
         result.append(row)
