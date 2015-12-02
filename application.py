@@ -2515,7 +2515,7 @@ def get_notification():
 
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
         row['expectedDue'] = item[8].total_seconds() if item[8] != None else None
-        row['expectedDue_replied'] = item[8]
+        #row['expectedDue_replied'] = item[8]
 
         result.append(row)
 
