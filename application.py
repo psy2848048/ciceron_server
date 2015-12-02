@@ -2485,7 +2485,8 @@ def get_notification():
     numberOfNoti = cursor.fetchall()[0][0]
 
     query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path,
-               CASE WHEN expected_time is not null THEN (expected_time - CURRENT_TIMESTAMP) ELSE null END as expectedDue, context, status_id
+               CASE WHEN expected_time is not null THEN (expected_time - CURRENT_TIMESTAMP) ELSE null END as expectedDue, context, status_id,
+               CASE WHEN expected_time is null THEN false ELSE true END as expectedDue_replied
             FROM CICERON.V_NOTIFICATION WHERE user_id = %s"""
     if 'since' in request.args.keys():
         query += "AND ts < to_timestamp(%s) " % request.args.get('since')
@@ -2515,7 +2516,7 @@ def get_notification():
 
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
         row['expectedDue'] = item[8].total_seconds() if item[8] != None else None
-        #row['expectedDue_replied'] = item[8]
+        row['expectedDue_replied'] = item[11]
 
         result.append(row)
 
