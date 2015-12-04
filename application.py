@@ -773,10 +773,10 @@ def requests():
         pager_date = None
         if session.get('useremail') in super_user:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE
-                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false) OR (isSos = true))) AND due_time > CURRENT_TIMESTAMP """
+                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE
-                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false AND is_paid = true) OR (isSos = true))) AND due_time > CURRENT_TIMESTAMP """
+                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
@@ -903,7 +903,7 @@ def requests():
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
         cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
-        cursor.execute("""INSERT INTO CICERON.F_REQUESTS
+        cursor.execute("""INSERT INTO CICERON.F_REQUEST S
             (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid)
                 VALUES
                 (%s,%s,%s,%s,%s,
@@ -1677,7 +1677,7 @@ def client_completed_items_detail(str_request_id):
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s "
     else:
-        query = "SELECT * FROM V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s AND is_paid = true "
+        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s AND is_paid = true "
     if 'since' in request.args.keys():
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -2042,7 +2042,7 @@ def client_incompleted_item_control(str_request_id):
         request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
 
-        cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s", (request_id, user_id))
+        cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s AND is_paid = true ", (request_id, user_id))
         ret = cursor.fetchone()[0]
         points = None
         if ret is not None:
@@ -2484,10 +2484,20 @@ def get_notification():
     cursor.execute(query_noti, (user_id, ))
     numberOfNoti = cursor.fetchall()[0][0]
 
-    query = """SELECT user_name, user_profile_pic_path, noti_type_id, request_id, target_user_name, ts, is_read, target_profile_pic_path,
-               CASE WHEN expected_time is not null THEN (expected_time - CURRENT_TIMESTAMP) ELSE null END as expectedDue, context, status_id,
-               CASE WHEN expected_time is null THEN false ELSE true END as expectedDue_replied
-            FROM CICERON.V_NOTIFICATION WHERE user_id = %s"""
+    query = """SELECT noti.user_name,
+                      noti.user_profile_pic_path,
+                      noti.noti_type_id,
+                      noti.request_id,
+                      noti.target_user_name,
+                      noti.ts,
+                      noti.is_read,
+                      noti.target_profile_pic_path,
+                      CASE WHEN noti.expected_time is not null THEN (noti.expected_time - CURRENT_TIMESTAMP) ELSE null END as expectedDue,
+                      noti.context,
+                      noti.status_id,
+                      CASE WHEN noti.expected_time is null THEN false ELSE true END as expectedDue_replied
+            FROM CICERON.V_NOTIFICATION noti LEFT OUTER JOIN CICERON.F_REQUESTS req ON noti.request_id = req.id
+            WHERE noti.user_id = %s AND req.status_id != -2 """
     if 'since' in request.args.keys():
         query += "AND ts < to_timestamp(%s) " % request.args.get('since')
     query += "ORDER BY ts DESC LIMIT 10 "

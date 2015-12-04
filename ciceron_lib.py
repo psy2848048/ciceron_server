@@ -766,7 +766,7 @@ def get_noti_data(conn, noti_type, user_id, request_id, optional_info=None):
 
     elif noti_type == 7:
         message["notiType"] = 7
-        message["expected"] = optional_info.get('expected')
+        message["expected"] = str(optional_info.get('expected')) if optional_info.get('expected') != None else None
         message["title"] = "Check expected deadline"
         message['detail'] = "Hero thinks that your ticket can be finished by XX:XX:XX"
 
