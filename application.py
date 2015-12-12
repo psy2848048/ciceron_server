@@ -903,7 +903,7 @@ def requests():
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
         cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
-        cursor.execute("""INSERT INTO CICERON.F_REQUEST S
+        cursor.execute("""INSERT INTO CICERON.F_REQUESTS
             (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid)
                 VALUES
                 (%s,%s,%s,%s,%s,
