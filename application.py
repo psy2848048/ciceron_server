@@ -21,7 +21,7 @@ from flask.ext.cache import Cache
 from flask_oauth import OAuth
 
 #DATABASE = '../db/ciceron.db'
-DATABASE = "host=http://cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 VERSION = '1.1'
 DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
