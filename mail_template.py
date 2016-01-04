@@ -1,23 +1,44 @@
 class mail_format:
 
+    translator_new_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
+                 <br>
+                 방금 새로운 번역 티켓이 스토아에 올라왔습니다! <a href='%(link)s' target='_blank'>스토아</a>에 한 번 들려 티켓을 확인해 보세요<br>
+                 씨세론의 자랑스러운 히어로 %(user)s님, 당신의 능력을 보여주세요.<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
+
     translator_new_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  A new translation ticket has been posted!<br>
                  Please visit the <a href='%(link)s' target='_blank'>STOA</a> to review the request and help someone out with your coveted language skills.<br>
                  <br>
-                 Thans,<br>
+                 Thanks,<br>
                  The CICERON team"""
 
     def translator_new_ticket(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return translator_new_ticket_kr
-            return self.translator_new_ticket_en
+            return self.translator_new_ticket_kr
         elif language_id == 1:
             return self.translator_new_ticket_en
 
     ##################################################################################################################################################
+
+    translator_check_expected_time_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
+                 <br>
+                 오늘도 티켓을 번역해주심에 감사드립니다!<br>
+                 지금 이 순간에도 의뢰인께서는 히어로님의 능력을 간절히 기다리고 있습니다.<br>
+                 기다리는 고객님을 조금이나마 안심시켜주는 차원에서, 번역 가능한지, 가능하면 언제쯤 완료할 수 있을지 답변 부탁드립니다.<br>
+                 잠시만 짬을 내어 의뢰물을 검토해보시고 <a href='%(link)s' target='_blank'>여기</a>에 들러 답해주세요. 잠깐이면 됩니다.<br>
+                 <br>
+                 <span style='color:#DC143C'><h3>주의!</h3></span><br>
+                 <h4>늦어도 %(expected)s까지는 답변을 부탁드립니다. 그 때까지 답변이 없으면 이 티켓은 다른 히어로에게 부탁하게 됩니다. 만약 감당할 수 없을 정도로 어려운 티켓이라면 빨리 말씀해주세요. 빠르면 빠를수록 좋습니다 어렵게 생각하지 않으셔도 됩니다!</h4>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     translator_check_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -33,13 +54,23 @@ class mail_format:
 
     def translator_check_expected_time(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return translator_check_expected_time_kr
-            return self.translator_check_expected_time_en
+            return self.translator_check_expected_time_kr
         elif language_id == 1:
             return self.translator_check_expected_time_en
 
     ##################################################################################################################################################
+
+    translator_complete_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
+                 <br>
+                 당신의 능력을 빛내주셔서 감사합니다. 히어로님의 번역 덕분에 의뢰인께서 한시름 덜었을 것이라 믿습니다.<br>
+                 프로파일 페이지에서 적립금을 확인하실 수 있고, 작업내력 페이지에서 피드백을 확인할 수 있습니다.<br>
+                 <br>
+                 지금 이 순간에도 당신의 능력을 필요로하는 티켓들이 스토아에서 가디라고 있습니다.<br>
+                 히어로님의 능력을 기다립니다.<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     translator_complete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -55,13 +86,19 @@ class mail_format:
 
     def translator_complete(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return translator_complete_kr
-            return self.translator_complete_en
+            return self.translator_complete_kr
         elif language_id == 1:
             return self.translator_complete_en
 
     ##################################################################################################################################################
+
+    translator_exceeded_due_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
+                 <br>
+                 안타깝지만, 도와주시기로 한 <a href='%(link)s' target='_blank'>이 티켓</a>이 마감 시간을 넘겼습니다.<br>
+                 혹시 마감 시한이 넘지 않았는데 이 메일을 받아보시게 된다면 저희이게 <a href='mailto:webmaster@ciceron.me?Subject=False%20alarm%20report' target='_blank'>연락</a> 부탁드리겠습니다.<br>
+                 <br>
+                 씨세론 팀"""
 
     translator_exceeded_due_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -74,13 +111,20 @@ class mail_format:
 
     def translator_exceeded_due(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return translator_exceeded_due_kr
-            return self.translator_exceeded_due_en
+            return self.translator_exceeded_due_kr
         elif language_id == 1:
             return self.translator_exceeded_due_en
 
     ##################################################################################################################################################
+
+    translator_extended_due_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
+                 <br>
+                 와우! <a href='%(link)s' target='_blank'>이 티켓</a>의 마감시한은 넘겼지만, 의뢰인께서 기한을 %(new_due)s까지 연장해주셨습니다.<br>
+                 혹시 새로운 마감 기한에 대하여 의문점이 있으면 언제든지 저희에게 <a href='mailto:webmaster@ciceron.me?Subject=False%20alarm%20report' target='_blank'>연락</a> 부탁드립니다.<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     translator_extended_due_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -93,13 +137,20 @@ class mail_format:
 
     def translator_extended_due(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return translator_extended_due_kr
-            return self.translator_extended_due_en
+            return self.translator_extended_due_kr
         elif language_id == 1:
             return self.translator_extended_due_en
 
     ##################################################################################################################################################
+
+    translator_no_answer_expected_time_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
+                 <br>
+                 예상 마감시한을 답변해주지 않으셔서 안타깝게도 <a href='%(link)s' target='_blank'>이 티켓</a>은 다른 히어로에게 기회가 가게 되었습니다.<br>
+                 하지만 낙심하지 않으셔도 됩니다. <a href='%(link)s' target='_blank'>스토아</a>에 가 보시면 더 많은 티켓들이 히어로님의 능력을 기다리고 있습니다!<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     translator_no_answer_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -112,13 +163,21 @@ class mail_format:
 
     def translator_no_answer_expected_time(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return translator_no_answer_expected_time_kr
-            return self.translator_no_answer_expected_time_en
+            return self.translator_no_answer_expected_time_kr
         elif language_id == 1:
             return self.translator_no_answer_expected_time_en
 
     ##################################################################################################################################################
+
+    client_take_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 <b>와우!</b> 히어로 <b>%(hero)s</b>&nbsp;님께서 <a href='%(link)s' target='_blank'>이 티켓</a>을 번역해주시기로 했습니다!<br>
+                 여러분들의 만족을 위하여 히어로들은 하나하나 꼼곰하게 검토하여 선발했습니다. 저희 히어로들은 단지 한 언어를 다른 언어로 옮겨주는 차원을 넘어, 내용을 읽고 문맥을 파악하여 해당 언어에 가장 알맞은 표현을 찾아낼 줄 아는 사람들입니다.<br>
+                 저희 히어로를 믿고 기다려 주세요!<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     client_take_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -132,9 +191,7 @@ class mail_format:
 
     def client_take_ticket(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_take_ticket_kr
-            return self.client_take_ticket_en
+            return self.client_take_ticket_kr
         elif language_id == 1:
             return self.client_take_ticket_en
 
