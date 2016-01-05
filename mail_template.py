@@ -197,24 +197,44 @@ class mail_format:
 
     ##################################################################################################################################################
 
+    client_check_expected_time_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 히어로님께서 예상 완료 시간을 답해주셨습니다!<br>
+                 자세한 정보는 <a href='%(link)s' target='_blank'>이곳</a>에서 확인해보실 수 있습니다.<br>
+                 <b>참고:/b> 예상 완료시간은 어디까지나 <b>참고용</b>입니다. 시스템은 의뢰인님께서 설정해주신 <b>마감 시간</b>을 기준으로 작동합니다.<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
+
     client_check_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  Your Hero has just updated the expected completion date for your ticket!<br>
                  You may visit <a href='%(link)s' target='_blank'>here</a> for more information.<br>
+                 <b>Attention:</b> The 'expected compltetion date' is just only for a <b>reference</b>. CICERON system works <b>based on the deadline you set</b>.
                  <br>
                  Best regards,<br>
                  The CICERON team"""
 
     def client_check_expected_time(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_check_expected_time_kr
-            return self.client_check_expected_time_en
+            return self.client_check_expected_time_kr
         elif language_id == 1:
             return self.client_check_expected_time_en
 
     ##################################################################################################################################################
+
+    client_giveup_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 이런... 히어로 <b>%(hero)s</b>님께서 의뢰인님의 티켓은 기한 내에 번역이 어려울거라 답해주셨습니다.<br>
+                 <a href='%(link)s' target='_blank'>여기</a>에 가셔서 티켓을 다른 히어로에게 부탁할 지, 아니면 의뢰를 중단할 지 결정해주시기 바랍니다.<br>
+                 완벽한 번역만을 제공하겠다는 저희 히어로들의 마음 때문에, 히어로 자신이 감당하지 못하는 수준의 티켓에 대해서는 이렇게 번역불가 의사를 표할 수도 있습니다. 양해 부탁드립니다.<br>
+                 이유는 여러가지일 수 있습니다. 시간이 부족하다고 느꼈을수도, 혹은 자신에게 더 맞는 의뢰를 찾았을수도 있습니다.<br>
+                 이유불문, 불편을 끼쳐드려 죄송합니다. 문의 사항 있으면 주저하지 말고 저희에게 연락 부탁드립니다!<br>
+                 <br>
+                 씨세론 팀"""
 
     client_giveup_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -222,20 +242,30 @@ class mail_format:
                  Oops...<br>
                  Your Hero <b>%(hero)s</b>&nbsp;regretfully responded that your ticket cannot be completed.<br>
                  You may unfold <a href='%(link)s' target='_blank'>your ticket</a> and decide what to do. You may assign to another qualified Hero or opt out of the request.<br>
-                 Please bear in mind that our Heros sometimes decide to let go of a ticket, because they are committed to producing only the finest translation works. They may feel that there isn't enough time or that another Hero might be more appropriate for a certain project.<br>∫ any case, we're so sorry for the hassle. Please let us know if you have any questions!<br>
+                 Please bear in mind that our Heros sometimes decide to let go of a ticket, because they are committed to producing only the finest translation works. They may feel that there isn't enough time or that another Hero might be more appropriate for a certain project.<br>
+                 In any case, we're so sorry for the hassle. Please let us know if you have any questions!<br>
                  <br>
                  Regretfully,<br>
                  The CICERON team"""
 
     def client_giveup_ticket(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_giveup_ticket_kr
-            return self.client_giveup_ticket_en
+            return self.client_giveup_ticket_kr
         elif language_id == 1:
             return self.client_giveup_ticket_en
 
     ##################################################################################################################################################
+
+    client_no_answer_expected_time_go_to_stoa_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 저희 시스템은 각 티켓의 마감 시한을 감지하여 티켓의 상태를 수정합니다. 그 중 하나로, 티켓 번역 의사를 표해주신 시점부터 마감 시한까지의 1/3이 되는 지점에 다다랐음에도 번역 완료 예상 시간을 답해주지 않으면 티켓을 스토아에 다시 공개하여 다른 히어로에게 기회를 주고 있습니다.<br>
+                 안타깝게도, <a href='%(link)s' target='_blank'>당신의 티켓</a>도 이 사유에 따라 스토아에 다시 공개되었습니다.<br>
+                 그래도 걱정하진 마세요. 이 티켓에 더욱 적합한 히어로가 다시 의뢰인님을 찾아올 것입니다.<br>
+                 문의 사항 있으시면 주저하지 말고 저희에게 연락 부탁드립니다!<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     client_no_answer_expected_time_go_to_stoa_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -250,13 +280,23 @@ class mail_format:
 
     def client_no_answer_expected_time_go_to_stoa(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_no_answer_expected_time_go_to_stoa_kr
-            return self.client_no_answer_expected_time_go_to_stoa_en
+            return self.client_no_answer_expected_time_go_to_stoa_kr
         elif language_id == 1:
             return self.client_no_answer_expected_time_go_to_stoa_en
 
     ##################################################################################################################################################
+
+    client_complete_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 오래 기다리셨습니다!<br>
+                 히어로 %(hero)s님께서 방금 번역을 완료하셨습니다!<br>
+                 <br>
+                 <a href='%(link)s' target='_blank'>이곳</a>에서 결과물을 확인하시고 평가를 할 수 있습니다. <br>
+                 혹시 티켓 의뢰의 전 과정에서 불편한 점이 있으셨으면 주저하지 말고 저희에게 연락 부탁드립니다.<br>
+                 <br>
+                 Thanks,<br>
+                 The CICERON team"""
 
     client_complete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -271,33 +311,52 @@ class mail_format:
 
     def client_complete(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_complete_kr
-            return self.client_complete_en
+            return self.client_complete_kr
         elif language_id == 1:
             return self.client_complete_en
 
     ##################################################################################################################################################
+
+    client_incomplete_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님께,</h1></span><br>
+                 <br>
+                 티켓을 번역해주시기로 한 히어로님께서 안타깝게도 기한 내에 결과물을 제출하지 못했다는 소식을 전해드려 유감입니다.<br>
+                 부디 <a href='%(link)s' target='_blank'>이곳에</a> 잠시 방문하시어 기한을 연장할 지, 혹은 티켓을 취소할 지 결정해주시기 바랍니다.<br>
+                 대부분의 티켓은 기한 내에 처리가 됩니다. 다만, 어떻게든 자연스럽게 문장을 만들기 위하여 정성을 기울이느라 시간이 늦어질 수는 있습니다.<br>
+                 다시 한 번 죄송하다는 말씀 드립니다. 다음 의뢰시에는 좋은 기억을 가져다 드릴 수 있도록 노력하겠습니다!
+                 <br>
+                 씨세론 팀"""
 
     client_incomplete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
                  <br>
                  We are really sorry to let you know that your Hero has missed the deadline for your ticket.<br>
                  Please visit <a href='%(link)s' target='_blank'>here</a> to either extend the deadline for your Hero or cancel the request entirely.<br>
-                 Please bear in mind that your Hero has likely completed most of the work. Sometimes a little more time is all that is needed to churn out the most appropriate, contextually-fitting translation.<br>nce again, we're so sorry for the hassle. We'll do our best to improve your experience.<br>
+                 Please bear in mind that your Hero has likely completed most of the work. Sometimes a little more time is all that is needed to churn out the most appropriate, contextually-fitting translation.<br>
+                 Once again, we're so sorry for the hassle. We'll do our best to improve your experience.<br>
                  <br>
                  Regretfully,<br>
                  The CICERON team"""
 
     def client_incomplete(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_incomplete_kr
-            return self.client_incomplete_en
+            return self.client_incomplete_kr
         elif language_id == 1:
             return self.client_incomplete_en
 
     ##################################################################################################################################################
+
+    client_no_hero_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 안타깝게도 어느 히어로도 당신의 티켓을 선택해주지 않으셨습니다.<br>
+                 잠시 시간을 내어 <a href='%(link)s' target='_blank'>이곳</a>을 방문해 주셔서 취소 및 연장 여부를 결정해주시기 바랍니다.<br>
+                 <br>
+                 저희 히어로들은 문장 호응에 맞는 매끄러운 번역을 위하여 많은 노력과 시간이 들어가기 때문에, 모든 히어로가 번역중이라면 이후 올라오는 티켓은 미쳐 발견하지 못할 수 있습니다.<br>
+                 작은 의문이라도 저희에게 주저하지 말고 문의 부탁드립니다. 항상 발전하는 모습 보여드리려 노력하겠습니다.<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     client_no_hero_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -315,13 +374,21 @@ class mail_format:
 
     def client_no_hero(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_no_hero_kr
-            return self.client_no_hero_en
+            return self.client_no_hero_kr
         elif language_id == 1:
             return self.client_no_hero_en
 
     ##################################################################################################################################################
+
+    client_paidback_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
+                 <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
+                 <br>
+                 신청하신 적립금 환급이 완료되었습니다.<br>
+                 <a href='%(link)s' target='_blank'>이곳</a>에 방문하시어 적립금 환급 상태를 확인해주시기 바랍니다. (그리고 당신의 은행 계좌도요!)<br>
+                 문의사항 있으시면 주저말고 연락 부탁드립니다.<br>
+                 <br>
+                 감사합니다,<br>
+                 씨세론 팀"""
 
     client_paidback_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -335,9 +402,7 @@ class mail_format:
 
     def client_paid_back(self, language_id):
         if language_id == 0:
-            # Later, should be Korean
-            # return client_no_hero_kr
-            return self.client_paidback_en
+            return self.client_paidback_kr
         elif language_id == 1:
             return self.client_paidback_en
 
