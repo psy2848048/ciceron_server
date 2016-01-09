@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 class mail_format:
 
     translator_new_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
@@ -7,7 +9,7 @@ class mail_format:
                  씨세론의 자랑스러운 히어로 %(user)s님, 당신의 능력을 보여주세요.<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     translator_new_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -38,7 +40,7 @@ class mail_format:
                  <h4>늦어도 %(expected)s까지는 답변을 부탁드립니다. 그 때까지 답변이 없으면 이 티켓은 다른 히어로에게 부탁하게 됩니다. 만약 감당할 수 없을 정도로 어려운 티켓이라면 빨리 말씀해주세요. 빠르면 빠를수록 좋습니다 어렵게 생각하지 않으셔도 됩니다!</h4>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     translator_check_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -70,7 +72,7 @@ class mail_format:
                  히어로님의 능력을 기다립니다.<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     translator_complete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -98,7 +100,7 @@ class mail_format:
                  안타깝지만, 도와주시기로 한 <a href='%(link)s' target='_blank'>이 티켓</a>이 마감 시간을 넘겼습니다.<br>
                  혹시 마감 시한이 넘지 않았는데 이 메일을 받아보시게 된다면 저희이게 <a href='mailto:webmaster@ciceron.me?Subject=False%20alarm%20report' target='_blank'>연락</a> 부탁드리겠습니다.<br>
                  <br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     translator_exceeded_due_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -124,7 +126,7 @@ class mail_format:
                  혹시 새로운 마감 기한에 대하여 의문점이 있으면 언제든지 저희에게 <a href='mailto:webmaster@ciceron.me?Subject=False%20alarm%20report' target='_blank'>연락</a> 부탁드립니다.<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     translator_extended_due_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -150,7 +152,7 @@ class mail_format:
                  하지만 낙심하지 않으셔도 됩니다. <a href='%(link)s' target='_blank'>스토아</a>에 가 보시면 더 많은 티켓들이 히어로님의 능력을 기다리고 있습니다!<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     translator_no_answer_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
@@ -177,7 +179,7 @@ class mail_format:
                  저희 히어로를 믿고 기다려 주세요!<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_take_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -205,7 +207,7 @@ class mail_format:
                  <b>참고:/b> 예상 완료시간은 어디까지나 <b>참고용</b>입니다. 시스템은 의뢰인님께서 설정해주신 <b>마감 시간</b>을 기준으로 작동합니다.<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_check_expected_time_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -234,7 +236,7 @@ class mail_format:
                  이유는 여러가지일 수 있습니다. 시간이 부족하다고 느꼈을수도, 혹은 자신에게 더 맞는 의뢰를 찾았을수도 있습니다.<br>
                  이유불문, 불편을 끼쳐드려 죄송합니다. 문의 사항 있으면 주저하지 말고 저희에게 연락 부탁드립니다!<br>
                  <br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_giveup_ticket_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -265,7 +267,7 @@ class mail_format:
                  문의 사항 있으시면 주저하지 말고 저희에게 연락 부탁드립니다!<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_no_answer_expected_time_go_to_stoa_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -296,7 +298,7 @@ class mail_format:
                  혹시 티켓 의뢰의 전 과정에서 불편한 점이 있으셨으면 주저하지 말고 저희에게 연락 부탁드립니다.<br>
                  <br>
                  Thanks,<br>
-                 The CICERON team"""
+                 The CICERON team""".decode('utf-8')
 
     client_complete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -325,7 +327,7 @@ class mail_format:
                  대부분의 티켓은 기한 내에 처리가 됩니다. 다만, 어떻게든 자연스럽게 문장을 만들기 위하여 정성을 기울이느라 시간이 늦어질 수는 있습니다.<br>
                  다시 한 번 죄송하다는 말씀 드립니다. 다음 의뢰시에는 좋은 기억을 가져다 드릴 수 있도록 노력하겠습니다!
                  <br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_incomplete_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -356,7 +358,7 @@ class mail_format:
                  작은 의문이라도 저희에게 주저하지 말고 문의 부탁드립니다. 항상 발전하는 모습 보여드리려 노력하겠습니다.<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_no_hero_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
@@ -388,7 +390,7 @@ class mail_format:
                  문의사항 있으시면 주저말고 연락 부탁드립니다.<br>
                  <br>
                  감사합니다,<br>
-                 씨세론 팀"""
+                 씨세론 팀""".decode('utf-8')
 
     client_paidback_en="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
