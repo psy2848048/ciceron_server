@@ -793,6 +793,11 @@ def requests():
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
+        if session.get('useremail') == None or session.get('useremail') == False:
+            return make_response(json.jsonify(
+                status_code = 403,
+                message="Not logged in"), 403)
+
         # Method: POST
         # Parameters -> Please check code
         cursor = g.db.cursor()
