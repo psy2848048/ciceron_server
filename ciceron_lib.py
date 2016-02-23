@@ -395,7 +395,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
     return result
 
-def complete_groups(conn, parameters, table, method, url_group_id=None, since=None):
+def complete_groups(conn, parameters, table, method, url_group_id=None, since=None, page=None):
     if method == "GET":
         cursor = conn.cursor()
 
@@ -404,7 +404,10 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         query += "%s "
         if since != None:
             query += "AND registered_time < to_timestamp(%s) " % since
-        query += "ORDER BY id DESC"
+        query += "ORDER BY id DESC "
+        if page != None:
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (my_user_id, ) )
         rs = cursor.fetchall()
 

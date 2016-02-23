@@ -1004,6 +1004,10 @@ def show_queue():
             query_pending += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query_pending += "ORDER BY registered_time DESC LIMIT 20"
 
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query_pending, (my_user_id, ) )
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs)
@@ -1174,7 +1178,11 @@ def pick_request():
 
         if 'since' in request.args.keys():
             query_ongoing += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
-        query_ongoing += "ORDER BY start_translating_time DESC LIMIT 20"
+        query_ongoing += " ORDER BY start_translating_time DESC LIMIT 20 "
+
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
         my_user_id = get_user_id(g.db, session['useremail'])
         cursor.execute(query_ongoing, (my_user_id, ) )
@@ -1199,6 +1207,13 @@ def working_translate_item(str_request_id):
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND is_paid = true "
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
+
+        query += " ORDER BY start_translating_time desc LIMIT 20 "
+
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (request_id, ))
 
         rs = cursor.fetchall()
@@ -1231,6 +1246,12 @@ def expected_time(str_request_id):
             query = "SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s AND is_paid = true "
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
+
+        query += " ORDER BY start_translating_time desc LIMIT 20 "
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (request_id, ) )
         rs = cursor.fetchall()
         if len(rs) > 0:
@@ -1307,7 +1328,6 @@ def post_translate_item():
         query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 "
     else:
         query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND is_paid = true AND status_id = 1 "
-    query += "ORDER BY submitted_time DESC LIMIT 20"
 
     cursor.execute(query, (request_id, ))
     rs = cursor.fetchall()
@@ -1371,7 +1391,11 @@ def translation_completed_items_detail(str_request_id):
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s AND is_paid = true "
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
-    query += "ORDER BY submitted_time DESC LIMIT 20"
+    query += " ORDER BY submitted_time DESC LIMIT 20 "
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
     cursor.execute(query, (request_id, user_id))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
@@ -1394,6 +1418,10 @@ def translation_completed_items_all():
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
+
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
     cursor.execute(query, (user_id, ) )
     rs = cursor.fetchall()
@@ -1442,7 +1470,12 @@ def translators_complete_groups():
         since = None
         if 'since' in request.args.keys():
             since = request.args['since']
-        result = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "GET", since=since)
+
+        page = None
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+
+        result = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "GET", since=since, page=page)
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
@@ -1504,6 +1537,10 @@ def translation_completed_items_in_group(str_group_id):
         if 'since' in request.args.keys():
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY submitted_time DESC LIMIT 20"
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (my_user_id, group_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
@@ -1526,6 +1563,9 @@ def translation_incompleted_items_all():
     if 'since' in request.args.keys():
         query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY request_id DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
     cursor.execute(query, (user_id, user_id))
     rs = cursor.fetchall()
@@ -1548,6 +1588,10 @@ def translation_incompleted_items_each(str_request_id):
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (user_id, request_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
@@ -1567,6 +1611,10 @@ def show_pending_list_client():
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 0 AND is_paid = true "
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
+
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
         query += " ORDER BY registered_time DESC LIMIT 20"
         cursor.execute(query, (user_id, ))
@@ -1590,6 +1638,10 @@ def show_pending_item_client(str_request_id):
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND is_paid = true "
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (request_id, user_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -1633,6 +1685,10 @@ def show_ongoing_list_client():
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (user_id, ))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1655,6 +1711,10 @@ def show_ongoing_item_client(str_request_id):
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (request_id, user_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
@@ -1675,6 +1735,10 @@ def client_completed_items():
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
     cursor.execute(query, (user_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1696,6 +1760,10 @@ def client_completed_items_detail(str_request_id):
     if 'since' in request.args.keys():
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
     cursor.execute(query, (user_id, request_id))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1821,7 +1889,12 @@ def client_complete_groups():
         since = None
         if 'since' in request.args.keys():
             since = request.args['since']
-        result = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "GET", since=since)
+
+        page = None
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+
+        result = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "GET", since=since, page=page)
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
@@ -1883,6 +1956,10 @@ def client_completed_items_in_group(str_group_id):
         if 'since' in request.args.keys():
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += "ORDER BY submitted_time DESC"
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (my_user_id, group_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
@@ -1902,6 +1979,10 @@ def client_incompleted_items():
     if 'since' in request.args.keys():
         query += "AND registered_time < to-timestamp(%s) " % request.args.get('since')
     query += " ORDER BY registered_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
     cursor.execute(query, (user_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
@@ -1924,6 +2005,10 @@ def client_incompleted_item_control(str_request_id):
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
         cursor.execute(query, (user_id, request_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
