@@ -784,7 +784,12 @@ def requests():
                 (((ongoing_worker_id is null AND status_id = 0 AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
-        query += " ORDER BY registered_time DESC LIMIT 20"
+
+        query += " ORDER BY registered_time DESC LIMIT 20 "
+
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 10)
 
         cursor.execute(query, (pager_date, ) )
         rs = cursor.fetchall()
