@@ -304,8 +304,10 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         main_text = None
         if len(list_txt) == 0 or len(list_txt[0]) == 0:
             num_of_words = 0
+            num_of_letters = 0
         else:
-            num_of_words = len(list_txt[0][1].decode('utf-8'))
+            num_of_letters = len(list_txt[0][1].decode('utf-8'))
+            num_of_words = len(list_txt[0][1].decode('utf-8').split(' '))
             main_text = list_txt[0][1]
 
         item = dict(
@@ -333,6 +335,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_transStartTime=int(row[55].strftime("%s")) if row[55] != None else None,
                 request_expectedTime=int(row[25].strftime("%s")) if row[25] != None else None,
                 request_words=num_of_words,
+                request_letters=num_of_letters,
                 request_points=row[28],
                 request_translatorsInQueue=queue_list,
                 request_translatorId=row[6],
