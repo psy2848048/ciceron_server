@@ -789,7 +789,7 @@ def requests():
 
         if 'page' in request.args.keys():
             page = request.args.get('page')
-            query += " OFFSET %d " % (( int(page)-1 ) * 10)
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
         cursor.execute(query, (pager_date, ) )
         rs = cursor.fetchall()
