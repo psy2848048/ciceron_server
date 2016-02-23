@@ -845,6 +845,11 @@ def requests():
                 message="The language you requested is not yet registered. SOS request only"
                 ), 204)
 
+        if isSos == True and len(text_string.decode('utf-8')) > 140:
+            return make_response(json.jsonify(
+                message="Too long text for sos request"
+                ), 417)
+
         # Upload binaries into file and update each dimension table
         if (request.files.get('request_photo') != None):
             binary = request.files['request_photo']
