@@ -298,6 +298,7 @@ CREATE TABLE CICERON.D_QUEUE_LISTS (
     id INT,
     request_id INT, -- REQUEST_ID from F_REQUESTS
     user_id INT, -- D_USERS
+    nego_price REAL,
     PRIMARY KEY (id, request_id, user_id),
     FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS
 );
@@ -523,7 +524,8 @@ CREATE VIEW CICERON.V_QUEUE_LISTS as
    users.numOfTranslationOngoing numOfTranslationOngoing,
     users.numOfTranslationCompleted numOfTranslationCompleted,
     users.badgeList_id badgeList_id, -- D_AWARDED_BADGES
-    users.profile_text profile_text
+    users.profile_text profile_text,
+   fact.nego_price nego_price
   FROM
     CICERON.D_QUEUE_LISTS fact
   LEFT OUTER JOIN CICERON.D_USERS users ON fact.user_id = users.id;
