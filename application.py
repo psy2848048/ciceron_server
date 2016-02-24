@@ -845,9 +845,10 @@ def requests():
                 message="The language you requested is not yet registered. SOS request only"
                 ), 204)
 
-        if isSos == True and len(text_string.decode('utf-8')) > 140:
+        if isSos == True and len(text_string) > 140:
             return make_response(json.jsonify(
-                message="Too long text for sos request"
+                message="Too long text for sos request",
+                length=len(text_string)
                 ), 417)
 
         # Upload binaries into file and update each dimension table
