@@ -21,6 +21,7 @@ CREATE TABLE CICERON.D_USERS (
     trans_request_state INT,
     nationality INT,
     residence INT,
+    return_rate REAL,
     
     PRIMARY KEY (id)
 );
@@ -181,6 +182,9 @@ CREATE TABLE CICERON.F_REQUESTS (
     translatedText_id INT, -- D_TRANSLATED_TEXT
     feedback_score INT,
     start_translating_time TIMESTAMPTZ,
+    is_need_additional_points BOOLEAN,
+    additional_points REAL,
+    is_additional_points_paid BOOLEAN,
     
     PRIMARY KEY(id)
 );

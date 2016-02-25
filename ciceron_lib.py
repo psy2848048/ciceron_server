@@ -233,7 +233,7 @@ def crossdomain(f, origin='*', methods=None, headers=None,
 
     return decorator
 
-def getProfile(conn, user_id):
+def getProfile(conn, user_id, rate=1, price=None):
     cursor = conn.cursor()
     query_userinfo = """
         SELECT  
@@ -280,11 +280,23 @@ def getProfile(conn, user_id):
         user_residence=                 userinfo[17]
         )
 
+    if price != None:
+        result['user_price'] = price
+
     return result
 
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     result = []
     cursor = g.db.cursor()
+
+    # Return rate
+    query_returnRate = "SELECT return_rate FROM CICERON.D_USERS WHERE email = %s"
+    cursor.execute(query_returnRate, (session['useremail'], ))
+    ret_returnRate = cursor.fetchone()
+
+    return_rate = None
+    if ret_returnRate is not None and len(ret_returnRate) > 0:
+        return_rate = ret_returnRate[0]
 
     for row in rs:
         request_id = row[0]
@@ -294,7 +306,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
         queue_list = []
         for q_item in cursor.fetchall():
-            profile = getProfile(conn, q_item[2])
+            profile = getProfile(conn, q_item[2], rate=return_rate, price=q_item[3])
             queue_list.append(profile)
 
         # For getting word count of the request
@@ -336,7 +348,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_expectedTime=int(row[25].strftime("%s")) * 1000 if row[25] != None else None,
                 request_words=num_of_words,
                 request_letters=num_of_letters,
-                request_points=row[28],
+                request_points=row[28] if purpose.endswith("client") or purpose == "newsfeed" else row[28] * return_rate,
                 request_translatorsInQueue=queue_list,
                 request_translatorId=row[6],
                 request_translatorName=row[7],
@@ -836,7 +848,7 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
 
     print "New user id: %d" % user_id
     cursor.execute("""INSERT INTO CICERON.D_USERS
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (user_id,
              email,
              name,
@@ -854,7 +866,8 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
              "nothing",
              0,
              nationality_id,
-             residence_id))
+             residence_id,
+             0.7))
 
     cursor.execute("INSERT INTO CICERON.PASSWORDS VALUES (%s,%s)",
         (user_id, hashed_password))

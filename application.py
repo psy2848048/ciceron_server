@@ -1035,11 +1035,22 @@ def show_queue():
 
         request_id = int(parameters['request_id'])
         translator_email = parameters.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
+        translator_newPoint = float(parameters.get('translator_newPoint', 0))
+
+        query_returnRate = "SELECT return_rate FROM CICERON.D_USERS WHERE email = %s"
+        cursor.execute(query_returnRate, (session['useremail'], ))
+        ret_returnRate = cursor.fetchone()
+        return_rate = None
+        if ret_returnRate is not None and len(ret_returnRate) > 0:
+            return_rate = ret_returnRate[0]
+        if return_rate != None:
+            translator_newPoint = translator_newPoint / return_rate
+
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT queue_id, client_user_id, status_id FROM CICERON.F_REQUESTS WHERE id = %s "
+            query = "SELECT queue_id, client_user_id, status_id, points FROM CICERON.F_REQUESTS WHERE id = %s "
         else:
-            query = "SELECT queue_id, client_user_id, status_id FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
+            query = "SELECT queue_id, client_user_id, status_id, points FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
 
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
@@ -1050,6 +1061,7 @@ def show_queue():
         else:                        user_id = get_user_id(g.db, translator_email)
         request_user_id = rs[0][1]
         status_id = rs[0][2]
+        points = rs[0][3]
 
         if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(
@@ -1068,28 +1080,32 @@ def show_queue():
                 message="Gone ticket. (Canceled or translated by others)"
                 ), 410)
 
+        if point > translator_newPoint + 2.0:
+            return make_response(json.jsonify(
+                message="New point should be bigger than before!"
+                ), 417)
+
         queue_id = rs[0][0]
-        cursor.execute("SELECT user_id FROM CICERON.D_QUEUE_LISTS WHERE id = %s AND user_id = %s", (queue_id, user_id))
+        cursor.execute("SELECT user_id FROM CICERON.D_QUEUE_LISTS WHERE id = %s AND user_id = %s", (queue_id, user_id, ))
         rs = cursor.fetchall()
         if len(rs) != 0:
             return make_response(json.jsonify(
                 message = "You've already stood in queue. Request ID: %d" % request_id
                 ), 204)
 
-        query="INSERT INTO CICERON.D_QUEUE_LISTS VALUES (%s,%s,%s)"
-
         if queue_id == None:
             queue_id = get_new_id(g.db, "D_QUEUE_LISTS")
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET queue_id = %s WHERE id = %s", (queue_id, request_id))
+            cursor.execute("UPDATE CICERON.F_REQUESTS SET queue_id = %s WHERE id = %s", (queue_id, request_id, ))
 
-        cursor.execute(query, (queue_id, request_id, user_id) )
+        query="INSERT INTO CICERON.D_QUEUE_LISTS VALUES (%s,%s,%s,%s)"
+        cursor.execute(query, (queue_id, request_id, user_id, translator_newPoint, ))
         g.db.commit()
 
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
         g.db.commit()
 
         return make_response(json.jsonify(
-            message = "You are in queue for translating request #%d" % request_id,
+            message = "You proposed a new price of request #%d" % request_id,
             request_id=request_id
             ), 200)
 
@@ -1603,7 +1619,7 @@ def translation_incompleted_items_each(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/pending', methods=["GET"])
+@app.route('/api/user/requests/pending', methods=["GET", "POST"])
 #@exception_detector
 @login_required
 def show_pending_list_client():
@@ -1627,6 +1643,10 @@ def show_pending_list_client():
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
+
+    elif request.method == "POST":
+        cursor = g.db.cursor()
+
 
 @app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
 #@exception_detector
