@@ -2601,12 +2601,17 @@ def get_notification():
                       CASE WHEN noti.expected_time is not null THEN (noti.expected_time - CURRENT_TIMESTAMP) ELSE null END as expectedDue,
                       noti.context,
                       noti.status_id,
-                      CASE WHEN noti.expected_time is null THEN false ELSE true END as expectedDue_replied
+                      CASE WHEN noti.expected_time is null THEN false ELSE true END as expectedDue_replied,
+                      noti.id
             FROM CICERON.V_NOTIFICATION noti LEFT OUTER JOIN CICERON.F_REQUESTS req ON noti.request_id = req.id
             WHERE noti.user_id = %s AND req.status_id != -2 """
     if 'since' in request.args.keys():
         query += "AND ts < to_timestamp(%s) " % request.args.get('since')
     query += "ORDER BY ts DESC LIMIT 10 "
+
+    if 'page' in request.args.keys():
+        page = int(request.args.get('page', 1))
+        query += " OFFSET %d" % ((page-1) * 10)
     cursor.execute(query, (user_id, ))
     rs = cursor.fetchall()
 
@@ -2633,6 +2638,7 @@ def get_notification():
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
         row['expectedDue'] = item[8].total_seconds() if item[8] != None else None
         row['expectedDue_replied'] = item[11]
+        row['noti_id'] = item[12]
 
         result.append(row)
 
@@ -2646,13 +2652,20 @@ def get_notification():
 #@exception_detector
 def read_notification():
     cursor = g.db.cursor()
-    user_id = get_user_id(g.db, session['useremail'])
-    query = """UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE id IN (SELECT id FROM CICERON.F_NOTIFICATION WHERE user_id = %s ORDER BY ts DESC) """
-    cursor.execute(query, (user_id, ))
+    user_id = get_user_id(g.db, session['useremail']) 
+    if 'noti_id' in request.args.keys():
+        query = """UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE id = %s """
+        noti_id = request.args.get('noti_id')
+        cursor.execute(query, (noti_id, ))
+
+    else:
+        query = """UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE id IN (SELECT id FROM CICERON.F_NOTIFICATION WHERE user_id = %s ORDER BY ts DESC) """
+        cursor.execute(query, (user_id, ))
+
     g.db.commit()
 
     return make_response(json.jsonify(
-        message="10 notis are marked as read"), 200)
+        message="Notis are marked as read"), 200)
 
 @app.route('/api/user/payback', methods = ["GET", "POST"])
 @login_required
