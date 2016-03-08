@@ -233,7 +233,7 @@ def crossdomain(f, origin='*', methods=None, headers=None,
 
     return decorator
 
-def getProfile(conn, user_id):
+def getProfile(conn, user_id, price=None):
     cursor = conn.cursor()
     query_userinfo = """
         SELECT  
