@@ -280,6 +280,9 @@ def getProfile(conn, user_id):
         user_residence=                 userinfo[17]
         )
 
+    if price != None:
+        result['user_additionalPoint'] = price
+
     return result
 
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):

@@ -764,40 +764,10 @@ def user_keywords_control(keyword):
             message="Similarity search results",
             result=similar_keywords), 200)
 
-@app.route('/api/requests', methods=["GET", "POST"])
+@app.route('/api/requests', methods=["POST"])
 #@exception_detector
 def requests():
-    if request.method == "GET":
-        # Request method: GET
-        # Parameters
-        #     since(optional): Timestamp, take recent 20 post before the timestamp.
-        #                  If this parameter is not provided, recent 20 posts from now are returned
-        cursor = g.db.cursor()
-
-        query = None
-        pager_date = None
-        if session.get('useremail') in super_user:
-            query = """SELECT * FROM CICERON.V_REQUESTS WHERE
-                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
-        else:
-            query = """SELECT * FROM CICERON.V_REQUESTS WHERE
-                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
-        if 'since' in request.args.keys():
-            query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
-
-        query += " ORDER BY registered_time DESC LIMIT 20 "
-
-        if 'page' in request.args.keys():
-            page = request.args.get('page')
-            query += " OFFSET %d " % (( int(page)-1 ) * 20)
-
-        cursor.execute(query, (pager_date, ) )
-        rs = cursor.fetchall()
-        result = json_from_V_REQUESTS(g.db, rs)
-
-        return make_response(json.jsonify(data=result), 200)
-
-    elif request.method == "POST":
+    if request.method == "POST":
         if session.get('useremail') == None or session.get('useremail') == False:
             return make_response(json.jsonify(
                 status_code = 403,
@@ -985,6 +955,39 @@ def requests():
             user_email=parameters['request_clientId'],
             request_id=request_id), 200)
 
+@app.route('/api/user/translations/stoa', methods=["GET"])
+#@exception_detector
+def translator_stoa():
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        cursor = g.db.cursor()
+
+        query = None
+        pager_date = None
+        if session.get('useremail') in super_user:
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE
+                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
+        else:
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE
+                (((ongoing_worker_id is null AND status_id = 0 AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
+        if 'since' in request.args.keys():
+            query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
+
+        query += " ORDER BY registered_time DESC LIMIT 20 "
+
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+        cursor.execute(query, (pager_date, ) )
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs)
+
+        return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/translations/pending', methods=["GET", "POST"])
 @login_required
 #@exception_detector
@@ -1035,6 +1038,21 @@ def show_queue():
 
         request_id = int(parameters['request_id'])
         translator_email = parameters.get('translator_email', session['useremail']) # WILL USE FOR REQUESTING WITH TRANSLATOR SELECTING
+        translator_newPoint = float(parameters.get('translator_additionalPoint', 0))
+        if translator_newPoint < 2.0:
+            return make_response(json.jsonify(
+                message="Additional point should be bigger than USD 2.0"
+                ), 417)
+
+        query_returnRate = "SELECT return_rate FROM CICERON.D_USERS WHERE email = %s"
+        cursor.execute(query_returnRate, (session['useremail'], ))
+        ret_returnRate = cursor.fetchone()
+        return_rate = None
+        if ret_returnRate is not None and len(ret_returnRate) > 0:
+            return_rate = ret_returnRate[0]
+        if return_rate != None:
+            translator_newPoint = translator_newPoint / return_rate
+
         query = None
         if session['useremail'] in super_user:
             query = "SELECT queue_id, client_user_id, status_id FROM CICERON.F_REQUESTS WHERE id = %s "
@@ -1603,7 +1621,36 @@ def translation_incompleted_items_each(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/pending', methods=["GET"])
+@app.route('/api/user/requests/stoa', methods=["GET"])
+#@exception_detector
+def user_stoa():
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        cursor = g.db.cursor()
+
+        query = None
+        pager_date = None
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE
+                isSos = true AND status_id IN (0, 1, 2) AND due_time > CURRENT_TIMESTAMP """
+        if 'since' in request.args.keys():
+            query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
+
+        query += " ORDER BY registered_time DESC LIMIT 20 "
+
+        if 'page' in request.args.keys():
+            page = request.args.get('page')
+            query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+        cursor.execute(query, (pager_date, ) )
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs)
+
+        return make_response(json.jsonify(data=result), 200)
+
+@app.route('/api/user/requests/pending', methods=["GET", "POST"])
 #@exception_detector
 @login_required
 def show_pending_list_client():
