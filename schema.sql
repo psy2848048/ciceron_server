@@ -592,6 +592,7 @@ CREATE TABLE CICERON.F_NOTIFICATION (
     request_id INT,
     ts TIMESTAMPTZ,
     is_read BOOLEAN,
+    is_mail_sent BOOLEAN,
 
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id),
@@ -624,7 +625,10 @@ CREATE VIEW CICERON.V_NOTIFICATION as
     fact.ts ts, --17
     fact.is_read is_read, --18
     users.profile_pic_path user_profile_pic_path,
-    req.status_id status_id
+    req.status_id status_id,
+
+    fact.is_mail_sent is_mail_sent
+
   FROM CICERON.F_NOTIFICATION fact
   LEFT OUTER JOIN CICERON.D_USERS users ON fact.user_id = users.id
   LEFT OUTER JOIN CICERON.D_USERS users2 ON fact.target_user_id = users2.id

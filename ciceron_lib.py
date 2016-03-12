@@ -619,7 +619,7 @@ def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     cursor = conn.cursor()
     new_noti_id = get_new_id(conn, "F_NOTIFICATION")
     # The query below is original
-    query = "INSERT INTO CICERON.F_NOTIFICATION VALUES (%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,false)"
+    query = "INSERT INTO CICERON.F_NOTIFICATION VALUES (%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,false,false)"
     # The query below is that mail alarm is forcefully turned off
     #query = "INSERT INTO F_NOTIFICATION VALUES (?,?,?,?,CURRENT_TIMESTAMP,1)"
     cursor.execute(query, (new_noti_id, user_id, noti_type_id, target_user_id, request_id) )
@@ -628,14 +628,16 @@ def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
 def pick_random_translator(conn, number, from_lang, to_lang):
     cursor = conn.cursor()
 
-    query = """SELECT distinct usr.id FROM CICERON.D_USERS usr
+    query = """WITH translators AS (
+                   SELECT distinct usr.id usr_id FROM CICERON.D_USERS usr
         JOIN CICERON.V_TRANSLATABLE_LANGUAGES trans ON usr.id = trans.user_id
         JOIN CICERON.V_TRANSLATABLE_LANGUAGES trans2 ON usr.id = trans2.user_id
         WHERE (usr.mother_language_id = %s AND trans.translatable_language_id = %s)
            OR (trans.translatable_language_id = %s AND usr.mother_language_id = %s)
            OR (trans.translatable_language_id = %s AND trans2.translatable_language_id = %s)
-           OFFSET RANDOM()*(SELECT count(*) FROM CICERON.V_REQUESTS) LIMIT %s """
-    cursor.execute(query, (from_lang, to_lang, from_lang, to_lang, from_lang, to_lang, number))
+           )
+           SELECT distinct usr_id FROM translators OFFSET FLOOR(RANDOM() * (SELECT COUNT(*) FROM translators)) LIMIT %s """
+    cursor.execute(query, (from_lang, to_lang, from_lang, to_lang, from_lang, to_lang, number, ))
     result = cursor.fetchall()
 
     return result

@@ -2705,9 +2705,9 @@ def read_notification():
         noti_id = request.args.get('noti_id')
         cursor.execute(query, (noti_id, ))
 
-    else:
-        query = """UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE id IN (SELECT id FROM CICERON.F_NOTIFICATION WHERE user_id = %s ORDER BY ts DESC) """
-        cursor.execute(query, (user_id, ))
+    #else:
+    #    query = """UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE id IN (SELECT id FROM CICERON.F_NOTIFICATION WHERE user_id = %s ORDER BY ts DESC) """
+    #    cursor.execute(query, (user_id, ))
 
     g.db.commit()
 
@@ -3075,7 +3075,7 @@ def mail_alarm():
     query = """SELECT 
         user_id, user_email, user_name, noti_type_id, noti_type, request_id, context, registered_time, expected_time, submitted_time, start_translating_time, due_time, points, target_user_id, target_user_email, target_user_name, target_profile_pic_path, ts, is_read, user_profile_pic_path, status_id
         FROM CICERON.V_NOTIFICATION 
-            WHERE is_read = false AND CURRENT_TIMESTAMP > ts + interval '3 minutes'
+            WHERE is_read = false AND is_mail_sent = false CURRENT_TIMESTAMP > ts + interval '3 minutes'
         ORDER BY ts"""
     cursor.execute(query)
     rs = cursor.fetchall()
@@ -3114,7 +3114,7 @@ def mail_alarm():
                 i.join()
             process_pool = []
 
-    query = "UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE is_read = false AND CURRENT_TIMESTAMP > ts + interval '3 minutes'"
+    query = "UPDATE CICERON.F_NOTIFICATION SET is_mail_sent = true WHERE is_read = false AND CURRENT_TIMESTAMP > ts + interval '3 minutes'"
     cursor.execute(query)
     g.db.commit()
 
