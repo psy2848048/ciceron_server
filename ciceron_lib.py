@@ -650,8 +650,8 @@ def string2Date(string):
 
 def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
     cursor = conn.cursor()
-    requesterNoti = [6, 7, 8, 9, 10, 11, 12]
-    translatorNotiType = [0, 1, 2, 3, 4, 5]
+    requesterNoti = [7, 8, 9, 10, 11, 12, 13]
+    translatorNotiType = [1, 2, 3, 4, 5, 6]
 
     HOST = ""
     if os.environ.get('PURPOSE') == 'PROD':
@@ -710,7 +710,7 @@ def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
         alertType = None
         link = '%s/%s/%d' % (HOST, 'donerequests', request_id)
 
-    elif noti_type in (13, 14):
+    elif noti_type in (14, 15):
         isAlert = False
         alertType = None
         link = '%s/%s' % (HOST, 'profile')
@@ -738,77 +738,77 @@ def get_noti_data(conn, noti_type, user_id, request_id, optional_info=None):
          "link": getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type)
          }
 
-    if noti_type == 0:
-        message["notiType"] = 0
+    if noti_type == 1:
+        message["notiType"] = 1
         message["title"] = "New request!"
         message['detail'] = "New ticket is waiting for your help!"
 
-    elif noti_type == 1:
-        message["notiType"] = 1
+    elif noti_type == 2:
+        message["notiType"] = 2
         message["title"] = "When could you finish?"
         message['detail'] = "Inform your deadline to the client!"
 
-    elif noti_type == 2:
-        message["notiType"] = 2
+    elif noti_type == 3:
+        message["notiType"] = 3
         message["title"] = "Check client's feedback :)"
         message['detail'] = "Client left a feedback for your help:) Please check it!"
             
-    elif noti_type == 3:
-        message["notiType"] = 3
+    elif noti_type == 4:
+        message["notiType"] = 4
         message["title"] = "Deadline exceeded :("
         message['detail'] = "Deadline of your ticket has just exceeded. Client will decide how to deal with."
 
-    elif noti_type == 4:
-        message["notiType"] = 4
+    elif noti_type == 5:
+        message["notiType"] = 5
         message["new_due"] = optional_info.get('new_due')
         message["title"] = "You can work for your ticket more!"
         message['detail'] = "Client has just exteneded the deadline! Please be strict the deadline for this time :)"
 
-    elif noti_type == 5:
-        message["notiType"] = 5
+    elif noti_type == 6:
+        message["notiType"] = 6
         message["title"] = "No expected deadline :("
         message['detail'] = "Your ticket has just been put back into stoa due to no answer of deadline :( Please make sure to answer deadline until one third of deadline."
 
-    elif noti_type == 6:
-        message["notiType"] = 6
+    elif noti_type == 7:
+        message["notiType"] = 7
         message['hero'] = get_user_name(conn, optional_info.get('hero'))
         message["title"] = "Hero comes!"
         message['detail'] = "Hero has just started working for your ticket!"
 
-    elif noti_type == 7:
-        message["notiType"] = 7
+    elif noti_type == 8:
+        message["notiType"] = 8
         message["expected"] = str(optional_info.get('expected')) if optional_info.get('expected') != None else None
         message["title"] = "Check expected deadline"
         message['detail'] = "Hero thinks that your ticket can be finished by XX:XX:XX"
 
-    elif noti_type == 8:
-        message["notiType"] = 8
-        message["hero"] = get_user_name(conn, optional_info.get('hero'))
-        message["title"] = "Deadline exceeded :("
-        message['detail'] = "Deadline of your ticket has just exceeded. Client will decide how to deal with."
-
     elif noti_type == 9:
         message["notiType"] = 9
-        message["title"] = "No expected deadline from hero :("
-        message['detail'] = "Hero didn't answer when the ticket could be finished. Your request is put into stoa."
+        message["hero"] = get_user_name(conn, optional_info.get('hero'))
+        message["title"] = "Hero gave up translation :("
+        message['detail'] = "Hero checked your ticket but he/she gave up translating."
 
     elif noti_type == 10:
         message["notiType"] = 10
-        message["title"] = "Translation complete!"
-        message['detail'] = "Your ticket has just been finished translating! Please rate the translation queality of your ticket!"
+        message["title"] = "No expected deadline from hero :("
+        message['detail'] = "Hero didn't answer when the ticket could be finished. Your request is put into stoa."
 
     elif noti_type == 11:
         message["notiType"] = 11
-        message["title"] = "Deadline exceeded :("
-        message['detail'] = "Your hero didn't finish your ticket yet."
+        message["title"] = "Translation complete!"
+        message['detail'] = "Your ticket has just been finished translating! Please rate the translation queality of your ticket!"
 
     elif noti_type == 12:
         message["notiType"] = 12
+        message["title"] = "Deadline exceeded :("
+        message['detail'] = "Your hero didn't finish your ticket yet."
+
+    elif noti_type == 13:
+        message["notiType"] = 13
         message["title"] = "No hero for your ticket :("
         message['detail'] = "No hero comes for your ticket. You may keep posting in stoa, or delete the ticket."
 
-    elif noti_type == 14:
-        message["notiType"] = 14
+    elif noti_type == 15:
+        message["notiType"] = 15
         message["title"] = "Point returned :)"
         message['detail'] = "Your points has just paid back to your account!"
 

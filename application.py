@@ -117,78 +117,78 @@ def parallel_send_email(user_name, user_email, noti_type, request_id, language_i
     template = mail_template.mail_format()
     message = None
 
-    if noti_type == 0:
+    if noti_type == 1:
         message = template.translator_new_ticket(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/stoa/%d') % request_id}
 
-    elif noti_type == 1:
+    elif noti_type == 2:
         message = template.translator_check_expected_time(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/translating/%d') % request_id,
              "expected": optional_info.get('expected')}
             # datetime.now() + timedelta(seconds=(due_time - start_translating_time)/3)
 
-    elif noti_type == 2:
+    elif noti_type == 3:
         message = template.translator_complete(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/activity/%d') % request_id}
             
-    elif noti_type == 3:
+    elif noti_type == 4:
         message = template.translator_exceeded_due(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/stoa/%d') % request_id}
 
-    elif noti_type == 4:
+    elif noti_type == 5:
         message = template.translator_extended_due(langauge_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/translating/%d') % request_id,
              "new_due": optional_info.get('new_due')}
 
-    elif noti_type == 5:
+    elif noti_type == 6:
         message = template.translator_no_answer_expected_time(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/stoa/%d') % request_id}
 
-    elif noti_type == 6:
+    elif noti_type == 7:
         message = template.client_take_ticket(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/processingrequests/%d') % request_id,
              'hero': optional_info.get('hero')}
 
-    elif noti_type == 7:
+    elif noti_type == 8:
         message = template.client_check_expected_time(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/processingrequests/%d') % request_id}
 
-    elif noti_type == 8:
+    elif noti_type == 9:
         message = template.client_giveup_ticket(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/stoa/%d') % request_id,
              "hero": optional_info.get('hero')}
 
-    elif noti_type == 9:
+    elif noti_type == 10:
         message = template.client_no_answer_expected_time_go_to_stoa(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/stoa/%d') % request_id}
 
-    elif noti_type == 10:
+    elif noti_type == 11:
         message = template.client_complete(language_id) %{"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/donerequests/%d') % request_id,
              "hero": optional_info.get('hero')}
 
-    elif noti_type == 11:
+    elif noti_type == 12:
         message = template.client_incomplete(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/processingrequests/%d') % request_id}
 
-    elif noti_type == 12:
+    elif noti_type == 13:
         message = template.client_no_hero(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/processingrequests/%d') % request_id}
 
-    elif noti_type == 14:
+    elif noti_type == 15:
         message = template.client_no_hero(language_id) % {"host": os.environ.get('HOST', app.config['HOST']),
              "user": user_name,
              "link": (HOST + '/stoa')}
@@ -941,10 +941,10 @@ def requests():
         if isSos == True:
             rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
             for item in rs:
-                store_notiTable(g.db, item[0], 0, None, request_id)
+                store_notiTable(g.db, item[0], 1, None, request_id)
                 regKeys_oneuser = get_device_id(g.db, item[0])
 
-                message_dict = get_noti_data(g.db, 10, item[0], request_id)
+                message_dict = get_noti_data(g.db, 1, item[0], request_id)
                 if len(regKeys_oneuser) > 0:
                     gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
@@ -1179,7 +1179,7 @@ def pick_request():
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
 
         # Notification
-        send_noti_suite(gcm_server, g.db, request_user_id, 6, user_id, request_id,
+        send_noti_suite(gcm_server, g.db, request_user_id, 7, user_id, request_id,
                 optional_info={"hero": user_id})
 
         g.db.commit()
@@ -1298,7 +1298,7 @@ def expected_time(str_request_id):
         query = "SELECT client_user_id, expected_time FROM CICERON.F_REQUESTS WHERE id = %s"
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 7, user_id, request_id, optional_info={"expected": rs[0][1]})
+        send_noti_suite(gcm_server, g.db, rs[0][0], 8, user_id, request_id, optional_info={"expected": rs[0][1]})
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -1328,7 +1328,7 @@ def expected_time(str_request_id):
         query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.F_REQUESTS WHERE id = %s "
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 8, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
+        send_noti_suite(gcm_server, g.db, rs[0][0], 9, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -1391,7 +1391,7 @@ def post_translate_item():
     query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.F_REQUESTS WHERE id = %s"
     cursor.execute(query, (request_id, ))
     rs = cursor.fetchall()
-    send_noti_suite(gcm_server, g.db, rs[0][0], 10, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
+    send_noti_suite(gcm_server, g.db, rs[0][0], 11, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
     g.db.commit()
 
@@ -1896,7 +1896,7 @@ def client_rate_request(str_request_id):
     query = "SELECT ongoing_worker_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s "
     cursor.execute(query, (request_id, ) )
     rs = cursor.fetchall()
-    send_noti_suite(gcm_server, g.db, rs[0][0], 2, rs[0][1], request_id)
+    send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
 
     g.db.commit()
 
@@ -2476,10 +2476,10 @@ def pay_for_request_process(str_request_id):
 
     rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
     for item in rs:
-        store_notiTable(g.db, item[0], 0, None, request_id)
+        store_notiTable(g.db, item[0], 1, None, request_id)
         regKeys_oneuser = get_device_id(g.db, item[0])
 
-        message_dict = get_noti_data(g.db, 0, item[0], request_id)
+        message_dict = get_noti_data(g.db, 1, item[0], request_id)
         if len(regKeys_oneuser) > 0:
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
@@ -2967,8 +2967,8 @@ def publicize():
     cursor.execute(query_no_expected_time)
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[0], 5, item[1], item[2])
-        send_noti_suite(gcm_server, g.db, item[1], 9, item[0], item[2])
+        send_noti_suite(gcm_server, g.db, item[0], 6, item[1], item[2])
+        send_noti_suite(gcm_server, g.db, item[1], 10, item[0], item[2])
         translator_list.append(item[0])
         client_list.append(item[1])
 
@@ -2979,8 +2979,8 @@ def publicize():
     cursor.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[1], 11, item[0], item[2])
-        send_noti_suite(gcm_server, g.db, item[0],  3, item[1], item[2])
+        send_noti_suite(gcm_server, g.db, item[1], 12, item[0], item[2])
+        send_noti_suite(gcm_server, g.db, item[0],  4, item[1], item[2])
         translator_list.append(item[0])
         client_list.append(item[1])
 
@@ -2991,7 +2991,7 @@ def publicize():
     cursor.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[0], 12, None, item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 13, None, item[1])
         client_list.append(item[0])
 
     cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
@@ -3023,7 +3023,7 @@ def ask_expected_time():
     cursor.execute(query) 
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[0], 1, item[2], item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 2, item[2], item[1])
 
     g.db.commit()
     return make_response(json.jsonify(
@@ -3044,8 +3044,8 @@ def delete_sos():
     cursor.execute(query_expired_deadline)
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[1], 11, item[0], item[2])
-        send_noti_suite(gcm_server, g.db, item[0],  3, item[1], item[2])
+        send_noti_suite(gcm_server, g.db, item[1], 12, item[0], item[2])
+        send_noti_suite(gcm_server, g.db, item[0],  4, item[1], item[2])
         translator_list.append(item[0])
         client_list.append(item[1])
 
@@ -3056,7 +3056,7 @@ def delete_sos():
     cursor.execute(query_no_translators)
     rs = cursor.fetchall()
     for item in rs:
-        send_noti_suite(gcm_server, g.db, item[0], 12, None, item[1])
+        send_noti_suite(gcm_server, g.db, item[0], 13, None, item[1])
         client_list.append(item[0])
 
     cursor.execute("""UPDATE CICERON.F_REQUESTS SET is_paid = false, status_id = -1
@@ -3227,7 +3227,7 @@ def return_money():
         # Notification
         cursor.execute("SELECT user_id FROM CICERON.RETURN_MONEY_BANK_ACCOUNT WHERE id = %s AND order_no = %s ", (id_order, order_no))
         user_id_no = cursor.fetchall()[0][0]
-        send_noti_suite(gcm_server, g.db, user_id_no, 14, None, None)
+        send_noti_suite(gcm_server, g.db, user_id_no, 15, None, None)
 
         g.db.commit()
         return make_response(json.jsonify(
