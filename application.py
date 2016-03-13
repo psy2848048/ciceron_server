@@ -3075,7 +3075,7 @@ def mail_alarm():
     query = """SELECT 
         user_id, user_email, user_name, noti_type_id, noti_type, request_id, context, registered_time, expected_time, submitted_time, start_translating_time, due_time, points, target_user_id, target_user_email, target_user_name, target_profile_pic_path, ts, is_read, user_profile_pic_path, status_id
         FROM CICERON.V_NOTIFICATION 
-            WHERE is_read = false AND is_mail_sent = false CURRENT_TIMESTAMP > ts + interval '3 minutes'
+            WHERE is_read = false AND is_mail_sent = false AND CURRENT_TIMESTAMP > ts + interval '3 minutes'
         ORDER BY ts"""
     cursor.execute(query)
     rs = cursor.fetchall()
