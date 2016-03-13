@@ -3059,7 +3059,7 @@ def delete_sos():
         send_noti_suite(gcm_server, g.db, item[0], 13, None, item[1])
         client_list.append(item[0])
 
-    cursor.execute("""UPDATE CICERON.F_REQUESTS SET is_paid = false, status_id = -1
+    cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
                      WHERE status_id in (0,1) AND isSos = true AND CURRENT_TIMESTAMP >= registered_time + interval '30 minutes'""")
     g.db.commit()
 
