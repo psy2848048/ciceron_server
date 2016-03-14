@@ -4,7 +4,7 @@ from flask import Flask, session, redirect, escape, request, g, abort, json, fla
 from flask_pushjack import FlaskGCM
 from contextlib import closing
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time, requests, sys, paypalrestsdk, logging, io
+import hashlib, sqlite3, os, time, requests, sys, logging, io
 #os.environ['DYLD_LIBRARY_PATH'] = '/usr/local/opt/openssl/lib'
 """ Execute following first!!"""
 """ export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
@@ -1109,7 +1109,7 @@ def show_queue():
             request_id=request_id
             ), 200)
 
-@app.route('/api/user/translations/pending/<str_request_id>', methods=["DELETE"])
+@app.route('/api/user/translations/pending/<str_request_id>', methods=["DELETE", "PUT"])
 @login_required
 @translator_checker
 #@exception_detector
@@ -1132,6 +1132,31 @@ def work_in_queue(str_request_id):
         return make_response(json.jsonify(
             message="You've dequeued from request #%d" % request_id,
             request_id=request_id), 200)
+
+    elif request.method == "PUT":
+        cursor = g.db.cursor()
+        parameters = parse_request(request)
+
+        request_id = int(str_request_id)
+        my_user_id = get_user_id(g.db, session['useremail'])
+        update_point = parameters['new_point']
+
+        query_getQueueID = "SELECT queue_id, client_user_id, status_id, points FROM CICERON.F_REQUESTS WHERE id = %s "
+        cursor.execute(query_getQueueID, (request_id, ))
+        rs = cursor.fetchone()
+        if rs is None or len(rS) == 0:
+            return make_response(json.jsonify(
+                message="You cannot update the point if you didn't join the nego"), 410)
+
+        queue_id = rs[0]
+        query_updateNego = "UPDATE CICERON.D_QUEUE_LISTS SET nego_price = %s WHERE id = %s"
+        cursor.execute(query_updateNego, (update_point, queue_id, ))
+
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Point updated",
+            point=update_point), 200)
 
 @app.route('/api/user/translations/ongoing', methods=['GET', 'POST'])
 @login_required
@@ -1645,8 +1670,33 @@ def show_pending_list_client():
         return make_response(json.jsonify(data=result), 200)
 
     elif request.method == "POST":
-        cursor = g.db.cursor()
+        parameters = parse_request(request)
 
+        pay_by = parameters['pay_by']
+        pay_via = parameters['pay_via']
+        request_id = parameters['request_id']
+        translator_id = get_user_id(g.db, parameters['translator_userEmail'])
+        host_ip = HOST
+        user_point = float(parameters.get('user_point', 0))
+        promo_type = parameters.get('promo_type', 'null')
+        promo_code = parameters.get('promo_code', 'null')
+
+        user_id = get_user_id(g.db, session['useremail'])
+
+        status_code = approve_negoPoint(g.db, request_id, trnslator_id, user_id)
+
+        if status_code == 406:
+            return make_response(json.jsonify(
+                message='Not valid hero email or ticket entry'), 406)
+
+        elif status_code == 409:
+            return make_response(json.jsonify(
+                message='Suggested point is smaller than original point'), 409)
+
+        # status_code == 200: pass
+
+        status_code, remail_point, provided_link = payment_start(g.db, pay_by, pay_via, request_id, diff_amount, user_id, host_ip,
+                use_point=use_point, promo_type=promo_type, promo_code=promo_code)
 
 @app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
 #@exception_detector
@@ -1828,34 +1878,12 @@ def client_rate_request(str_request_id):
     # Input feedback score
     cursor.execute("UPDATE CICERON.F_REQUESTS SET feedback_score = %s WHERE id = %s ", (feedback_score, request_id))
 
-    #######################################################################
-    #  IF RETURN RATE EXISTS, THE BLOCKED CODE BELOW WILL BE IMPLEMENTED  #
-    #######################################################################
+    user_id = get_user_id(g.db, session['useremail'])
+    query_getCounts = "SELECT return_rate FROM CICERON.D_USERS WHERE id = %s"
+    cursor.execute(query_getRate, (user_id, ))
+    rs = cursor.fetchone()
 
-    #query_getCounts = None
-    #if session['useremail'] in super_user:
-    #    query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
-    #else:
-    #    query_getCounts = "SELECT count(*) FROM F_REQUESTS WHERE ongoing_worker_id = ? AND status_id = 2 AND is_paid = 1 AND submitted_time BETWEEN date('now', '-1 month')      AND date('now')"
-    #cursor = g.db.execute(query_getCounts, [translator_id])
-    #rs = cursor.fetchall()
-    #translator_performance = rs[0][0]
-
-    ## Back rate
-    #back_rate = 0.0
-    #if translator_performance >= 80:
-    #    back_rate = 0.7
-    #elif translator_performance >= 60:
-    #    back_rate = 0.6
-    #elif translator_performance >= 45:
-    #    back_rate = 0.65
-    #elif translator_performance >= 30:
-    #    back_rate = 0.6
-    #else:
-    #    back_rate = 0.50
-
-    # Currently fixed rate
-    return_rate = 0.7
+    return_rate = rs[0]
 
     # Record payment record
     cursor.execute("UPDATE CICERON.PAYMENT_INFO SET translator_id = %s, is_payed_back = %s, back_amount = %s WHERE request_id = %s",
@@ -2234,7 +2262,6 @@ def check_promotionCode(str_request_id):
 #@exception_detector
 @login_required
 def pay_for_request(str_request_id):
-    cursor = g.db.cursor()
     parameters = parse_request(request)
 
     pay_by = parameters.get('pay_by')
@@ -2252,135 +2279,31 @@ def pay_for_request(str_request_id):
 
     host_ip = os.environ.get('HOST', app.config['HOST'])
 
-    # Point deduction
-    if use_point > 0:
-        # Check whether use_point exceeds or not
-        cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s", (user_id, ))
-        current_point = float(cursor.fetchall()[0][0])
-        print "Current_point: %f" % current_point
-        print "Use_point: %f" % use_point
-        print "Diff: %f" % (current_point - use_point)
+    status_code, provided_link, current_point = payment_start(g.db, pay_by, pay_via, request_id, total_amount, user_id, host_ip, use_point=use_point, promo_type=promo_type, promo_code=promo_code)
 
-        if current_point - use_point < -0.00001:
-            return make_response(json.jsonify(
-                message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 402)
-        else:
-            amount = total_amount - use_point
-    else:
-        amount = total_amount
+    if status_code == 'point_exceeded_than_you_have':
+        return make_response(json.jsonify(
+            message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 402)
 
-    # Promo code deduction
-    if promo_type != 'null':
-        isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, promo_code)
-        isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, promo_code)
-        if isCommonCode == 0:
-            amount = amount - commonPoint
-        elif isIndivCode == 0:
-            amount = amount - indivPoint
+    elif status_code == 'paypal_error':
+        return make_response(json.jsonify(
+            message="Something wrong in paypal"), 400)
 
-    if pay_via == 'paypal':
-        # SANDBOX
-        paypalrestsdk.configure(
-                mode="sandbox",
-                client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
-                client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
-        )
+    elif status_code == 'paypal_success':
+        return make_response(json.jsonify(
+            message="Redirect link is provided!",
+            link=provided_link), 200)
 
-        # LIVE
-        #paypalrestsdk.set_config(
-        #        mode="live",
-        #        client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
-        #        client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
-        #        )
-
-        logging.basicConfig(level=logging.INFO)
-        logging.basicConfig(level=logging.ERROR)
-
-        payment = paypalrestsdk.Payment({
-          "intent": "sale",
-          "payer": {
-            "payment_method": "paypal"},
-          "redirect_urls":{
-            "return_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (HOST, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code),
-            "cancel_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (HOST, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)},
-          "transactions": [{
-            "amount": {
-                "total": "%.2f" % amount,
-                "currency": "USD",
-            },
-          "description": "Ciceron translation request fee USD: %f" % amount }]})
-        rs = payment.create()  # return True or False
-        paypal_link = None
-        for item in payment.links:
-            if item['method'] == 'REDIRECT':
-                paypal_link = item['href']
-                break
-
-        red_link = "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)
-        if bool(rs) is True:
-            return make_response(json.jsonify(message="Redirect link is provided!", link=paypal_link, redirect_url=red_link), 200)
-        else:
-            return make_response(json.jsonify(message="Something wrong in paypal"), 400)
-
-    elif pay_via == 'alipay':
-        from alipay import Alipay
-        alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
-        params = {
-            'subject': '是写论翻译'.decode('utf-8'),
-            'out_trade_no': 12345,
-            #'subject': 'TEST',
-            'total_fee': '%.2f' % amount,
-            'currency': 'USD',
-            'quantity': '1',
-            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (HOST, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)
-            }
-
-        provided_link = None
-        if pay_by == 'web':
-            provided_link = alipay_obj.create_forex_trade_url(**params)
-        elif pay_by == 'mobile':
-            provided_link = alipay_obj.create_forex_trade_wap_url(**params)
-
+    elif status_code == 'alipay_success':
         return make_response(json.jsonify(
             message="Link to Alipay is provided.",
             link=provided_link), 200)
 
-    elif pay_via == "point_only":
-        cursor = g.db.cursor()
-
-        cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s", (user_id, ))
-        current_point = float(cursor.fetchall()[0][0])
-        print "Current_point: %f" % current_point
-        print "Use_point: %f" % total_amount
-
-        amount = 0
-        if current_point - use_point < -0.00001:
-            return make_response(json.jsonify(
-                message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (total_amount, current_point)), 402)
-        else:
-            amount = current - use_point
-
-        cursor.execute("UPDATE CICERON.REVENUE SET amount = amount - %s WHERE id = %s", (use_point, user_id))
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s", (True, request_id))
-        g.db.commit()
-
-        if pay_by == "web":
-            return redirect(HOST, code=302)
-        elif pay_by == "mobile":
-            return redirect(HOST, code=302)
-            #return """
-            #    <!DOCTYPE html>
-            #    <html>
-            #    <head></head>
-            #    <body>
-            #    <script type='text/javascript'>
-            #        window.close();
-            #    </script>
-            #    </body></html>"""
+    elif status_code == 'point_success':
+        return redirect(HOST, code=302)
 
 @app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
-#@login_required
 def pay_for_request_process(str_request_id):
     cursor = g.db.cursor()
     request_id = int(str_request_id)
@@ -2395,80 +2318,13 @@ def pay_for_request_process(str_request_id):
     promo_type = request.args.get('promo_type', 'null')
     promo_code = request.args.get('promo_code', 'null')
 
-    # Point deduction
-    if use_point > 0:
-        cursor.execute("UPDATE REVENUE SET amount = amount - %s WHERE id = %s", (use_point, user_id))
+    status_code = payment_postprocess(g.db, pay_by, pay_via, request_id, user_id, is_success, amount, use_point=use_point, promo_type=promo_type, promo_code=promo_code)
 
-    if pay_via == 'paypal':
-        payment_id = request.args['paymentId']
-        payer_id = request.args['PayerID']
-        if is_success:
-            payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
-            # Paypal payment exeuction
-            payment = paypalrestsdk.Payment.find(payment_id)
-            payment.execute({"payer_id": payer_id})
-
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s", (True, request_id))
-
-            # Payment information update
-            cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
-                    (payment_info_id, request_id, user_id, "paypal", payment_id, amount))
-
-            g.db.commit()
-            #return redirect("success")
-
-    elif pay_via == "alipay":
-        if is_success:
-            # Get & store order ID and price
-            payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
-
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s", (True, request_id))
-
-            # Payment information update
-            cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
-                    (payment_info_id, request_id, user_id, "alipay", None, amount))
-
-            g.db.commit()
-
-    if promo_type == 'common':
-        commonPromotionCodeExecutor(g.db, user_id, promo_code)
-    elif promo_type == 'indiv':
-        individualPromotionCodeExecutor(g.db, user_id, promo_code)
-
-    # Notification for normal request
-    cursor.execute("SELECT original_lang_id, target_lang_id FROM CICERON.F_REQUESTS WHERE id = %s ", (request_id, ))
-    record = cursor.fetchall()
-    try:
-        onerecord = record[0]
-    except Exception as e:
-        print "No record for this request. Request ID: %d" % request_id
+    if status_code == 'no_record':
         return redirect(HOST, code=302)
 
-    original_lang_id = onerecord[0]
-    target_lang_id = onerecord[1]
-
-    rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
-    for item in rs:
-        store_notiTable(g.db, item[0], 0, None, request_id)
-        regKeys_oneuser = get_device_id(g.db, item[0])
-
-        message_dict = get_noti_data(g.db, 0, item[0], request_id)
-        if len(regKeys_oneuser) > 0:
-            gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
-
-    if pay_by == "web":
+    if status_code == 'payment_success':
         return redirect(HOST, code=302)
-    elif pay_by == "mobile":
-        return redirect(HOST, code=302)
-        #return """
-        #    <!DOCTYPE html>
-        #    <html>
-        #    <head></head>
-        #    <body>
-        #    <script type='text/javascript'>
-        #        window.close();
-        #    </script>
-        #    </body></html>"""
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
