@@ -660,11 +660,16 @@ def user_profile():
         update_user_record(g.db, client_id=user_id, translator_id=user_id)
 
         profile = getProfile(g.db, user_id)
-        if is_your_profile == True:
+        if is_your_profile == True and profile['user_isTranslator' == True:
             cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s",  (user_id, ))
-            profile['user_revenue'] = cursor.fetchall()[0][0]
+            profile['user_point'] = cursor.fetchone()[0]
+
+        elif is_your_profile == True and profile['user_isTranslator' == False:
+            cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s",  (user_id, ))
+            profile['user_point'] = cursor.fetchone()[0]
+
         else:
-            profile['user_revenue'] = -65535
+            profile['user_point'] = -65535
 
         return make_response(json.jsonify(profile), 200)
 
@@ -925,14 +930,15 @@ def requests():
         cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
         cursor.execute("""INSERT INTO CICERON.F_REQUESTS
-            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid)
+            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid, is_need_additional_points)
                 VALUES
                 (%s,%s,%s,%s,%s,
                  %s,%s,%s,%s,%s,
                  %s,%s,%s,%s,%s,
                  %s,%s,%s,%s,%s,
                  %s,%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '%s seconds', %s,
-                 %s,%s,%s,%s,%s)""", 
+                 %s,%s,%s,%s,%s,
+                 %s)""", 
             (
                     request_id,                       # id
                     client_user_id,                   # client_user_id
@@ -962,7 +968,8 @@ def requests():
                     None,                 # comment_id
                     None,                 # tone_id
                     None,                 # translatedText_id
-                    is_paid))               # is_paid
+                    is_paid,              # is_paid
+                    False))               # is_need_additional_points
 
         g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
@@ -1695,8 +1702,29 @@ def show_pending_list_client():
 
         # status_code == 200: pass
 
-        status_code, remail_point, provided_link = payment_start(g.db, pay_by, pay_via, request_id, diff_amount, user_id, host_ip,
-                use_point=use_point, promo_type=promo_type, promo_code=promo_code)
+        status_string, remail_point, provided_link = payment_start(g.db, pay_by, pay_via, request_id, diff_amount, user_id, host_ip,
+                use_point=use_point, promo_type=promo_type, promo_code=promo_code, is_additional='true')
+
+        if status_string == 'point_exceeded_than_you_have':
+            return make_response(json.jsonify(
+                message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 402)
+
+        elif status_string == 'paypal_error':
+            return make_response(json.jsonify(
+                message="Something wrong in paypal"), 400)
+
+        elif status_string == 'paypal_success':
+            return make_response(json.jsonify(
+                message="Redirect link is provided!",
+                link=provided_link), 200)
+
+        elif status_string == 'alipay_success':
+            return make_response(json.jsonify(
+                message="Link to Alipay is provided.",
+                link=provided_link), 200)
+
+        elif status_string == 'point_success':
+            return redirect(HOST, code=302)
 
 @app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
 #@exception_detector
@@ -2318,7 +2346,10 @@ def pay_for_request_process(str_request_id):
     promo_type = request.args.get('promo_type', 'null')
     promo_code = request.args.get('promo_code', 'null')
 
-    status_code = payment_postprocess(g.db, pay_by, pay_via, request_id, user_id, is_success, amount, use_point=use_point, promo_type=promo_type, promo_code=promo_code)
+    is_additional = request.args.get('is_additional', 'false')
+
+    status_code = payment_postprocess(g.db, pay_by, pay_via, request_id, user_id, is_success, amount,
+            use_point=use_point, promo_type=promo_type, promo_code=promo_code, is_additional=is_additional)
 
     if status_code == 'no_record':
         return redirect(HOST, code=302)

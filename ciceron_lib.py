@@ -361,7 +361,10 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_translatedTone=row[42],
                 request_submittedTime=row[26],
                 request_feedbackScore=row[54],
-                request_title=None # For marking
+                request_title=None, # For marking
+                request_isAdditionalPointNeeded=row[56],
+                request_addionalPoint=row[57] if purpose.endswith("client") or purpose == "newsfeed" else row[57] * return_rate,
+                request_isAdditionalPointPaid=row[58] 
             )
 
         if purpose == "newsfeed":
@@ -965,7 +968,7 @@ def individualPromotionCodeExecutor(conn, user_id, code):
     conn.commit()
 
 def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host_ip,
-        use_point=0, promo_type='null', promo_code='null'):
+        use_point=0, promo_type='null', promo_code='null', is_additional='false'):
 
     cursor = conn.cursor()
 
@@ -1018,8 +1021,8 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
           "payer": {
             "payment_method": "paypal"},
           "redirect_urls":{
-            "return_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code),
-            "cancel_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)},
+            "return_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code, is_additional),
+            "cancel_url": "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=fail&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code, is_additional)},
           "transactions": [{
             "amount": {
                 "total": "%.2f" % amount,
@@ -1033,7 +1036,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
                 paypal_link = item['href']
                 break
 
-        red_link = "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)
+        red_link = "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=paypal&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code, is_additional)
         if bool(rs) is True:
             return 'paypal_success', paypal_link, None
 
@@ -1050,7 +1053,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code)
+            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code, is_additional)
             }
 
         provided_link = None
@@ -1062,8 +1065,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         return 'alipay_success', provided_link, None
 
     elif pay_via == "point_only":
-        curso
-        cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s", (user_id, ))
+        cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
         current_point = float(cursor.fetchall()[0][0])
 
         amount = 0
@@ -1073,8 +1075,13 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         else:
             amount = current - use_point
 
-        cursor.execute("UPDATE CICERON.REVENUE SET amount = amount - %s WHERE id = %s", (use_point, user_id))
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s", (True, request_id))
+        cursor.execute("UPDATE CICERON.RETURN_POINT SET amount = amount - %s WHERE id = %s", (use_point, user_id, ))
+
+        if is_additional == 'false':
+            query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s"
+        else:
+            query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_additional_points_paid = %s WHERE id = %s"
+        cursor.execute(query_setToPaid, (True, request_id, ))
         g.db.commit()
 
         if pay_by == "web":
@@ -1083,13 +1090,13 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
             return 'point_success', None, None
 
 def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, amount,
-        use_point=0, promo_type='null', promo_code='null'):
+        use_point=0, promo_type='null', promo_code='null', is_additional='false'):
 
     cursor = conn.cursor()
 
     # Point deduction
     if use_point > 0:
-        cursor.execute("UPDATE REVENUE SET amount = amount - %s WHERE id = %s", (use_point, user_id))
+        cursor.execute("UPDATE CICERON.return_point SET amount = amount - %s WHERE id = %s", (use_point, user_id, ))
 
     if pay_via == 'paypal':
         payment_id = request.args['paymentId']
@@ -1100,11 +1107,15 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
             payment = paypalrestsdk.Payment.find(payment_id)
             payment.execute({"payer_id": payer_id})
 
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s", (True, request_id))
+            if is_additional == 'false':
+                query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s"
+            else:
+                query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_additional_points_paid = %s WHERE id = %s"
+            cursor.execute(query_setToPaid, (True, request_id, ))
 
             # Payment information update
             cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
-                    (payment_info_id, request_id, user_id, "paypal", payment_id, amount))
+                    (payment_info_id, request_id, user_id, "paypal", payment_id, amount, ))
 
             g.db.commit()
             #return redirect("success")
@@ -1114,7 +1125,11 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
             # Get & store order ID and price
             payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
 
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s", (True, request_id))
+            if is_additional == 'false':
+                query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s"
+            else:
+                query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_additional_points_paid = %s WHERE id = %s"
+            cursor.execute(query_setToPaid, (True, request_id, ))
 
             # Payment information update
             cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
@@ -1180,9 +1195,9 @@ def approve_negoPoint(conn, request_id, hero_id, user_id):
     if diff_point < 0:
         return 409
 
-    # 2. Set the queued hero to your hero, status = 1, is_paid = false
-    query_updateHero = "UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = %s, points = %s, is_paid=false, status = 1 WHERE id = %s"
-    cursor.execute(query_updateHero, (hero_id, nego_point, request_id, ))
+    # 2. Set the queued hero to your hero, status = 1, is_need_additional_points = true, is_additional_points_paid = false
+    query_updateHero = "UPDATE CICERON.F_REQUESTS SET is_need_additional_points = true, ongoing_worker_id = %s, additional_points= %s, is_additional_points_paid=false, status = 1 WHERE id = %s"
+    cursor.execute(query_updateHero, (hero_id, diff_point, request_id, ))
 
     conn.commit()
     return 200
