@@ -21,6 +21,7 @@ CREATE TABLE CICERON.D_USERS (
     trans_request_state INT,
     nationality INT,
     residence INT,
+    return_rate REAL,
     
     PRIMARY KEY (id)
 );
@@ -181,6 +182,9 @@ CREATE TABLE CICERON.F_REQUESTS (
     translatedText_id INT, -- D_TRANSLATED_TEXT
     feedback_score INT,
     start_translating_time TIMESTAMPTZ,
+    is_need_additional_points BOOLEAN,
+    additional_points REAL,
+    is_additional_points_paid BOOLEAN,
     
     PRIMARY KEY(id)
 );
@@ -380,6 +384,14 @@ CREATE TABLE CICERON.REVENUE (
     FOREIGN KEY (id) REFERENCES CICERON.D_USERS (id)
 );
 
+CREATE TABLE CICERON.RETURN_POINT (
+    id INT,
+    amount REAL,
+
+    PRIMARY KEY (id),
+    FOREIGN KEY (id) REFERENCES CICERON.D_USERS (id)
+);
+
 CREATE TABLE CICERON.PAYMENT_INFO (
     id INT,
     request_id INT,
@@ -468,7 +480,10 @@ CREATE VIEW CICERON.V_REQUESTS as
     fact.is_paid is_paid, --53
     fact.feedback_score feedback_score, --54
 
-    fact.start_translating_time start_translating_time --55
+    fact.start_translating_time start_translating_time, --55
+    fact.is_need_additional_points is_need_additional_points, --56
+    fact.additional_points additional_points, --57
+    fact.is_additional_points_paid is_additional_points_paid -- 58
 
   FROM
     CICERON.F_REQUESTS fact
