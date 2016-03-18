@@ -1235,7 +1235,8 @@ def pick_request():
         if session['useremail'] in super_user:
             query_ongoing = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = %s """
         else:
-            query_ongoing = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = %s AND is_paid = true """
+            query_ongoing = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = %s
+            AND ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
         if 'since' in request.args.keys():
             query_ongoing += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
@@ -1265,7 +1266,8 @@ def working_translate_item(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND
+            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
 
@@ -1304,7 +1306,8 @@ def expected_time(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s "
         else:
-            query = "SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s AND is_paid = true "
+            query = """SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s
+            AND ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
 
@@ -1353,7 +1356,8 @@ def expected_time(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s "
         else:
-            query = "SELECT due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s AND is_paid = true "
+            query = """SELECT due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s
+                AND ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         cursor.execute(query, (request_id, ))
 
         client_user_id = cursor.fetchall()[0][0]
@@ -1388,7 +1392,8 @@ def post_translate_item():
     if session['useremail'] in super_user:
         query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 "
     else:
-        query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND is_paid = true AND status_id = 1 "
+        query = """SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 AND 
+        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )"""
 
     cursor.execute(query, (request_id, ))
     rs = cursor.fetchall()
@@ -1449,7 +1454,9 @@ def translation_completed_items_detail(str_request_id):
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s "
     else:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s AND is_paid = true "
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s AND 
+        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20 "
@@ -1475,7 +1482,9 @@ def translation_completed_items_all():
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = %s "
     else:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = %s AND is_paid = true "
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = %s AND 
+       ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -1594,7 +1603,8 @@ def translation_completed_items_in_group(str_group_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE ongoing_worker_id = %s AND translator_completed_group_id = %s "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE ongoing_worker_id = %s AND translator_completed_group_id = %s AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE ongoing_worker_id = %s AND translator_completed_group_id = %s AND 
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -1620,7 +1630,15 @@ def translation_incompleted_items_all():
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE ((status_id IN (-1,1) AND ongoing_worker_id = %s) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = %s))) "
     else:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE ((status_id IN (-1,1) AND ongoing_worker_id = %s AND is_paid = true) OR (request_id IN (SELECT request_id FROM CICERON.D_QUEUE_LISTS WHERE user_id = %s) AND is_paid = true)) "
+        query = """SELECT * FROM CICERON.V_REQUESTS
+            WHERE (
+                (status_id IN (-1,1) AND ongoing_worker_id = %s) 
+              OR
+                (request_id IN (SELECT request_id FROM CICERON.D_QUEUE_LISTS WHERE user_id = %s) )
+            ) 
+              AND
+             ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+
     if 'since' in request.args.keys():
         query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY request_id DESC LIMIT 20"
@@ -1645,7 +1663,8 @@ def translation_incompleted_items_each(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,1) AND ongoing_worker_id = %s AND request_id = %s "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,1) AND ongoing_worker_id = %s AND request_id = %s AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,1) AND ongoing_worker_id = %s AND request_id = %s AND
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
@@ -1698,7 +1717,8 @@ def show_pending_list_client():
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 0 "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 0 AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 0 AND 
+            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
 
@@ -1775,7 +1795,8 @@ def show_pending_item_client(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         if 'page' in request.args.keys():
@@ -1800,7 +1821,8 @@ def delete_item_client(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT points FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 "
         else:
-            query = "SELECT points FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND is_paid = true "
+            query = """SELECT points FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         cursor.execute(query, (request_id, user_id))
         points = cursor.fetchall()[0][0]
         cursor.execute("UPDATE CICERON.REVENUE SET amount = amount + %s WHERE id = %s", (points, user_id))
@@ -1821,7 +1843,8 @@ def show_ongoing_list_client():
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 1 "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 1 AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 1 AND
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
@@ -1847,7 +1870,8 @@ def show_ongoing_item_client(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 "
         else:
-            query = "SELECT * FROM V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 AND is_paid = true "
+            query = """SELECT * FROM V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 AND
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
@@ -1871,7 +1895,8 @@ def client_completed_items():
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s "
     else:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND is_paid = true "
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND 
+        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -1896,7 +1921,8 @@ def client_completed_items_detail(str_request_id):
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s "
     else:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s AND is_paid = true "
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s AND
+         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
     if 'since' in request.args.keys():
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -1923,7 +1949,8 @@ def client_rate_request(str_request_id):
     if session['useremail'] in super_user:
         query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM CICERON.F_REQUESTS WHERE id = %s "
     else:
-        query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
+        query_getTranslator = """SELECT ongoing_worker_id, points, feedback_score FROM CICERON.F_REQUESTS WHERE id = %s AND 
+         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
     cursor.execute(query_getTranslator, (request_id, ) )
     rs = cursor.fetchall()
@@ -2070,7 +2097,8 @@ def client_completed_items_in_group(str_group_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND client_completed_group_id = %s "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND client_completed_group_id = %s AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND client_completed_group_id = %s AND
+           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         if 'since' in request.args.keys():
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += "ORDER BY submitted_time DESC"
@@ -2093,7 +2121,8 @@ def client_incompleted_items():
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s "
     else:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND is_paid = true "
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND
+        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
     if 'since' in request.args.keys():
         query += "AND registered_time < to-timestamp(%s) " % request.args.get('since')
     query += " ORDER BY registered_time DESC LIMIT 20"
@@ -2119,7 +2148,8 @@ def client_incompleted_item_control(str_request_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND request_id = %s "
         else:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND request_id = %s AND is_paid = true "
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND request_id = %s AND 
+            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid_ = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
