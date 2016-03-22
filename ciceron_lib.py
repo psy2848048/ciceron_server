@@ -135,6 +135,30 @@ def parameter_to_bool(value):
     else:
         return False
 
+def get_total_amount(conn, request_id, user_id, is_additional='false'):
+    cursor = conn.cursor()
+
+    total_amount = 0
+    if is_additional == 'false':
+        cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s" , (request_id, ))
+        total_amount = cursor.fetchone()[0]
+
+    else:
+        cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s" , (request_id, ))
+        cur_amount = cursor.fetchone()[0]
+
+        cursor.execute("SELECT nego_price FROM CICERON.D_QUEUE_LISTS WHERE request_id = %s AND user_id = %s", (request_id, user_id, ))
+        rs = cursor.fetchone()
+        nego_amount = None
+        if rs is not None and len(rs) != 0:
+            nego_amount = rs[0]
+        else:
+            return 'ERROR'
+
+        total_amount = nego_amount - cur_amount
+
+    return total_amount
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -308,7 +332,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
 
         queue_list = []
         for q_item in cursor.fetchall():
-            profile = getProfile(conn, q_item[2], rate=return_rate, price=q_item[3])
+            profile = getProfile(conn, q_item[2], rate=return_rate, price=q_item[17])
             queue_list.append(profile)
 
         # For getting word count of the request
@@ -350,7 +374,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_expectedTime=int(row[25].strftime("%s")) * 1000 if row[25] != None else None,
                 request_words=num_of_words,
                 request_letters=num_of_letters,
-                request_points=row[28] if purpose.endswith("client") or purpose == "newsfeed" else row[28] * return_rate,
+                request_points=row[28] if purpose.endswith("client") else row[28] * return_rate,
                 request_translatorsInQueue=queue_list,
                 request_translatorId=row[6],
                 request_translatorName=row[7],
@@ -362,12 +386,18 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_submittedTime=row[26],
                 request_feedbackScore=row[54],
                 request_title=None, # For marking
-                request_isAdditionalPointNeeded=row[56],
-                request_addionalPoint=row[57] if purpose.endswith("client") or purpose == "newsfeed" else row[57] * return_rate,
-                request_isAdditionalPointPaid=row[58] 
             )
 
-        if purpose == "newsfeed":
+        item['request_isAdditionalPointNeeded'] = row[56]
+        if purpose.endswith("client") and row[57] != None:
+            item['request_addionalPoint'] = row[57]
+        elif (not purpose.endswith("client")) and row[57] != None:
+            item['request_addionalPoint'] = row[57] * return_rate
+        else:
+            item['request_addionalPoint'] = None
+        item['request_isAdditionalPointPaid'] = row[58] 
+
+        if purpose.startswith("stoa"):
             # Show context if normal request, or show main text
             if row[17] == True: # True
                 item['request_context'] = main_text
@@ -977,14 +1007,14 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
     # Point deduction
     if use_point > 0:
         # Check whether use_point exceeds or not
-        cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s", (user_id, ))
+        cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
         current_point = float(cursor.fetchall()[0][0])
         print "Current_point: %f" % current_point
         print "Use_point: %f" % use_point
         print "Diff: %f" % (current_point - use_point)
 
         if current_point - use_point < -0.00001:
-            return 'point_exceeded_than_you_have', current_point, None
+            return 'point_exceeded_than_you_have', None, current_point
 
         else:
             amount = total_amount - use_point
@@ -1156,19 +1186,19 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
 
     rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
     for item in rs:
-        store_notiTable(g.db, item[0], 0, None, request_id)
+        store_notiTable(g.db, item[0], 1, None, request_id)
         regKeys_oneuser = get_device_id(g.db, item[0])
 
-        message_dict = get_noti_data(g.db, 0, item[0], request_id)
+        message_dict = get_noti_data(g.db, 1, item[0], request_id)
         if len(regKeys_oneuser) > 0:
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
     if pay_by == "web":
-        return 'payment_success'
+        return 'payment_success', None, None
     elif pay_by == "mobile":
-        return 'payment_success'
+        return 'payment_success', None, None
 
-def approve_negoPoint(conn, request_id, hero_id, user_id):
+def approve_negoPoint(conn, request_id, translator_id, user_id):
     cursor = conn.cursor()
 
     if translator_id == -1:
@@ -1176,7 +1206,7 @@ def approve_negoPoint(conn, request_id, hero_id, user_id):
 
     # 1. Get diff_amount
     # 1.1. Get current point of the ticket and queue ID
-    query_getCurPointAndQueueID = "SELECT points, queue_id FROM CICERON.F_REQUESTS WHERE id = %s AND client_user_id = %s"
+    query_getCurPointAndQueueID = "SELECT points, queue_id, status_id FROM CICERON.F_REQUESTS WHERE id = %s AND client_user_id = %s"
     cursor.execute(query_getCurPointAndQueueID, (request_id, user_id, ))
     rs = cursor.fetchone()
     if rs is None or len(rs) == 0:
@@ -1184,6 +1214,10 @@ def approve_negoPoint(conn, request_id, hero_id, user_id):
 
     current_point = rs[0]
     queue_id = rs[1]
+    status_id = rs[2]
+
+    if status_id != 0:
+        return 402
 
     # 1.2. Get suggested point
     query_getSuggestedPoint = "SELECT nego_price FROM CICERON.D_QUEUE_LISTS WHERE id = %s AND request_id = %s AND user_id = %s"
@@ -1198,8 +1232,8 @@ def approve_negoPoint(conn, request_id, hero_id, user_id):
         return 409
 
     # 2. Set the queued hero to your hero, status = 1, is_need_additional_points = true, is_additional_points_paid = false
-    query_updateHero = "UPDATE CICERON.F_REQUESTS SET is_need_additional_points = true, ongoing_worker_id = %s, additional_points= %s, is_additional_points_paid=false, status = 1 WHERE id = %s"
-    cursor.execute(query_updateHero, (hero_id, diff_point, request_id, ))
+    query_updateHero = "UPDATE CICERON.F_REQUESTS SET is_need_additional_points = true, ongoing_worker_id = %s, additional_points= %s, is_additional_points_paid=false, status_id = 1 WHERE id = %s"
+    cursor.execute(query_updateHero, (translator_id, diff_point, request_id, ))
 
     conn.commit()
     return 200
