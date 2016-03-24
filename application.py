@@ -1360,7 +1360,7 @@ def expected_time(str_request_id):
     elif request.method == "DELETE":
         cursor = g.db.cursor()
         request_id = int(str_request_id)
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = null, status_id = 0 WHERE status_id = 1 AND id = %s", (request_id, ))
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = null, status_id = 0, points = points + additional_points, is_need_additional_points = false, is_additional_points_paid = null WHERE status_id = 1 AND id = %s", (request_id, ))
         g.db.commit()
 
         query = None
@@ -1970,9 +1970,9 @@ def client_rate_request(str_request_id):
 
     # Pay back part
     if session['useremail'] in super_user:
-        query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score FROM CICERON.F_REQUESTS WHERE id = %s "
+        query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score, is_need_additional_points, additional_points FROM CICERON.F_REQUESTS WHERE id = %s "
     else:
-        query_getTranslator = """SELECT ongoing_worker_id, points, feedback_score FROM CICERON.F_REQUESTS WHERE id = %s AND 
+        query_getTranslator = """SELECT ongoing_worker_id, points, feedback_score, is_need_additional_points, additional_points FROM CICERON.F_REQUESTS WHERE id = %s AND 
          ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
     cursor.execute(query_getTranslator, (request_id, ) )
@@ -1987,7 +1987,11 @@ def client_rate_request(str_request_id):
             403)
 
     translator_id = rs[0][0]
-    pay_amount = rs[0][1]
+    pay_amount = None
+    if rs[0][3] == False:
+        pay_amount = rs[0][1]
+    else:
+        pay_amount = rs[0][1] + rs[0][4]
 
     # Input feedback score
     cursor.execute("UPDATE CICERON.F_REQUESTS SET feedback_score = %s WHERE id = %s ", (feedback_score, request_id))
@@ -3072,6 +3076,12 @@ def mail_alarm():
 
     return make_response(json.jsonify(
         message="Mail alarm sent"), 200)
+
+@app.route('/api/scheduler/log_transfer', methods = ["GET"])
+def logWrite():
+    logTransfer(g.db)
+    return make_response(json.jsonify(
+        message="Logs have just been written"), 200)
 
 ################################################################################
 #########                        ADMIN TOOL                            #########

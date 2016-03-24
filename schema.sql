@@ -545,15 +545,43 @@ CREATE VIEW CICERON.V_QUEUE_LISTS as
     CICERON.D_QUEUE_LISTS fact
   LEFT OUTER JOIN CICERON.D_USERS users ON fact.user_id = users.id;
 
-CREATE TABLE CICERON.USER_ACTIONS (
+CREATE TABLE CICERON.TEMP_ACTIONS_LOG (
+    id INT,
     user_id INT,
     lati REAL,
     longi REAL,
     method varchar(10),
     api varchar(300),
-    request_id INT,
-    log_time TIMESTAMPTZ
+    log_time TIMESTAMPTZ,
+    ip_address varchar(20),
+
+    PRIMARY KEY (id)
 );
+
+CREATE TABLE CICERON.USER_ACTIONS (
+    id INT,
+    user_id INT,
+    lati REAL,
+    longi REAL,
+    method varchar(10),
+    api varchar(300),
+    log_time TIMESTAMPTZ,
+    ip_address varchar(20),
+
+    PRIMARY KEY (id)
+);
+CREATE SEQUENCE CICERON.SEQ_USER_ACTIONS;
+
+CREATE TABLE CICERON.BLACKLIST (
+    id INT,
+    user_id INT,
+    ip_address varchar(20),
+    time_from TIMESTAMPTZ,
+    time_to TIMESTAMPTZ,
+
+    PRIMARY KEY (id)
+);
+CREATE SEQUENCE CICERON.SEQ_BLACKLIST;
 
 CREATE TABLE CICERON.RETURN_MONEY_BANK_ACCOUNT (
     id INT,

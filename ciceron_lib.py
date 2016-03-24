@@ -159,6 +159,70 @@ def get_total_amount(conn, request_id, user_id, is_additional='false'):
 
     return total_amount
 
+def ddosCheckAndWriteLog(conn):
+    cursor = conn.cursor()
+
+    user_id = get_user_id(conn, session['useremail'])
+    method = request.method
+    api_endpoint = request.environ['PATH_INFO']
+    ip_address = request.headers.get('x-forwarded-for-client-ip')
+
+    query_apiCount = """
+        SELECT count(*) FROM CICERON.TEMP_ACTIONS_LOG
+          WHERE (user_id = %s OR ip_address = %s)
+            AND log_time BETWEEN (CURRENT_TIMESTAMP - interval '1 seconds') AND CURRENT_TIMESTAMP"""
+    cursor.execute(query_apiCount, (user_id, ip_address, ))
+    conn_count = cursor.fetchone()[0]
+
+    query_getBlacklist = """
+        SELECT count(*) FROM CICERON.BLACKLIST
+          WHERE user_id = %s
+            AND %s BETWEEN time_from AND time_to
+    """
+    cursor.execute(query_getBlacklist, (user_id, ))
+    blacklist_count = cursor.fetchone()[0]
+
+    is_OK = True
+    if conn_count > 100:
+        session.pop('logged_in', None)
+        session.pop('useremail', None)
+        query_insertBlackList = """
+            INSERT INTO CICERON.BLACKLIST (id, user_id, ip_address, time_from, time_to)
+            VALUES
+            (
+               nextval('CICERON.SEQ_BLACKLIST')
+              ,%s
+              ,%s
+              ,CURRENT_TIMESTAMP
+              ,CURRENT_TIMESTAMP + interval('30 minutes')
+            )
+        """
+        cursor.execute(query_insertBlackList, (user_id, ip_address, ))
+        is_OK = False
+
+    if blacklist_count > 0:
+        session.pop('logged_in', None)
+        session.pop('useremail', None)
+        is_OK = False
+
+    query_insertLog = """
+        INSERT INTO CICERON.TEMP_ACTIONS_LOG
+          (id, user_id, method, api, log_time, ip_address)
+        VALUES
+          (
+             nextval('CICERON.SEQ_USER_ACTIONS')
+            ,%s
+            ,%s
+            ,%s
+            ,CURRENT_TIMESTAMP
+            ,%s
+          )
+    """
+    cursor.execute(query_insertLog, (user_id, method, api_endpoint, ))
+    conn.commit()
+
+    return is_OK
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -169,7 +233,15 @@ def login_required(f):
                        status_code = 403,
                        message = "Login required"
                ), 403)
-    return decorated_function
+
+    is_ddos_free = ddosCheckAndWriteLog(g.db)
+    if is_ddos_free == True:
+        return decorated_function
+    else:
+        return make_response(json.jsonify(
+                   status_code = 499,
+                   message = "Blocked connection"
+           ), 499)
 
 def admin_required(f):
     @wraps(f)
@@ -1238,3 +1310,16 @@ def approve_negoPoint(conn, request_id, translator_id, user_id):
     conn.commit()
     return 200
 
+def logTransfer(conn):
+    cursor = conn.cursor()
+
+    query_getmax = "SELECT MAX(id) FROM CICERON.TEMP_ACTIONS_LOG"
+    cursor.execute(query_getmax)
+    max_id = cursor.fetchone()[0]
+
+    query_insertLog = """INSERT INTO CICERON.USER_ACTIONS (id, user_id, method, api, log_time, ip_address)
+        SELECT id, user_id, method, api, log_time, ip_address
+        FROM CICERON.TEMP_ACTIONS_LOG
+        WHERE id <= %s"""
+    cursor.execute(query_insertLog, (max_id, ))
+    conn.commit()
