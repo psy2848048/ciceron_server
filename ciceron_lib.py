@@ -177,7 +177,7 @@ def ddosCheckAndWriteLog(conn):
     query_getBlacklist = """
         SELECT count(*) FROM CICERON.BLACKLIST
           WHERE user_id = %s
-            AND %s BETWEEN time_from AND time_to
+            AND CURRENT_TIMESTAMP BETWEEN time_from AND time_to
     """
     cursor.execute(query_getBlacklist, (user_id, ))
     blacklist_count = cursor.fetchone()[0]
@@ -218,7 +218,7 @@ def ddosCheckAndWriteLog(conn):
             ,%s
           )
     """
-    cursor.execute(query_insertLog, (user_id, method, api_endpoint, ))
+    cursor.execute(query_insertLog, (user_id, method, api_endpoint, ip_address, ))
     conn.commit()
 
     return is_OK
@@ -1316,9 +1316,14 @@ def logTransfer(conn):
     cursor.execute(query_getmax)
     max_id = cursor.fetchone()[0]
 
-    query_insertLog = """INSERT INTO CICERON.USER_ACTIONS (id, user_id, method, api, log_time, ip_address)
+    query_insertLog = """
+        INSERT INTO CICERON.USER_ACTIONS (id, user_id, method, api, log_time, ip_address)
         SELECT id, user_id, method, api, log_time, ip_address
         FROM CICERON.TEMP_ACTIONS_LOG
-        WHERE id <= %s"""
+        WHERE id <= %s """
     cursor.execute(query_insertLog, (max_id, ))
+
+    query_deleteLog = """DELETE FROM CICERON.TEMP_ACTIONS_LOG WHERE id <= %s """
+    cursor.execute(query_deleteLog, (max_id, ))
+
     conn.commit()
