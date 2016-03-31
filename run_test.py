@@ -517,5 +517,9 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get('/requests')
         print rv.data
 
+    def test_logWrite(self):
+        rv = self.app.get('/api/scheduler/log_transfer')
+        print rv.data
+
 if __name__ == "__main__":
     unittest.main()

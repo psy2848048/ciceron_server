@@ -226,22 +226,21 @@ def ddosCheckAndWriteLog(conn):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'useremail' in session:
+        is_ddos_free = ddosCheckAndWriteLog(g.db)
+        if 'useremail' in session and is_ddos_free == True:
             return f(*args, **kwargs)
+        elif is_ddos_free == False:
+            return make_response(json.jsonify(
+                       status_code = 499,
+                       message = "Blocked connection"
+               ), 499)
         else:
             return make_response(json.jsonify(
                        status_code = 403,
                        message = "Login required"
                ), 403)
 
-    is_ddos_free = ddosCheckAndWriteLog(g.db)
-    if is_ddos_free == True:
-        return decorated_function
-    else:
-        return make_response(json.jsonify(
-                   status_code = 499,
-                   message = "Blocked connection"
-           ), 499)
+    return decorated_function
 
 def admin_required(f):
     @wraps(f)

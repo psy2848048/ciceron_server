@@ -610,15 +610,15 @@ def change_password():
     if len(rs) > 1:
         # Status code 500 (ERROR)
         # Description: Same e-mail address tried to be inserted into DB
-        return make_response (json.jsonify(message='Constraint violation error!'), 501)
+        return make_response(json.jsonify(message='Constraint violation error!'), 501)
 
     elif len(rs) == 1 and str(rs[0][0]) == hashed_old_password:
         cursor.execute("UPDATE CICERON.PASSWORDS SET hashed_pass = %s WHERE user_id = %s ", (hashed_new_password, user_id))
         g.db.commit()
-        return make_response (json.jsonify(message='Password successfully changed for user %s' % email), 200)
+        return make_response(json.jsonify(message='Password successfully changed for user %s' % email), 200)
 
     else:
-        return make_response (json.jsonify(message='Old password of user %s is incorrect!' % email), 403)
+        return make_response(json.jsonify(message='Old password of user %s is incorrect!' % email), 403)
 
 @app.route('/api/user/profile', methods = ['GET', 'POST'])
 @login_required
