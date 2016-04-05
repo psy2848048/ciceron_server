@@ -1755,6 +1755,14 @@ def show_pending_list_client():
         promo_type = parameters.get('promo_type', 'null')
         promo_code = parameters.get('promo_code', 'null')
 
+        payload_iamport = {}
+        if pay_via == 'iamport':
+            # 'merchant_uid' => Create internally
+            payload_iamport['card_number']  = parameters['card_number']
+            payload_iamport['expiry'] =       parameters['expiry']
+            payload_iamport['birth'] =        parameters['birth']
+            payload_iamport['pwd_2digit'] =   parameters['pwd_2digit']
+
         user_id = get_user_id(g.db, session['useremail'])
 
         status_code = approve_negoPoint(g.db, request_id, translator_id, user_id)
@@ -1779,18 +1787,18 @@ def show_pending_list_client():
         if diff_amount == "ERROR":
             return make_response(json.jsonify(
                 message="Something wrong in DB record"
-                ), 400)
+                ), 500)
 
         status_string, provided_link, current_point = payment_start(g.db, pay_by, pay_via, request_id, diff_amount, user_id, host_ip,
-                use_point=use_point, promo_type=promo_type, promo_code=promo_code, is_additional='true')
+                use_point=use_point, promo_type=promo_type, promo_code=promo_code, is_additional='true', payload=payload_iamport)
 
         if status_string == 'point_exceeded_than_you_have':
             return make_response(json.jsonify(
-                message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 402)
+                message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 401)
 
         elif status_string == 'paypal_error':
             return make_response(json.jsonify(
-                message="Something wrong in paypal"), 400)
+                message="Something wrong in paypal"), 409)
 
         elif status_string == 'paypal_success':
             return make_response(json.jsonify(
@@ -1802,8 +1810,14 @@ def show_pending_list_client():
                 message="Link to Alipay is provided.",
                 link=provided_link), 200)
 
+        elif status_string == 'alipay_failure':
+            return make_response(json.jsonify(
+                message="Error on alipay"), 411)
+
         elif status_string == 'point_success':
-            return redirect(HOST, code=302)
+            return make_response(json.jsonify(
+                message='Success',
+                link='%s/stoa' % HOST), 200)
 
 @app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
 #@exception_detector
@@ -2743,8 +2757,13 @@ def point_detail():
     UNION
     SELECT 0 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
     FROM CICERON.F_REQUESTS WHERE status_id = -2 AND is_paid = false AND client_user_id = %s) total
-    order by request_time desc"""
-    cursor.execute(query, (user_id, user_id, user_id))
+    order by request_time desc LIMIT 20 """
+
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+    cursor.execute(query, (user_id, user_id, user_id, ))
     rs = cursor.fetchall()
 
     result = []

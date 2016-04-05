@@ -1047,7 +1047,7 @@ def individualPromotionCodeChecker(conn, user_id, code):
     cursor.execute(query_individualPromotionCode, (user_id, code))
     ret = cursor.fetchone()
 
-    if ret == None:
+    if ret == None or len(ret) == 0:
         return (3, 0, "There is no promo code matched.")
 
     benefitPoint = ret[0]
@@ -1071,7 +1071,7 @@ def individualPromotionCodeExecutor(conn, user_id, code):
     conn.commit()
 
 def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host_ip,
-        use_point=0, promo_type='null', promo_code='null', is_additional='false'):
+        use_point=0, promo_type='null', promo_code='null', is_additional='false', payload=None):
 
     cursor = conn.cursor()
 
@@ -1160,12 +1160,27 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
             }
 
         provided_link = None
-        if pay_by == 'web':
-            provided_link = alipay_obj.create_forex_trade_url(**params)
-        elif pay_by == 'mobile':
-            provided_link = alipay_obj.create_forex_trade_wap_url(**params)
+        try:
+            if pay_by == 'web':
+                provided_link = alipay_obj.create_forex_trade_url(**params)
+            elif pay_by == 'mobile':
+                provided_link = alipay_obj.create_forex_trade_wap_url(**params)
+        except:
+            return 'alipay_failure', None, None
 
         return 'alipay_success', provided_link, None
+
+    elif pay_via == 'iamport':
+        # Should check USD->KRW currency
+        kor_amount = amount * currency_USD
+
+        from iamport import Iamport
+        pay_module = Iamport(imp_key=2311212273535904, imp_secret='jZM7opWBO5K2cZfVoMgYJhsnSw4TiSmBR8JgyGRnLCpYCFT0raZbsrylYDehvBSnKCDjivG4862KLWLd')
+
+        payment_result = pay_module.pay_onetime(**payload)
+        double_check = pay_module.is_paid(amount, **payment_result)
+
+        # DB process
 
     elif pay_via == "point_only":
         cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
