@@ -35,6 +35,8 @@ Ciceron server code
   - Celery
   - alipay
   - psycopg2
+  - iamport-rest-client
+  - pip install --upgrade google-api-python-client
 
 * Summary of set up
  1) Env
