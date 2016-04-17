@@ -32,7 +32,7 @@ DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
-GCM_API_KEY = 'AIzaSyC4wvRTQZY81dZustxiXLIATsuVKy5xwp8'
+GCM_API_KEY = 'AIzaSyDIyeO9auTHO6qqciEqsmZLexZtQ9kpey0'
 FACEBOOK_APP_ID = 256525961180911
 FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
 
@@ -1819,6 +1819,11 @@ def show_pending_list_client():
                 message='Success',
                 link='%s/stoa' % HOST), 200)
 
+        elif status_string == 'iamport_success':
+            return make_response(json.jsonify(
+                message='Success',
+                link='%s/stoa' % HOST), 200)
+
 @app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
 #@exception_detector
 @login_required
@@ -2413,8 +2418,17 @@ def pay_for_request(str_request_id):
     user_id = get_user_id(g.db, session['useremail'])
 
     host_ip = os.environ.get('HOST', app.config['HOST'])
+    
+    payload = None
+    if pay_via == 'iamport':
+        payload = {}
 
-    status_code, provided_link, current_point = payment_start(g.db, pay_by, pay_via, request_id, total_amount, user_id, host_ip, use_point=use_point, promo_type=promo_type, promo_code=promo_code)
+        payload['card_number'] = parameters['card_number']
+        payload['expiry'] = parameters['expiry']
+        payload['birth'] = parameters['birth']
+        payload['pwd_2digit'] = parameters['pwd_2digit']
+
+    status_code, provided_link, current_point = payment_start(g.db, pay_by, pay_via, request_id, total_amount, user_id, host_ip, use_point=use_point, promo_type=promo_type, promo_code=promo_code, payload=payload)
 
     if status_code == 'point_exceeded_than_you_have':
         return make_response(json.jsonify(

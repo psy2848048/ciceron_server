@@ -4,6 +4,7 @@ import hashlib, codecs, os, random, string, sys, paypalrestsdk, logging
 from flask import make_response, json, g, session, request, current_app
 from datetime import datetime, timedelta
 from functools import wraps
+from iamport import Iamport
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
 def get_hashed_password(password, salt=None):
@@ -162,7 +163,11 @@ def get_total_amount(conn, request_id, user_id, is_additional='false'):
 def ddosCheckAndWriteLog(conn):
     cursor = conn.cursor()
 
-    user_id = get_user_id(conn, session['useremail'])
+    if session.get('useremail') == None:
+        user_id = get_user_id(conn, session['useremail'])
+    else:
+        user_id = 0
+
     method = request.method
     api_endpoint = request.environ['PATH_INFO']
     ip_address = request.headers.get('x-forwarded-for-client-ip')
@@ -1080,10 +1085,6 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         # Check whether use_point exceeds or not
         cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
         current_point = float(cursor.fetchall()[0][0])
-        print "Current_point: %f" % current_point
-        print "Use_point: %f" % use_point
-        print "Diff: %f" % (current_point - use_point)
-
         if current_point - use_point < -0.00001:
             return 'point_exceeded_than_you_have', None, current_point
 
@@ -1172,15 +1173,35 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
 
     elif pay_via == 'iamport':
         # Should check USD->KRW currency
-        kor_amount = amount * currency_USD
+        # Hard coded: 1200
+        new_payload = payload
+        kor_amount = amount * 1200
 
-        from iamport import Iamport
+        new_payload['merchant_uid'] = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
+        new_payload['amount'] = kor_amount
+
         pay_module = Iamport(imp_key=2311212273535904, imp_secret='jZM7opWBO5K2cZfVoMgYJhsnSw4TiSmBR8JgyGRnLCpYCFT0raZbsrylYDehvBSnKCDjivG4862KLWLd')
 
-        payment_result = pay_module.pay_onetime(**payload)
+        payment_result = pay_module.pay_onetime(**new_payload)
         double_check = pay_module.is_paid(amount, **payment_result)
 
         # DB process
+        if is_additional == 'false':
+            query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s"
+        else:
+            query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_additional_points_paid = %s WHERE id = %s"
+        cursor.execute(query_setToPaid, (True, request_id, ))
+
+        payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
+        cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
+                    (payment_info_id, request_id, user_id, "iamport", order_no, amount))
+
+        g.db.commit()
+
+        if pay_by == "web":
+            return 'iamport_success', None, None
+        elif pay_by == "mobile":
+            return 'iamport_success', None, None
 
     elif pay_via == "point_only":
         cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
