@@ -321,6 +321,7 @@ CREATE TABLE CICERON.D_TRANSLATED_TEXT(
     path varchar(300),
     google_result TEXT,
     yandex_result TEXT,
+    bing_result TEXT,
     text TEXT,
 
     PRIMARY KEY (id, seq)
