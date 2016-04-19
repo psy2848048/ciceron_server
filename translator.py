@@ -18,7 +18,7 @@ class Translator:
                                                 target=target_lang,
                                                      q=sentences
                 ).execute()
-
+        result_array = [ item['translatedText'] for item in result_google ]
         return result_google
 
     def _bingTranslate(self, source_lang, target_lang, sentences):
@@ -29,7 +29,17 @@ class Translator:
 
     def doWork(self, source_lang, target_lang, sentences):
         result_google = self._googleTranslate(source_lang, target_lang, sentences)
-        return result_google
+        result_bing = self._bingTranslate(source_lang, target_lang, sentences)
+
+        result = []
+        for google, bing in zip(result_google, result_bing):
+            item = {}
+            item['google'] = google
+            item['bing'] = bing
+
+            result.append(item)
+
+        return result
 
 if __name__ == '__main__':
     translator = Translator()
