@@ -39,7 +39,7 @@ def cut_sentences(sentences):
 
     ready_to_translate_array = []
     for line in sentences_array:
-        if len(line) > 1000:
+        if len(line) > 2000:
             new_lines = line.split('.')
             for new_line in new_lines:
                 ready_to_translate_array.append(new_line + '.')
