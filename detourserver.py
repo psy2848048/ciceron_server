@@ -34,6 +34,21 @@ translator = Translator(developerKey=GCM_API_KEY)
 def connect_db():
     return psycopg2.connect(app.config['DATABASE'])
 
+def cut_sentences(sentences):
+    sentences_array = sentences.split('\n')
+
+    ready_to_translate_array = []
+    for line in sentences_array:
+        if len(line) > 1000:
+            new_lines = line.split('.')
+            for new_line in new_lines:
+                ready_to_translate_array.append(new_line + '.')
+
+        else:
+            ready_to_translate_array.append(line)
+
+    return ready_to_translate_array
+
 @app.before_request
 def before_request():
     g.db = connect_db()
