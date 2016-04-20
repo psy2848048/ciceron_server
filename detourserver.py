@@ -65,6 +65,12 @@ def index():
 
 @app.route('/translate', methods=['POST'])
 def translate():
+    client_ip = request.environ.get('REMOTE_ADDR')
+    print (client_ip)
+    #if client_ip not in ['52.196.144.144', '52.196.144.144']:
+    #    return make_response(json.jsonify(
+    #        message='Unauthorized'), 401)
+
     parameters = parse_request(request)
     user_email = parameters['user_email']
     paragragh = parameters['paragraph']
@@ -76,6 +82,15 @@ def translate():
     if user_id == -1:
         return make_response(json.jsonify(
             message='Forbidden'), 403)
+
+    # Real work
+    is_ok, result = translator.doWork(source_lang_id, target_lang_id, paragragh)
+    if is_ok == False:
+        return make_response(json.jsonify(
+            message=""), 400)
+
+    else:
+        return make_response(json.jsonify(**result), 200)
 
 if __name__ == "__main__":
     # Should be masked!
