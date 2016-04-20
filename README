@@ -35,6 +35,7 @@ Ciceron server code
   - Celery
   - alipay
   - psycopg2
+  - iamport-rest-client
 
 * Summary of set up
  1) Env
