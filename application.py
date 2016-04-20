@@ -2667,7 +2667,7 @@ def get_notification():
         row['request_status'] = item[10]
 
         #row['expectedDue'] = (string2Date(item[8])-datetime.now()).total_seconds() if item[8] != None else None
-        row['expectedDue'] = item[8].total_seconds() if item[8] != None else None
+        row['expectedDue'] = item[8].total_seconds() * 1000 if item[8] != None else None
         row['expectedDue_replied'] = item[11]
         row['noti_id'] = item[12]
 
