@@ -2658,7 +2658,7 @@ def get_notification():
         row['request_id'] = item[3]
         row['target_username'] = item[4]
         row['target_userProfilePic'] = item[7]
-        row['ts'] = item[5].total_seconds() * 1000
+        row['ts'] = int(item[5].strftime("%s")) * 1000
         row['is_read'] = parameter_to_bool(item[6])
         row['link'] = link
         row['isAlert'] = isAlert
