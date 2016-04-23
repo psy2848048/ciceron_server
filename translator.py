@@ -3,6 +3,8 @@
 from __future__ import print_function
 from googleapiclient.discovery import build
 from microsofttranslator import Translator as Bing_Translator
+import psycopg2
+import os
 
 
 class Translator:
@@ -28,8 +30,14 @@ class Translator:
         result_array = result_bing
         return result_array
 
-    def getCountryCode(self, country_id):
-        cursor = g.db.cursor()
+    def getCountryCode(self, country_id):        
+        if os.environ.get('PURPOSE') == 'PROD':
+            DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+        else:
+            DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+
+        conn = psycopg2.connect(DATABASE)
+        cursor = conn.cursor()
 
         query = """SELECT google_code, yandex_code, bing_code FROM CICERON.D_LANGUAGES
                       WHERE id = %s """
@@ -43,14 +51,14 @@ class Translator:
     def doWork(self, source_lang_id, target_lang_id, sentences):
         # Length limit:
         #     Google: 2050 byte
-
-        result_google = self._googleTranslate(source_lang_id, target_lang_id, sentences)
-        result_bing = self._bingTranslate(source_lang_id, target_lang_id, sentences)
-
         is_sourceId_OK, source_langCodeDict = self.getCountryCode(source_lang_id)
         is_targetId_OK, target_langCodeDict = self.getCountryCode(target_lang_id)
+
         if is_sourceId_OK == False or is_targetId_OK == False:
             return False, None
+
+        result_google = self._googleTranslate(source_langCodeDict['google'], target_langCodeDict['google'], sentences)
+        result_bing = self._bingTranslate(source_langCodeDict['bing'], target_langCodeDict['bing'], sentences)
 
         return True, {'google': result_google, 'bing': result_bing}
 

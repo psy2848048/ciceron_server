@@ -37,6 +37,9 @@ Ciceron server code
   - psycopg2
   - iamport-rest-client
   - pip install --upgrade google-api-python-client
+  - nltk -> import nltk; nltk.download()
+  - google-api-python-client
+  - microsofttranslator
 
 * Summary of set up
  1) Env
