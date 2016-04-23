@@ -21,7 +21,7 @@ class Translator:
                                                 target=target_lang,
                                                      q=sentences
                 ).execute()
-        if result_array.get('translations') != None
+        if result_array.get('translations') != None:
             result_array = result_google['translations'][0]['translatedText']
             return result_array
         else:

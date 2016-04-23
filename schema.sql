@@ -566,7 +566,7 @@ CREATE TABLE CICERON.TEMP_ACTIONS_LOG (
     method varchar(10),
     api varchar(300),
     log_time TIMESTAMPTZ,
-    ip_address varchar(20),
+    ip_address varchar(100),
 
     PRIMARY KEY (id)
 );
@@ -579,7 +579,7 @@ CREATE TABLE CICERON.USER_ACTIONS (
     method varchar(10),
     api varchar(300),
     log_time TIMESTAMPTZ,
-    ip_address varchar(20),
+    ip_address varchar(100),
 
     PRIMARY KEY (id)
 );
