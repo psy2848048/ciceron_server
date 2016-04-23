@@ -163,7 +163,7 @@ def get_total_amount(conn, request_id, user_id, is_additional='false'):
 def ddosCheckAndWriteLog(conn):
     cursor = conn.cursor()
 
-    if session.get('useremail') == None:
+    if session.get('useremail') != None:
         user_id = get_user_id(conn, session['useremail'])
     else:
         user_id = 0

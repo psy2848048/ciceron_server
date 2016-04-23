@@ -3,6 +3,7 @@
 from __future__ import print_function
 from googleapiclient.discovery import build
 from microsofttranslator import Translator as Bing_Translator
+from yandex_translate import YandexTranslate
 import psycopg2
 import os
 
@@ -11,7 +12,7 @@ class Translator:
     def __init__(self, developerKey='AIzaSyD-S4_2g1SRp4jucHpdLSBBq6xWhOsHcSI'):
         self.googleAPI = build('translate', 'v2',
                                 developerKey=developerKey)
-        #self.yandexAPI = ...
+        self.yandexAPI = YandexTranslate('trnsl.1.1.20160423T052231Z.a28f67a8074f04f8.0a0282fad14a1dfd13d21ed6ab55f0a0a61c2d3f')
         self.bingAPI = Bing_Translator('welcome_ciceron', 'VL9isREJUILWMCLE2hr75xVaePRof6kuGkCM+r9oTb0=')
 
     def _googleTranslate(self, source_lang, target_lang, sentences):
@@ -20,15 +21,23 @@ class Translator:
                                                 target=target_lang,
                                                      q=sentences
                 ).execute()
-        result_array = result_google['translations'][0]['translatedText']
-        return result_array
+        if result_array.get('translations') != None
+            result_array = result_google['translations'][0]['translatedText']
+            return result_array
+        else:
+            return None
 
     def _bingTranslate(self, source_lang, target_lang, sentences):
         result_bing = self.bingAPI.translate(sentences, target_lang)
+        return result_bing
 
-        #result_array = [ item['TranslatedText'] for item in result_bing ]
-        result_array = result_bing
-        return result_array
+    def _yandexTranslate(self, source_lang, target_lang, sentences):
+        lang_FromTo = '%s-%s' % (source_lang, target_lang)
+        result_yandex = self.yandexAPI.translate(sentences, lang_FromTo)
+        if result_yandex.get('text') != None:
+            return result_yandex['text'][0]
+        else:
+            return None
 
     def getCountryCode(self, country_id):        
         if os.environ.get('PURPOSE') == 'PROD':
@@ -49,8 +58,6 @@ class Translator:
         return True, {'google': res[0], 'yandex': res[1], 'bing': res[2]}
 
     def doWork(self, source_lang_id, target_lang_id, sentences):
-        # Length limit:
-        #     Google: 2050 byte
         is_sourceId_OK, source_langCodeDict = self.getCountryCode(source_lang_id)
         is_targetId_OK, target_langCodeDict = self.getCountryCode(target_lang_id)
 
@@ -59,8 +66,9 @@ class Translator:
 
         result_google = self._googleTranslate(source_langCodeDict['google'], target_langCodeDict['google'], sentences)
         result_bing = self._bingTranslate(source_langCodeDict['bing'], target_langCodeDict['bing'], sentences)
+        result_yandex = self._yandexTranslate(source_langCodeDict['yandex'], target_langCodeDict['yandex'], sentences)
 
-        return True, {'google': result_google, 'bing': result_bing}
+        return True, {'google': result_google, 'bing': result_bing, 'yandex': result_yandex}
 
 if __name__ == '__main__':
     translator = Translator()

@@ -196,12 +196,14 @@ CREATE SEQUENCE CICERON.SEQ_F_REQUESTS;
 
 CREATE TABLE CICERON.D_REQUEST_TEXTS (
     id INT,
+    paragragh_seq,
+    sentence_seq,
     seq INT,
     path varchar(200),
     text TEXT,
     hit INT,
 
-    PRIMARY KEY (id, seq)
+    PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
 CREATE INDEX sentence ON CICERON.D_REQUEST_TEXTS (text);
 
@@ -317,14 +319,15 @@ CREATE SEQUENCE CICERON.SEQ_D_QUEUE_LISTS;
 
 CREATE TABLE CICERON.D_TRANSLATED_TEXT(
     id INT,
-    seq INT,
+    paragragh_seq INT,
+    sentence_seq INT,
     path varchar(300),
     google_result TEXT,
     yandex_result TEXT,
     bing_result TEXT,
     text TEXT,
 
-    PRIMARY KEY (id, seq)
+    PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
 
 CREATE SEQUENCE CICERON.SEQ_D_TRANSLATED_TEXT;
