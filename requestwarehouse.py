@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from translator import Translator
-from ciceron_lib import get_new_id
 import nltk.data
 
 
