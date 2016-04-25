@@ -14,6 +14,8 @@ from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
 from ciceron_lib import *
+from requestwarehouse import Warehousing
+from translator import Translator
 from flask.ext.cors import CORS
 from flask.ext.session import Session
 from multiprocessing import Process
@@ -70,6 +72,9 @@ gcm_server.init_app(app)
 
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+
+# Translation
+translator = Translator()
 
 # Celery
 #celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
@@ -892,8 +897,10 @@ def requests():
         if text_string:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
+            new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
             path = os.path.join("request_text", str(new_text_id), filename)
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            warehousing.store(new_text_id, path, text_string, new_translation_id)
 
         # Input context text into dimension table
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
@@ -1299,7 +1306,7 @@ def working_translate_item(str_request_id):
         parameters = parse_request(request)
 
         request_id = int(str_request_id)
-        save_request(g.db, parameters, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
+        save_request(g.db, parameters, str_request_id)
         return make_response(json.jsonify(
             message="Request id %d is auto saved." % request_id,
             request_id=request_id
@@ -1396,7 +1403,7 @@ def post_translate_item():
     parameters = parse_request(request)
 
     request_id = int(parameters['request_id'])
-    save_request(g.db, parameters, request_id, app.config['UPLOAD_FOLDER_RESULT'])
+    save_request(g.db, parameters, request_id)
 
     # Assign default group to requester and translator
     query = None
@@ -1417,18 +1424,18 @@ def post_translate_item():
     requester_id = rs[0][0]
     translator_id = rs[0][1]
 
-    requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
-    translator_default_group_id =  get_group_id_from_user_and_text(g.db, translator_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
+    requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
+    translator_default_group_id =  get_group_id_from_user_and_text(g.db, translator_id, "Incoming", "D_TRANSLATOR_COMPLETED_GROUPS")
 
     # No default group. Insert new default group entry for user
     if requester_default_group_id == -1:
         requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
         cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
-            (requester_default_group_id, requester_id, "Documents"))
+            (requester_default_group_id, requester_id, "Incoming"))
     if translator_default_group_id == -1:
         translator_default_group_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_GROUPS")
         cursor.execute("INSERT INTO CICERON.D_TRANSLATOR_COMPLETED_GROUPS VALUES (%s,%s,%s)",
-            (translator_default_group_id, translator_id, "Documents"))
+            (translator_default_group_id, translator_id, "Incoming"))
 
     # Change the state of the request
     cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 2, client_completed_group_id = %s, translator_completed_group_id = %s, submitted_time = CURRENT_TIMESTAMP WHERE id = %s",
@@ -1522,7 +1529,7 @@ def set_title_translator(str_request_id):
         title_text = (parameters['title_text']).encode('utf-8')
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Incoming", "D_TRANSLATOR_COMPLETED_GROUPS")
 
         # No default group. Insert new default group entry for user
         new_title_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_REQUEST_TITLES")
@@ -1544,7 +1551,6 @@ def set_title_translator(str_request_id):
 
 @app.route('/api/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
 #@exception_detector
-@translator_checker
 @login_required
 def translators_complete_groups():
     if request.method == "GET":
@@ -1563,7 +1569,7 @@ def translators_complete_groups():
         parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "POST")
         if group_name == -1:
-            return make_response(json.jsonify(message="'Document' is reserved name"), 401)
+            return make_response(json.jsonify(message="'Incoming' is reserved name"), 401)
         else:
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
@@ -1577,14 +1583,15 @@ def modify_translators_complete_groups(str_group_id):
     if request.method == "DELETE":
         group_id = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id == -1:
-            return make_response(json.jsonify(message="Group 'Document' is default. You cannot delete it!"), 401)
+            return make_response(json.jsonify(message="Group 'Incoming' is default. You cannot delete it!"), 401)
         else:
             return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
+
     elif request.method == "PUT":
         parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
         if group_name == -1:
-            return make_response(json.jsonify(message="You cannot change the name of the group to 'Document'. It is default group name" % group_name), 401)
+            return make_response(json.jsonify(message="You cannot change the name of the group to 'Incoming'. It is default group name" % group_name), 401)
         else:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
@@ -2055,7 +2062,7 @@ def set_title_client(str_request_id):
         title_text = parameters['title_text']
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
 
         # No default group. Insert new default group entry for user
         new_title_id = get_new_id(g.db, "D_CLIENT_COMPLETED_REQUEST_TITLES")
@@ -2095,7 +2102,7 @@ def client_complete_groups():
         if group_name != -1:
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
         else:
-            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+            return make_response(json.jsonify(message="'Incoming' is default group name"), 401)
 
 @app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
 #@exception_detector
@@ -2107,12 +2114,12 @@ def modify_client_completed_groups(str_group_id):
         if group_name != -1:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
         else:
-            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+            return make_response(json.jsonify(message="'Incoming' is default group name"), 401)
 
     elif request.method == "DELETE":
         group_id = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id == -1:
-            return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
+            return make_response(json.jsonify(message="You cannot delete 'Incoming' group"), 401)
 
         elif group_id == -2:
             return make_response(json.jsonify(message="Already deleted group"), 401)

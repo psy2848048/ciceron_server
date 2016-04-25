@@ -198,10 +198,10 @@ CREATE TABLE CICERON.D_REQUEST_TEXTS (
     id INT,
     paragragh_seq,
     sentence_seq,
-    seq INT,
     path varchar(200),
     text TEXT,
     hit INT,
+    translation_id INT,
 
     PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );

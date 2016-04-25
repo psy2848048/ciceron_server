@@ -540,10 +540,17 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
     elif method == "POST":
         cursor = conn.cursor()
         group_name = parameters['group_name']
-        if group_name == "Documents":
+        if group_name == "Incoming" or group_name == u'Incoming':
             return -1
 
         my_user_id = get_user_id(conn, session['useremail'])
+
+        query_count = "SELECT count(*) FROM CICERON.%s " % table
+        query_count += "WHERE user_id = %s AND text = %s"
+        cursor.execute(query_count, (my_user_id, group_name, ))
+        cnt = cursor.fetchone()[0]
+        if cnt > 0:
+            return -1
 
         new_group_id = get_new_id(conn, table)
         query = "INSERT INTO CICERON.%s VALUES " % table
@@ -556,7 +563,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         cursor = conn.cursor()
         group_id = int(url_group_id)
         group_name = parameters['group_name']
-        if group_name == u"Documents" or group_name == "Documents":
+        if group_name == u"Incoming" or group_name == "Incoming":
             return -1
 
         query = "UPDATE CICERON.%s " % table
@@ -570,7 +577,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
 
         group_id = int(url_group_id)
         group_text = get_text_from_id(conn, group_id, table)
-        if group_text == "Documents":
+        if group_text == "Incoming" or group_text == u'Incoming':
             return -1
         elif group_text == None:
             return -2
@@ -580,7 +587,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         cursor.execute(query , (group_id, ))
 
         user_id = get_user_id(conn, session['useremail'])
-        default_group_id = get_group_id_from_user_and_text(conn, user_id, "Documents", table)
+        default_group_id = get_group_id_from_user_and_text(conn, user_id, "Incoming", table)
         if table.find("TRANSLATOR") >= 0: col = 'translator_completed_group_id'
         else:                             col = 'client_completed_group_id'
 
@@ -591,11 +598,10 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         conn.commit()
         return group_id
 
-def save_request(conn, parameters, str_request_id, result_folder):
+def save_request(conn, parameters, str_request_id):
     cursor = conn.cursor()
 
     request_id = int(str_request_id)
-    new_translatedText = parameters.get("request_translatedText", None)
     new_comment = parameters.get("request_comment", None)
     new_tone = parameters.get("request_tone", None)
 
@@ -605,15 +611,6 @@ def save_request(conn, parameters, str_request_id, result_folder):
     translatedText_path = rs[0][0]
     comment_id = rs[0][1]
     tone_id = rs[0][2]
-
-    if new_translatedText != None:
-        # Save new translated text
-        if translatedText_path == None:
-            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
-            translatedText_path = os.path.join(result_folder, filename)
-            new_result_id = get_new_id(conn, "D_TRANSLATED_TEXT")
-            cursor.execute("INSERT INTO CICERON.D_TRANSLATED_TEXT (id, path, text) VALUES (%s,%s,%s)", (new_result_id, translatedText_path, new_translatedText))
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET translatedText_id = %s WHERE id = %s", (new_result_id, request_id))
 
     # Save new comment
     if new_comment != None:
