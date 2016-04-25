@@ -944,7 +944,7 @@ def requests():
                     new_context_id,       # context_id
                     None,                 # comment_id
                     None,                 # tone_id
-                    None,                 # translatedText_id
+                    new_translation_id,                 # translatedText_id
                     is_paid,              # is_paid
                     False))               # is_need_additional_points
 

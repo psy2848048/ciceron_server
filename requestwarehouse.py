@@ -37,19 +37,22 @@ class Warehousing:
     def _restore_string(self, request_id, source):
         cursor = self.conn.cursor()
 
-        query_getRuestText = "SELECT text_id FROM CICERON.F_REQUESTS WHERE id = %s"
-        cursor.execute(query_getRuestText, (request_id, ))
+        query_getRequestText = "SELECT text_id, translatedText_id FROM CICERON.F_REQUESTS WHERE id = %s"
+        cursor.execute(query_getRequestText, (request_id, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
             return None
 
         request_text_id = res[0]
+        translated_text_id = res[1]
+
         if source == 'requested_text':
             query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            cursor.execute(query_text, (request_text_id, ))
         elif source == 'translated_text':
             query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            cursor.execute(query_text, (translated_text_id, ))
 
-        cursor.execute(query_text, (request_text_id, ))
         fetched_array = cursor.fetchall()
 
         cur_paragragh_id = 1
@@ -66,19 +69,22 @@ class Warehousing:
     def _restore_array(self, request_id, source):
         cursor = self.conn.cursor()
 
-        query_getRuestText = "SELECT text_id FROM CICERON.F_REQUESTS WHERE id = %s"
-        cursor.execute(query_getRuestText, (request_id, ))
+        query_getRequestText = "SELECT text_id, translatedText_id FROM CICERON.F_REQUESTS WHERE id = %s"
+        cursor.execute(query_getRequestText, (request_id, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
             return None
 
         request_text_id = res[0]
+        translated_text_id = res[1] if res[1] != None else -1 # -1: Dummy
+
         if source == 'requested_text':
             query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            cursor.execute(query_text, (request_text_id, ))
         elif source == 'translated_text':
             query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            cursor.execute(query_text, (translated_text_id, ))
 
-        cursor.execute(query_text, (request_text_id, ))
         result_array = cursor.fetchall()
 
         return result_array

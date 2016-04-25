@@ -5,6 +5,7 @@ from flask import make_response, json, g, session, request, current_app
 from datetime import datetime, timedelta
 from functools import wraps
 from iamport import Iamport
+from requestwarehouse import Warehousing
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
 def get_hashed_password(password, salt=None):
@@ -102,17 +103,6 @@ def get_path_from_id(conn, id_num, table):
     if len(rs) == 0: result = None
     else:            result = str(rs[0][0])
     return result
-
-def get_main_text(conn, text_id, table):
-    cursor = conn.cursor()
-    query = "SELECT text FROM CICERON.%s WHERE id =" % table
-    query += "%s "
-    cursor.execute(query, (text_id, ) )
-    main_text = cursor.fetchone()
-    if main_text is not None:
-        return main_text[0]
-    else:
-        return None
 
 def get_group_id_from_user_and_text(conn, user_id, text, table):
     cursor = conn.cursor()
@@ -400,6 +390,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     if ret_returnRate is not None and len(ret_returnRate) > 0:
         return_rate = ret_returnRate[0]
 
+    warehouse = Warehousing(conn)
+
     for row in rs:
         request_id = row[0]
         # For fetching translators in queue
@@ -412,17 +404,20 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             queue_list.append(profile)
 
         # For getting word count of the request
-        cursor.execute("SELECT path, text FROM CICERON.D_REQUEST_TEXTS  WHERE id = %s ", (row[30], ) )
-        list_txt = cursor.fetchall()
-
-        main_text = None
-        if len(list_txt) == 0 or len(list_txt[0]) == 0:
+        #request_id = row[30]
+        text_for_counting = warehouse.restoreRequestByString(row[0])
+        if len(text_for_counting) == 0:
             num_of_words = 0
             num_of_letters = 0
         else:
-            num_of_letters = len(list_txt[0][1].decode('utf-8'))
-            num_of_words = len(list_txt[0][1].decode('utf-8').split(' '))
-            main_text = list_txt[0][1]
+            num_of_letters = len(text_for_counting.decode('utf-8'))
+            num_of_words = len(text_for_counting.decode('utf-8').split(' '))
+
+        main_text = None
+        if purpose != 'ongoing_translator':
+            main_text = text_for_counting
+        else:
+            main_text = warehouse.restoreRequestByArray(row[0])
 
         item = dict(
                 request_id=row[0],
@@ -477,7 +472,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             # Show context if normal request, or show main text
             if row[17] == True: # True
                 item['request_context'] = main_text
-                item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
+                item['request_translatedText'] = main_text
             else:
                 item['request_context'] = row[38]
                 item['request_text'] = None
@@ -488,15 +483,15 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         elif purpose == "pending_client":
             # Show context if normal request, or show main text
             if row[17] == True: # True
-                item['request_context'] = get_main_text(g.db, row[30], "D_REQUEST_TEXTS")
-                item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
+                item['request_context'] = main_text
+                item['request_translatedText'] = warehouse.restoreTranslationByString(row[0])
             else:
                 item['request_context'] = row[38]
 
         elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
             if row[17] == False: # False
                 item['request_context'] = row[38]
-            item['request_translatedText'] = get_main_text(g.db, row[51], "D_TRANSLATED_TEXT")
+            item['request_translatedText'] = warehouse.restoreTranslationByArray(row[0])
             item['request_title']=row[46]
 
         elif purpose == "ongoing_client":
