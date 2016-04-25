@@ -62,7 +62,7 @@ def translate():
 
     parameters = parse_request(request)
     user_email = parameters['user_email']
-    paragragh = parameters['paragraph']
+    sentence = parameters['sentence']
     source_lang_id = parameters['source_lang_id']
     target_lang_id = parameters['target_lang_id']
     where = parameters['where']
@@ -74,7 +74,7 @@ def translate():
             message='Forbidden'), 403)
 
     # Real work
-    is_ok, result = translator.doWork(source_lang_id, target_lang_id, paragragh)
+    is_ok, result = translator.doWork(source_lang_id, target_lang_id, sentence)
     if is_ok == False:
         return make_response(json.jsonify(
             message=""), 400)
