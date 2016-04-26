@@ -15,7 +15,6 @@ from werkzeug import secure_filename
 from decimal import Decimal
 from ciceron_lib import *
 from requestwarehouse import Warehousing
-from translator import Translator
 from flask.ext.cors import CORS
 from flask.ext.session import Session
 from multiprocessing import Process
@@ -72,9 +71,6 @@ gcm_server.init_app(app)
 
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
-
-# Translation
-translator = Translator()
 
 # Celery
 #celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
