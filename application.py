@@ -14,6 +14,7 @@ from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
 from ciceron_lib import *
+from requestwarehouse import Warehousing
 from flask.ext.cors import CORS
 from flask.ext.session import Session
 from multiprocessing import Process
@@ -892,8 +893,11 @@ def requests():
         if text_string:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
+            new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
             path = os.path.join("request_text", str(new_text_id), filename)
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            warehousing = Warehousing(g.db)
+            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
 
         # Input context text into dimension table
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
@@ -937,7 +941,7 @@ def requests():
                     new_context_id,       # context_id
                     None,                 # comment_id
                     None,                 # tone_id
-                    None,                 # translatedText_id
+                    new_translation_id,                 # translatedText_id
                     is_paid,              # is_paid
                     False))               # is_need_additional_points
 
@@ -1239,7 +1243,7 @@ def pick_request():
     elif request.method == "GET":
         # Request method: GET
         # Parameters
-        #     since (optional): Timestamp integer
+        #     page (optional): Integer
         cursor = g.db.cursor()
 
         query_ongoing = None
@@ -1261,10 +1265,10 @@ def pick_request():
         cursor.execute(query_ongoing, (my_user_id, ) )
         rs = cursor.fetchall()
 
-        result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator") # PLEASE REVISE
+        result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
+@app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET"])
 #@exception_detector
 @translator_checker
 @login_required
@@ -1294,16 +1298,40 @@ def working_translate_item(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-    elif request.method == "PUT":
-        cursor = g.db.cursor()
+@app.route('/api/user/translations/ongoing/<int:request_id>/paragragh/<int:paragragh_id>/sentence/<int:sentence_id>', methods=["GET", "PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
+    if request.method == "PUT":
         parameters = parse_request(request)
 
-        request_id = int(str_request_id)
-        save_request(g.db, parameters, str_request_id, app.config['UPLOAD_FOLDER_RESULT'])
-        return make_response(json.jsonify(
-            message="Request id %d is auto saved." % request_id,
-            request_id=request_id
-            ), 200)
+        text = parameters['text']
+        warehousing = Warehousing(g.db)
+        is_ok = warehousing.updateTranslationOneLine(request_id, paragragh_id, sentence_id, text)
+        
+        if is_ok == True:
+            return make_response(json.jsonify(
+                message="Sentence saved.",
+                request_id=request_id
+                ), 200)
+        else:
+            return make_response(json.jsonify(
+                message="Sentence save failure.",
+                request_id=request_id
+                ), 401)
+
+    elif request.method == "GET":
+        warehousing = Warehousing(g.db)
+        is_ok, sentence = warehousing.getTranslationOneLine(request_id, paragragh_id, sentence_id)
+        if is_ok == True:
+            return make_response(json.jsonify(
+                sentence=sentence
+                ), 200)
+        else:
+            return make_response(json.jsonify(
+                message="Get sentence failure."
+                ), 401)
 
 @app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
@@ -1396,7 +1424,6 @@ def post_translate_item():
     parameters = parse_request(request)
 
     request_id = int(parameters['request_id'])
-    save_request(g.db, parameters, request_id, app.config['UPLOAD_FOLDER_RESULT'])
 
     # Assign default group to requester and translator
     query = None
@@ -1417,18 +1444,18 @@ def post_translate_item():
     requester_id = rs[0][0]
     translator_id = rs[0][1]
 
-    requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
-    translator_default_group_id =  get_group_id_from_user_and_text(g.db, translator_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
+    requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
+    translator_default_group_id =  get_group_id_from_user_and_text(g.db, translator_id, "Incoming", "D_TRANSLATOR_COMPLETED_GROUPS")
 
     # No default group. Insert new default group entry for user
     if requester_default_group_id == -1:
         requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
         cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
-            (requester_default_group_id, requester_id, "Documents"))
+            (requester_default_group_id, requester_id, "Incoming"))
     if translator_default_group_id == -1:
         translator_default_group_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_GROUPS")
         cursor.execute("INSERT INTO CICERON.D_TRANSLATOR_COMPLETED_GROUPS VALUES (%s,%s,%s)",
-            (translator_default_group_id, translator_id, "Documents"))
+            (translator_default_group_id, translator_id, "Incoming"))
 
     # Change the state of the request
     cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 2, client_completed_group_id = %s, translator_completed_group_id = %s, submitted_time = CURRENT_TIMESTAMP WHERE id = %s",
@@ -1522,7 +1549,7 @@ def set_title_translator(str_request_id):
         title_text = (parameters['title_text']).encode('utf-8')
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_TRANSLATOR_COMPLETED_GROUPS")
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Incoming", "D_TRANSLATOR_COMPLETED_GROUPS")
 
         # No default group. Insert new default group entry for user
         new_title_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_REQUEST_TITLES")
@@ -1544,7 +1571,6 @@ def set_title_translator(str_request_id):
 
 @app.route('/api/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
 #@exception_detector
-@translator_checker
 @login_required
 def translators_complete_groups():
     if request.method == "GET":
@@ -1563,7 +1589,7 @@ def translators_complete_groups():
         parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "POST")
         if group_name == -1:
-            return make_response(json.jsonify(message="'Document' is reserved name"), 401)
+            return make_response(json.jsonify(message="'Incoming' is reserved name"), 401)
         else:
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
 
@@ -1577,14 +1603,15 @@ def modify_translators_complete_groups(str_group_id):
     if request.method == "DELETE":
         group_id = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id == -1:
-            return make_response(json.jsonify(message="Group 'Document' is default. You cannot delete it!"), 401)
+            return make_response(json.jsonify(message="Group 'Incoming' is default. You cannot delete it!"), 401)
         else:
             return make_response(json.jsonify(message="Group %d is deleted. Requests are moved into default group" % group_id), 200)
+
     elif request.method == "PUT":
         parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_TRANSLATOR_COMPLETED_GROUPS", "PUT")
         if group_name == -1:
-            return make_response(json.jsonify(message="You cannot change the name of the group to 'Document'. It is default group name" % group_name), 401)
+            return make_response(json.jsonify(message="You cannot change the name of the group to 'Incoming'. It is default group name" % group_name), 401)
         else:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
 
@@ -2055,7 +2082,7 @@ def set_title_client(str_request_id):
         title_text = parameters['title_text']
 
         my_user_id = get_user_id(g.db, session['useremail'])
-        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Documents", "D_CLIENT_COMPLETED_GROUPS")
+        default_group_id = get_group_id_from_user_and_text(g.db, my_user_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
 
         # No default group. Insert new default group entry for user
         new_title_id = get_new_id(g.db, "D_CLIENT_COMPLETED_REQUEST_TITLES")
@@ -2095,7 +2122,7 @@ def client_complete_groups():
         if group_name != -1:
             return make_response(json.jsonify(message="New group %s has been created" % group_name), 200)
         else:
-            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+            return make_response(json.jsonify(message="'Incoming' is default group name"), 401)
 
 @app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["PUT", "DELETE"])
 #@exception_detector
@@ -2107,12 +2134,12 @@ def modify_client_completed_groups(str_group_id):
         if group_name != -1:
             return make_response(json.jsonify(message="Group name is changed to %s" % group_name), 200)
         else:
-            return make_response(json.jsonify(message="'Documents' is default group name"), 401)
+            return make_response(json.jsonify(message="'Incoming' is default group name"), 401)
 
     elif request.method == "DELETE":
         group_id = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "DELETE", url_group_id=str_group_id)
         if group_id == -1:
-            return make_response(json.jsonify(message="You cannot delete 'Documents' group"), 401)
+            return make_response(json.jsonify(message="You cannot delete 'Incoming' group"), 401)
 
         elif group_id == -2:
             return make_response(json.jsonify(message="Already deleted group"), 401)

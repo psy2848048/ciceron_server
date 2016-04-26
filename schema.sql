@@ -60,18 +60,20 @@ CREATE TABLE CICERON.PASSWORDS (
 CREATE TABLE CICERON.D_LANGUAGES (
     id INT,
     text varchar(100),
+    google_code varchar(10),
+    yandex_code varchar(10),
     
     PRIMARY KEY (id)
 );
 
 CREATE SEQUENCE CICERON.SEQ_D_LANGUAGES;
 
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Korean');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(USA)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(UK)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Mandarin)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Cantonese)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Thai');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Korean', 'ko', 'ko');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(USA)', 'en', 'en');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(UK)', 'en', 'en');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Mandarin)', 'zh-CN', 'zh');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Taiwanese)', 'zh-TW', null);
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Thai', 'th', 'th');
 
 CREATE TABLE CICERON.D_TRANSLATABLE_LANGUAGES (
     id INT,
@@ -194,11 +196,19 @@ CREATE SEQUENCE CICERON.SEQ_F_REQUESTS;
 
 CREATE TABLE CICERON.D_REQUEST_TEXTS (
     id INT,
+    paragragh_seq,
+    sentence_seq,
     path varchar(200),
     text TEXT,
+    hit INT,
+    translation_id INT,
+    is_sent_to_machine boolean,
+    original_lang_id INT,
+    target_lang_id INT,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
+CREATE INDEX sentence ON CICERON.D_REQUEST_TEXTS (text);
 
 CREATE SEQUENCE CICERON.SEQ_D_REQUEST_TEXTS;
 
@@ -312,10 +322,15 @@ CREATE SEQUENCE CICERON.SEQ_D_QUEUE_LISTS;
 
 CREATE TABLE CICERON.D_TRANSLATED_TEXT(
     id INT,
+    paragragh_seq INT,
+    sentence_seq INT,
     path varchar(300),
+    google_result TEXT,
+    yandex_result TEXT,
+    bing_result TEXT,
     text TEXT,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
 
 CREATE SEQUENCE CICERON.SEQ_D_TRANSLATED_TEXT;
@@ -554,7 +569,7 @@ CREATE TABLE CICERON.TEMP_ACTIONS_LOG (
     method varchar(10),
     api varchar(300),
     log_time TIMESTAMPTZ,
-    ip_address varchar(20),
+    ip_address varchar(100),
 
     PRIMARY KEY (id)
 );
@@ -567,7 +582,7 @@ CREATE TABLE CICERON.USER_ACTIONS (
     method varchar(10),
     api varchar(300),
     log_time TIMESTAMPTZ,
-    ip_address varchar(20),
+    ip_address varchar(100),
 
     PRIMARY KEY (id)
 );

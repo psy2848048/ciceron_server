@@ -36,6 +36,10 @@ Ciceron server code
   - alipay
   - psycopg2
   - iamport-rest-client
+  - nltk -> import nltk; nltk.download()
+  - google-api-python-client
+  - microsofttranslator
+  - yandex.translate
 
 * Summary of set up
  1) Env
@@ -60,7 +64,3 @@ Ciceron server code
 * How to run tests
   - In virtual env, execute 'python run_test.py'
 
-### TEST CREDENTIAL ###
-
-* ID: admin@ciceron.me
-* Pass: !master@Of#Ciceron$
