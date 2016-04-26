@@ -896,6 +896,7 @@ def requests():
             new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
             path = os.path.join("request_text", str(new_text_id), filename)
             #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            warehousing = Warehousing(g.db)
             warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
 
         # Input context text into dimension table
@@ -1242,7 +1243,7 @@ def pick_request():
     elif request.method == "GET":
         # Request method: GET
         # Parameters
-        #     since (optional): Timestamp integer
+        #     page (optional): Integer
         cursor = g.db.cursor()
 
         query_ongoing = None
@@ -1264,10 +1265,10 @@ def pick_request():
         cursor.execute(query_ongoing, (my_user_id, ) )
         rs = cursor.fetchall()
 
-        result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator") # PLEASE REVISE
+        result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET", "PUT"])
+@app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET"])
 #@exception_detector
 @translator_checker
 @login_required
@@ -1297,16 +1298,40 @@ def working_translate_item(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-    elif request.method == "PUT":
-        cursor = g.db.cursor()
+@app.route('/api/user/translations/ongoing/<int:request_id>/paragragh/<int:paragragh_id>/sentence/<int:sentence_id>', methods=["GET", "PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
+    if request.method == "PUT":
         parameters = parse_request(request)
 
-        request_id = int(str_request_id)
-        save_request(g.db, parameters, str_request_id)
-        return make_response(json.jsonify(
-            message="Request id %d is auto saved." % request_id,
-            request_id=request_id
-            ), 200)
+        text = parameters['text']
+        warehousing = Warehousing(g.db)
+        is_ok = warehousing.updateTranslationOneLine(request_id, paragragh_id, sentence_id, text)
+        
+        if is_ok == True:
+            return make_response(json.jsonify(
+                message="Sentence saved.",
+                request_id=request_id
+                ), 200)
+        else:
+            return make_response(json.jsonify(
+                message="Sentence save failure.",
+                request_id=request_id
+                ), 401)
+
+    elif request.method == "GET":
+        warehousing = Warehousing(g.db)
+        is_ok, sentence = warehousing.getTranslationOneLine(request_id, paragragh_id, sentence_id)
+        if is_ok == True:
+            return make_response(json.jsonify(
+                sentence=sentence
+                ), 200)
+        else:
+            return make_response(json.jsonify(
+                message="Get sentence failure."
+                ), 401)
 
 @app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
@@ -1399,7 +1424,6 @@ def post_translate_item():
     parameters = parse_request(request)
 
     request_id = int(parameters['request_id'])
-    save_request(g.db, parameters, request_id)
 
     # Assign default group to requester and translator
     query = None

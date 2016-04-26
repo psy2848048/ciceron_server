@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from translator import Translator
 import nltk.data
+import traceback
 
 
 class Warehousing:
@@ -99,6 +100,56 @@ class Warehousing:
 
     def restoreRequestByArray(self, request_id):
         return self._restore_array(request_id, 'translated_text')
+
+    def updateTranslationOneLine(self, request_id, paragragh_id, sentence_id, text):
+        cursor = self.conn.cursor()
+
+        try:
+            query_getRequestText = "SELECT translatedText_id FROM CICERON.F_REQUESTS WHERE id = %s"
+            cursor.execute(query_getRequestText, (request_id, ))
+            translated_text_id = None
+            res = cursor.fetchone()
+            if res is None or len(res) == 0:
+                return False
+
+            translated_text_id = res[0]
+
+            query_update = """
+                UPDATE CICERON.D_TRANSLATED_TEXT
+                  SET text = %s
+                  WHERE id=%s AND paragragh_id=%s AND sentence_id=%s"""
+            cursor.execute(query_update, (text, translated_text_id, paragragh_id, sentence_id, ))
+            self.conn.commit()
+            return True
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return True
+
+    def getTranslationOneLine(self, request_id, paragragh_id, sentence_id):
+        cursor = self.conn.cursor()
+
+        query_getRequestText = "SELECT translatedText_id FROM CICERON.F_REQUESTS WHERE id = %s"
+        cursor.execute(query_getRequestText, (request_id, ))
+        translated_text_id = None
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return False, None
+
+        translated_text_id = res[0]
+
+        query_update = """
+            SELECT text
+              FROM CICERON.D_TRANSLATED_TEXT
+              WHERE id=%s AND paragragh_id=%s AND sentence_id=%s"""
+        cursor.execute(query_update, (translated_text_id, paragragh_id, sentence_id, ))
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return False, None
+
+        return_text = res[0]
+        return True, return_text
 
     @classmethod
     def initTest(cls, name, method):

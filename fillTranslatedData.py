@@ -76,7 +76,7 @@ class TranslationAgent:
             return True
 
         except Exception:
-            print traceback.print_exc()
+            traceback.print_exc()
             self.conn.rollback()
 
             return False
