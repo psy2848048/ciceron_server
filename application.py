@@ -896,7 +896,7 @@ def requests():
             new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
             path = os.path.join("request_text", str(new_text_id), filename)
             #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
-            warehousing.store(new_text_id, path, text_string, new_translation_id)
+            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
 
         # Input context text into dimension table
         new_context_id = get_new_id(g.db, "D_CONTEXTS")

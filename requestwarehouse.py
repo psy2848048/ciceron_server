@@ -15,23 +15,23 @@ class Warehousing:
     def __parseSentence(self, strings):
         return self.sentence_detector.tokenize(strings.strip())
 
-    def _unitOriginalDataInsert(self, request_id, paragragh_id, sentence_id, path, text, new_translation_id):
+    def _unitOriginalDataInsert(self, request_id, paragragh_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id):
         cursor = self.conn.cursor()
 
         query = """INSERT INTO CICERON.D_REQUEST_TEXTS
-                       (id, paragragh_seq, sentence_seq, path, text, is_sent_to_machine, hit, new_translation_id)
+                       (id, paragragh_seq, sentence_seq, path, text, is_sent_to_machine, hit, new_translation_id, original_lang_id, target_lang_id)
                    VALUES
-                       (%s, %s, %s, %s, %s, false, 0, %s) """
+                       (%s, %s, %s, %s, %s, false, 0, %s, %s, %s) """
 
         cursor.execute(query, (request_id, paragragh_id, sentence_id, path, text, new_translation_id, ))
         self.conn.commit()
 
-    def store(self, request_id, path, whole_texts, new_translation_id):
+    def store(self, request_id, path, whole_texts, new_translation_id, original_lang_id, target_lang_id):
         paragraphs = self.__parseParagragh(whole_texts)
         for paragragh_seq, paragraph in enumerate(paragraphs, start=1):
             sentences = self.__parseSentence(paragraph)
             for sentence_seq, sentence in enumerate(sentences, start=1):
-                self._unitOriginalDataInsert(request_id, paragragh_seq, sentence_seq, path, sentence, new_translation_id)
+                self._unitOriginalDataInsert(request_id, paragragh_seq, sentence_seq, path, sentence, new_translation_id, original_lang_id, target_lang_id)
 
     def _restore_string(self, request_id, source):
         cursor = self.conn.cursor()
@@ -107,8 +107,8 @@ class Warehousing:
 if __name__ == "__main__":
     # Test purpose
 
-    def _unitOriginalDataInsert(self, request_id, paragragh_id, sentence_id, path, text, new_translation_id):
-        print "%s | %s | %s | %s | %s" % (request_id, paragragh_id, sentence_id, path, text)
+    def _unitOriginalDataInsert(self, request_id, paragragh_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id):
+        print "%s | %s | %s | %s | %s | %s | %s" % (request_id, paragragh_id, sentence_id, path, text, original_lang_id, target_lang_id)
 
     conn = None
     Warehousing.initTest('_unitOriginalDataInsert', _unitOriginalDataInsert)

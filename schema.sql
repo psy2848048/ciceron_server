@@ -202,6 +202,9 @@ CREATE TABLE CICERON.D_REQUEST_TEXTS (
     text TEXT,
     hit INT,
     translation_id INT,
+    is_sent_to_machine boolean,
+    original_lang_id INT,
+    target_lang_id INT,
 
     PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
