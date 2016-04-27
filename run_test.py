@@ -118,8 +118,8 @@ class CiceronTestCase(unittest.TestCase):
         text = "This is test text\nAnd I donno how to deal with"
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@nate.com",
-                request_originalLang=0,
-                request_targetLang=1,
+                request_originalLang=1,
+                request_targetLang=2,
                 request_isSos=True,
                 request_format=0,
                 request_subject=0,
@@ -136,8 +136,8 @@ class CiceronTestCase(unittest.TestCase):
         text2 = "testtesttest\nChinese\na;eoifja;ef"
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@nate.com",
-                request_originalLang=0,
-                request_targetLang=1,
+                request_originalLang=1,
+                request_targetLang=2,
                 request_isSos=False,
                 request_format=0,
                 request_subject=0,
@@ -165,8 +165,8 @@ class CiceronTestCase(unittest.TestCase):
         text3 = "Who somebody can test it?\n한국어\tsiol"
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@nate.com",
-                request_originalLang=0,
-                request_targetLang=2,
+                request_originalLang=1,
+                request_targetLang=3,
                 request_isSos=True,
                 request_format=0,
                 request_subject=0,
