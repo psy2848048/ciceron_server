@@ -100,11 +100,10 @@ if __name__ == "__main__":
     dbInfo = DATABASE % args.dbpass
     agent = TranslationAgent(dbInfo)
 
-    if args.check == 'true':
+    if args.check == 'false':
         agent.run()
     else:
         checker = agent.getOneRawData()
         if checker == True:
-            sys.exit(0)
-        else:
-            sys.exit(1)
+            f = open('/tmp/translation.log', 'w')
+            f.close()
