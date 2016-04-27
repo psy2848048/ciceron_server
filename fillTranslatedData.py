@@ -22,7 +22,6 @@ class TranslationAgent:
         query = """SELECT paragragh_seq, sentence_seq, text,
                       translation_id, original_lang_id, target_lang_id
                    FROM CICERON.D_REQUEST_TEXTS
-                   JOIN
                    WHERE is_sent_to_machine != true LIMIT 1"""
 
         cursor.execute(query)
