@@ -56,7 +56,7 @@ def index():
 @app.route('/translate', methods=['POST'])
 def translate():
     client_ip = request.environ.get('REMOTE_ADDR')
-    if client_ip not in ['52.196.144.144', '52.196.144.144']:
+    if client_ip not in ['52.196.144.144', '52.68.145.181']:
         return make_response(json.jsonify(
             message='Unauthorized'), 401)
 
