@@ -39,12 +39,11 @@ class TranslationAgent:
             # Get translated data from detour server
             data = self.connector.getTranslatedData(sentence, original_lang_id, target_lang_id)
             query_fillTranslatedData = """
-                UPDATE CICERON.D_TRANSLATED_TEXT
-                  SET google_result=%s, yandex_result=%s, bing_result=%s
-                  WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
+                INSERT INTO CICERON.D_TRANSLATED_TEXT (id, paragragh_seq, sentence_seq, google_result, yandex_result, bing_result)
+                  VALUES (%s, %s, %s, %s, %s, %s)"""
             cursor.execute(query_fillTranslatedData,
-                    (data['google'], data['yandex'], data['bing']
-                    ,translation_id, paragragh_seq, sentence_seq, ) )
+                    (translation_id, paragragh_seq, sentence_seq,
+                    , data['google'], data['yandex'], data['bing'], ) )
 
             # Show randomly selected data amaong google, bing, and yandex result as initial translation
             ran_num = random.randint(1, 3)
