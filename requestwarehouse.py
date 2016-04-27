@@ -20,11 +20,11 @@ class Warehousing:
         cursor = self.conn.cursor()
 
         query = """INSERT INTO CICERON.D_REQUEST_TEXTS
-                       (id, paragragh_seq, sentence_seq, path, text, is_sent_to_machine, hit, new_translation_id, original_lang_id, target_lang_id)
+                       (id, paragragh_seq, sentence_seq, path, text, is_sent_to_machine, hit, translation_id, original_lang_id, target_lang_id)
                    VALUES
                        (%s, %s, %s, %s, %s, false, 0, %s, %s, %s) """
 
-        cursor.execute(query, (request_id, paragragh_id, sentence_id, path, text, new_translation_id, ))
+        cursor.execute(query, (request_id, paragragh_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id, ))
         self.conn.commit()
 
     def store(self, request_id, path, whole_texts, new_translation_id, original_lang_id, target_lang_id):
@@ -47,17 +47,17 @@ class Warehousing:
         translated_text_id = res[1]
 
         if source == 'requested_text':
-            query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
             cursor.execute(query_text, (request_text_id, ))
         elif source == 'translated_text':
-            query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
             cursor.execute(query_text, (translated_text_id, ))
 
         fetched_array = cursor.fetchall()
 
         cur_paragragh_id = 1
         result_string = ""
-        for paragragh_id, sentence_id, text in fetch_array:
+        for paragragh_id, sentence_id, text in fetched_array:
             if paragragh_id != cur_paragragh_id:
                 cur_paragragh_id = paragragh_id
                 result_string += '\n' + text
@@ -79,10 +79,10 @@ class Warehousing:
         translated_text_id = res[1] if res[1] != None else -1 # -1: Dummy
 
         if source == 'requested_text':
-            query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
             cursor.execute(query_text, (request_text_id, ))
         elif source == 'translated_text':
-            query_text = "SELECT paragragh_id, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_id, sentence_seq"
+            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
             cursor.execute(query_text, (translated_text_id, ))
 
         result_array = cursor.fetchall()
@@ -117,7 +117,7 @@ class Warehousing:
             query_update = """
                 UPDATE CICERON.D_TRANSLATED_TEXT
                   SET text = %s
-                  WHERE id=%s AND paragragh_id=%s AND sentence_id=%s"""
+                  WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
             cursor.execute(query_update, (text, translated_text_id, paragragh_id, sentence_id, ))
             self.conn.commit()
             return True
@@ -142,7 +142,7 @@ class Warehousing:
         query_update = """
             SELECT text
               FROM CICERON.D_TRANSLATED_TEXT
-              WHERE id=%s AND paragragh_id=%s AND sentence_id=%s"""
+              WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
         cursor.execute(query_update, (translated_text_id, paragragh_id, sentence_id, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
