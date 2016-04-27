@@ -42,7 +42,7 @@ class TranslationAgent:
                 INSERT INTO CICERON.D_TRANSLATED_TEXT (id, paragragh_seq, sentence_seq, google_result, yandex_result, bing_result)
                   VALUES (%s, %s, %s, %s, %s, %s)"""
             cursor.execute(query_fillTranslatedData,
-                    (translation_id, paragragh_seq, sentence_seq,
+                    (translation_id, paragragh_seq, sentence_seq
                     , data['google'], data['yandex'], data['bing'], ) )
 
             # Show randomly selected data amaong google, bing, and yandex result as initial translation
