@@ -94,9 +94,17 @@ class TranslationAgent:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Translation agent')
     parser.add_argument('--dbpass', dest='dbpass', help='DB password')
+    parser.add_argument('--check', dest='check', default='false', help='Just for check')
     args = parser.parse_args()
 
     dbInfo = DATABASE % args.dbpass
     agent = TranslationAgent(dbInfo)
 
-    agent.run()
+    if args.check == 'true':
+        agent.run()
+    else:
+        checker = agent.getOneRawData()
+        if checker == True:
+            sys.exit(0)
+        else:
+            sys.exit(1)
