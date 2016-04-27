@@ -7,7 +7,6 @@ from ciceron_lib import parse_request
 from flask.ext.cors import CORS
 from flask.ext.session import Session
 from multiprocessing import Process
-from translator import Translator
 
 if os.environ.get('PURPOSE') == 'PROD':
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
