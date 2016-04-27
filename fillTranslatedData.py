@@ -103,7 +103,7 @@ if __name__ == "__main__":
     if args.check == 'false':
         agent.run()
     else:
-        checker = agent.getOneRawData()
+        checker, _ = agent.getOneRawData()
         if checker == True:
             f = open('/tmp/translation.log', 'w')
             f.close()
