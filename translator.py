@@ -39,7 +39,8 @@ class Translator:
         else:
             return None
 
-    def getCountryCode(self, country_id):        
+    def getCountryCode(self, country_id):
+        print country_id
         if os.environ.get('PURPOSE') == 'PROD':
             DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
         else:
