@@ -67,7 +67,7 @@ class TranslationAgent:
 
             # Mark as complete initial translation by machine
             query_markAsComplete = "UPDATE CICERON.D_REQUEST_TEXTS SET is_sent_to_machine = true WHERE translation_id=%s AND paragragh_seq=%s AND sentence_seq=%s"
-            cursor.execute(query_setInitTranslation, (translation_id, paragragh_seq, sentence_seq, ))
+            cursor.execute(query_markAsComplete, (translation_id, paragragh_seq, sentence_seq, ))
 
             self.conn.commit()
 
