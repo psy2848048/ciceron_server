@@ -115,7 +115,7 @@ class CiceronTestCase(unittest.TestCase):
         self.login(email="psy2848048@nate.com")
 
         print "Post SOS"
-        text = "This is test text\nAnd I donno how to deal with"
+        text = "테스트테스트! 신나는 테스트.\n어떻게 울궈먹고 놀까나 나도 모르겠다 이히힛ㅋㅋ."
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@nate.com",
                 request_originalLang=1,
@@ -133,7 +133,7 @@ class CiceronTestCase(unittest.TestCase):
         		))
 
         print "Post normal"
-        text2 = "testtesttest\nChinese\na;eoifja;ef"
+        text2 = "난 잘 몰라 암치기나 함 해보지 뭐.\n잘해보셔. 대충 살어. 날라리날라리~."
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@nate.com",
                 request_originalLang=1,
@@ -162,11 +162,11 @@ class CiceronTestCase(unittest.TestCase):
 
         print "Unicode test"
         self.login(email="psy2848048@nate.com")
-        text3 = "Who somebody can test it?\n한국어\tsiol"
+        text3 = "스파이더맨, 누가 좀 도와줘요!\n아니면 사이드킥이라도!! 살려줘요!"
         rv = self.app.post('/api/requests', data=dict(
         		request_clientId="psy2848048@nate.com",
                 request_originalLang=1,
-                request_targetLang=3,
+                request_targetLang=2,
                 request_isSos=True,
                 request_format=0,
                 request_subject=0,
@@ -255,7 +255,7 @@ class CiceronTestCase(unittest.TestCase):
                 )
         result = json.loads(rv.data)
         print "Provided link from alipay:"
-        print result['link']
+        print result
 
     def test_translation(self):
         print "Check change"
