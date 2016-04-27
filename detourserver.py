@@ -63,8 +63,8 @@ def translate():
     parameters = parse_request(request)
     user_email = parameters['user_email']
     sentence = parameters['sentence']
-    source_lang_id = parameters['source_lang_id']
-    target_lang_id = parameters['target_lang_id']
+    source_lang_id = int(parameters['source_lang_id'])
+    target_lang_id = int(parameters['target_lang_id'])
     where = parameters['where']
 
     # Check a user is member or not
