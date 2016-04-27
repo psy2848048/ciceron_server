@@ -88,7 +88,7 @@ class TranslationAgent:
 
             is_ok = self.fillInitialTranslatedData(data[0], data[1], data[2], data[3], data[4], data[5])
             if is_ok == False:
-                break
+                sys.exit(1)
 
 
 if __name__ == "__main__":
