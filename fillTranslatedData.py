@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import psycopg2
 from detourserverConnector import Connector
-import random, argparse, traceback, os
+import random, argparse, traceback, os, sys
 
 
 DATABASE = None
