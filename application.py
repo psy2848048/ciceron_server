@@ -1268,15 +1268,14 @@ def pick_request():
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/translations/ongoing/<str_request_id>', methods=["GET"])
+@app.route('/api/user/translations/ongoing/<int:request_id>', methods=["GET"])
 #@exception_detector
 @translator_checker
 @login_required
-def working_translate_item(str_request_id):
+def working_translate_item(request_id):
     if request.method == "GET":
         cursor = g.db.cursor()
 
-        request_id = int(str_request_id)
         query = None
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s "
@@ -1303,6 +1302,13 @@ def working_translate_item(str_request_id):
 @translator_checker
 @login_required
 def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
+    user_id = get_user_id(g.db, session['useremail'])
+    if strict_translator_checker(g.db, user_id, request_id) == False:
+        return make_response(
+            json.jsonify(
+               message = "You have no translate permission of given language."
+               ), 406)
+
     if request.method == "PUT":
         parameters = parse_request(request)
 
