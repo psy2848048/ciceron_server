@@ -1700,6 +1700,8 @@ def translation_incompleted_items_all():
 @translator_checker
 def translation_incompleted_items_each(request_id):
     if request.method == "GET":
+        cursor = g.db.cursor()
+
         user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
