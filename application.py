@@ -2529,11 +2529,11 @@ def getOneTicketOfHero(request_id):
         status_id = rs[0]
 
         if status_id in [0, -1]:
-            return redirect(url_for('translation_incompleted_items_each'), request_id=request_id)
+            return redirect(url_for('translation_incompleted_items_each', request_id=request_id))
         elif status_id == 1:
-            return redirect(url_for('working_translate_item'), request_id=request_id)
+            return redirect(url_for('working_translate_item', request_id=request_id))
         elif status_id == 2:
-            return redirect(url_for('translation_completed_items_detail'), request_id=request_id)
+            return redirect(url_for('translation_completed_items_detail', request_id=request_id))
         else:
             return make_response(json.jsonify(
                 message="Invalid request"), 404)
@@ -2557,11 +2557,11 @@ def getOneTicketOfClient(request_id):
         status_id = rs[0]
 
         if status_id in [0, -1]:
-            return redirect(url_for('client_incompleted_item_control'), request_id=request_id)
+            return redirect(url_for('client_incompleted_item_control', request_id=request_id))
         elif status_id == 1:
-            return redirect(url_for('show_ongoing_item_client'), request_id=request_id)
+            return redirect(url_for('show_ongoing_item_client', request_id=request_id))
         elif status_id == 2:
-            return redirect(url_for('client_completed_items_detail'), request_id=request_id)
+            return redirect(url_for('client_completed_items_detail', request_id=request_id))
         else:
             return make_response(json.jsonify(
                 message="Invalid request"), 404)
