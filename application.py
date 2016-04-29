@@ -966,6 +966,27 @@ def requests():
             user_email=parameters['request_clientId'],
             request_id=request_id), 200)
 
+@app.route('/api/user/translations/<int:request_id>', methods=["GET"])
+@login_required
+#@exception_detector
+@translator_checker
+def getOneTicketOfHero(request_id):
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        cursor = g.db.cursor()
+        user_id = get_user_id(g.db, session['useremail'])
+
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE
+                (((ongoing_worker_id = %s AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND request_id = %s"""
+        cursor.execute(query, (user_id, request_id, ) )
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose='ongoing_translator')
+
+        return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/translations/stoa', methods=["GET"])
 #@exception_detector
 def translator_stoa():
@@ -1721,6 +1742,24 @@ def translation_incompleted_items_each(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
         return make_response(json.jsonify(data=result), 200)
 
+@app.route('/api/user/requests/<int:request_id>', methods=["GET"])
+#@exception_detector
+def getOneTicketOfClient(request_id):
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        cursor = g.db.cursor()
+        user_id = get_user_id(g.db, session['useremail'])
+
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND ( (client_user_id = %s AND isSos != true) OR isSos = true) """
+        cursor.execute(query, (request_id, user_id, ) )
+        rs = cursor.fetchall()
+        result = json_from_V_REQUESTS(g.db, rs, purpose='ongoing_client')
+
+        return make_response(json.jsonify(data=result), 200)
+
 @app.route('/api/user/requests/stoa', methods=["GET"])
 #@exception_detector
 def user_stoa():
@@ -1831,7 +1870,7 @@ def show_pending_list_client():
 
         elif status_string == 'paypal_error':
             return make_response(json.jsonify(
-                message="Something wrong in paypal"), 409)
+                message="Something wrong in paypal"), 410)
 
         elif status_string == 'paypal_success':
             return make_response(json.jsonify(
