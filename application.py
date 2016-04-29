@@ -966,27 +966,6 @@ def requests():
             user_email=parameters['request_clientId'],
             request_id=request_id), 200)
 
-@app.route('/api/user/translations/<int:request_id>', methods=["GET"])
-@login_required
-#@exception_detector
-@translator_checker
-def getOneTicketOfHero(request_id):
-    if request.method == "GET":
-        # Request method: GET
-        # Parameters
-        #     since(optional): Timestamp, take recent 20 post before the timestamp.
-        #                  If this parameter is not provided, recent 20 posts from now are returned
-        cursor = g.db.cursor()
-        user_id = get_user_id(g.db, session['useremail'])
-
-        query = """SELECT * FROM CICERON.V_REQUESTS WHERE
-                (((ongoing_worker_id = %s AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND request_id = %s"""
-        cursor.execute(query, (user_id, request_id, ) )
-        rs = cursor.fetchall()
-        result = json_from_V_REQUESTS(g.db, rs, purpose='ongoing_translator')
-
-        return make_response(json.jsonify(data=result), 200)
-
 @app.route('/api/user/translations/stoa', methods=["GET"])
 #@exception_detector
 def translator_stoa():
@@ -1507,13 +1486,12 @@ def post_translate_item():
         request_id=request_id
         ), 200)
 
-@app.route('/api/user/translations/complete/<str_request_id>', methods = ["GET"])
+@app.route('/api/user/translations/complete/<int:request_id>', methods = ["GET"])
 #@exception_detector
 @login_required
 @translator_checker
-def translation_completed_items_detail(str_request_id):
+def translation_completed_items_detail(request_id):
     cursor = g.db.cursor()
-    request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
@@ -1716,13 +1694,12 @@ def translation_incompleted_items_all():
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/translations/incomplete/<str_request_id>', methods = ["GET"])
+@app.route('/api/user/translations/incomplete/<int:request_id>', methods = ["GET"])
 #@exception_detector
 @login_required
 @translator_checker
-def translation_incompleted_items_each(str_request_id):
+def translation_incompleted_items_each(request_id):
     if request.method == "GET":
-        request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
@@ -1740,24 +1717,6 @@ def translation_incompleted_items_each(str_request_id):
         cursor.execute(query, (user_id, request_id))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_translator")
-        return make_response(json.jsonify(data=result), 200)
-
-@app.route('/api/user/requests/<int:request_id>', methods=["GET"])
-#@exception_detector
-def getOneTicketOfClient(request_id):
-    if request.method == "GET":
-        # Request method: GET
-        # Parameters
-        #     since(optional): Timestamp, take recent 20 post before the timestamp.
-        #                  If this parameter is not provided, recent 20 posts from now are returned
-        cursor = g.db.cursor()
-        user_id = get_user_id(g.db, session['useremail'])
-
-        query = """SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND ( (client_user_id = %s AND isSos != true) OR isSos = true) """
-        cursor.execute(query, (request_id, user_id, ) )
-        rs = cursor.fetchall()
-        result = json_from_V_REQUESTS(g.db, rs, purpose='ongoing_client')
-
         return make_response(json.jsonify(data=result), 200)
 
 @app.route('/api/user/requests/stoa', methods=["GET"])
@@ -1971,15 +1930,14 @@ def show_ongoing_list_client():
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/ongoing/<str_request_id>', methods=["GET"])
+@app.route('/api/user/requests/ongoing/<int:request_id>', methods=["GET"])
 #@exception_detector
 @login_required
-def show_ongoing_item_client(str_request_id):
+def show_ongoing_item_client(request_id):
     if request.method == "GET":
         cursor = g.db.cursor()
 
         user_id = get_user_id(g.db, session['useremail'])
-        request_id = int(str_request_id)
         query = None
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 "
@@ -2023,13 +1981,12 @@ def client_completed_items():
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/complete/<str_request_id>', methods = ["GET"])
+@app.route('/api/user/requests/complete/<int:request_id>', methods = ["GET"])
 #@exception_detector
 @login_required
-def client_completed_items_detail(str_request_id):
+def client_completed_items_detail(request_id):
     cursor = g.db.cursor()
 
-    request_id = int(str_request_id)
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
@@ -2253,14 +2210,12 @@ def client_incompleted_items():
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
     return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/incomplete/<str_request_id>', methods = ["GET", "PUT", "DELETE", "POST"])
+@app.route('/api/user/requests/incomplete/<int:request_id>', methods = ["GET", "PUT", "DELETE", "POST"])
 #@exception_detector
 @login_required
-def client_incompleted_item_control(str_request_id):
+def client_incompleted_item_control(request_id):
     if request.method == "GET":
         cursor = g.db.cursor()
-
-        request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
@@ -2552,6 +2507,64 @@ def pay_for_request_process(str_request_id):
         #return make_response("OK", 200)
     elif pay_by == "mobile":
         return redirect(HOST, code=302)
+
+@app.route('/api/user/translations/<int:request_id>', methods=["GET"])
+@login_required
+#@exception_detector
+@translator_checker
+def getOneTicketOfHero(request_id):
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        cursor = g.db.cursor()
+        query = """SELECT status_id FROM CICERON.V_REQUESTS WHERE request_id = %s"""
+        cursor.execute(query, (request_id, ) )
+        rs = cursor.fetchone()
+
+        if rs is None or len(rs) == 0:
+            return make_response(json.jsonify(
+                message="Invalid request"), 404)
+        status_id = rs[0]
+
+        if status_id in [0, -1]:
+            return redirect(url_for('translation_incompleted_items_each'), request_id=request_id)
+        elif status_id == 1:
+            return redirect(url_for('working_translate_item'), request_id=request_id)
+        elif status_id == 2:
+            return redirect(url_for('translation_completed_items_detail'), request_id=request_id)
+        else:
+            return make_response(json.jsonify(
+                message="Invalid request"), 404)
+
+@app.route('/api/user/requests/<int:request_id>', methods=["GET"])
+#@exception_detector
+def getOneTicketOfClient(request_id):
+    if request.method == "GET":
+        # Request method: GET
+        # Parameters
+        #     since(optional): Timestamp, take recent 20 post before the timestamp.
+        #                  If this parameter is not provided, recent 20 posts from now are returned
+        cursor = g.db.cursor()
+        query = """SELECT status_id FROM CICERON.V_REQUESTS WHERE request_id = %s"""
+        cursor.execute(query, (request_id, ) )
+        rs = cursor.fetchone()
+
+        if rs is None or len(rs) == 0:
+            return make_response(json.jsonify(
+                message="Invalid request"), 404)
+        status_id = rs[0]
+
+        if status_id in [0, -1]:
+            return redirect(url_for('client_incompleted_item_control'), request_id=request_id)
+        elif status_id == 1:
+            return redirect(url_for('show_ongoing_item_client'), request_id=request_id)
+        elif status_id == 2:
+            return redirect(url_for('client_completed_items_detail'), request_id=request_id)
+        else:
+            return make_response(json.jsonify(
+                message="Invalid request"), 404)
 
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
