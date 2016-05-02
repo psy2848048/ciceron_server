@@ -890,6 +890,7 @@ def requests():
 
             ##################################################
 
+        new_translation_id = None
         if text_string:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
