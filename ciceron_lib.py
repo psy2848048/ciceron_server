@@ -454,7 +454,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_translatedText=None, # For marking
                 request_translatorComment=row[40],
                 request_translatedTone=row[42],
-                request_submittedTime=row[26],
+                request_submittedTime=int(row[26].strftime("%s")) * 1000 if row[26] != None else None,
                 request_feedbackScore=row[54],
                 request_title=None, # For marking
             )
