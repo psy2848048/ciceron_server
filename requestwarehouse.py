@@ -98,7 +98,7 @@ class Warehousing:
     def restoreTranslationByString(self, request_id):
         return self._restore_string(request_id, 'translated_text')
 
-    def restoreRequestByArray(self, request_id):
+    def restoreTranslationByArray(self, request_id):
         return self._restore_array(request_id, 'translated_text')
 
     def updateTranslationOneLine(self, request_id, paragragh_id, sentence_id, text):

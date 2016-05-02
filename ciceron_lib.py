@@ -480,7 +480,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 item['request_photoPath'] = None
                 item['request_filePath'] = None
 
-        elif purpose == "pending_client":
+        elif purpose in ["pending_client", "complete_client", "complete_translator"]:
             # Show context if normal request, or show main text
             if row[17] == True: # True
                 item['request_context'] = main_text
@@ -488,11 +488,12 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             else:
                 item['request_context'] = row[38]
 
-        elif purpose in ["complete_client", "complete_translator", "ongoing_translator"]:
+        elif purpose == "ongoing_translator":
             if row[17] == False: # False
                 item['request_context'] = row[38]
+
             item['request_translatedText'] = warehouse.restoreTranslationByArray(row[0])
-            item['request_title']=row[46]
+            item['request_title'] = None
 
         elif purpose == "ongoing_client":
             if row[17] == False: # False
