@@ -491,6 +491,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
         elif purpose == "ongoing_translator":
             if row[17] == False: # False
                 item['request_context'] = row[38]
+                item['request_text'] = main_text,
 
             item['request_translatedText'] = warehouse.restoreTranslationByArray(row[0])
             item['request_title'] = None
