@@ -2246,7 +2246,6 @@ def client_incompleted_item_control(request_id):
         #    2) Give more chance to the trusted translator
 
         cursor = g.db.cursor()
-        request_id = int(str_request_id)
         parameters = parse_request(request)
 
         # Addional time: unit is second, counted from NOW
@@ -2310,7 +2309,6 @@ def client_incompleted_item_control(request_id):
         #    1) Say goodbye to translator, back to stoa
 
         cursor = g.db.cursor()
-        request_id = int(str_request_id)
         parameters = parse_request(request)
 
         # Addional time: unit is second, counted from NOW
@@ -2363,7 +2361,6 @@ def client_incompleted_item_control(request_id):
         # It can be used in:
         #    1) Say goodbye to translator. And he/she don't want to leave his/her request
         cursor = g.db.cursor()
-        request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
 
         cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s AND is_paid = true ", (request_id, user_id))
