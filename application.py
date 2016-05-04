@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory, url_for, send_file
-from flask_pushjack import FlaskGCM
 from contextlib import closing
 from datetime import datetime, timedelta
 import hashlib, sqlite3, os, time, requests, sys, logging, io
@@ -33,7 +32,6 @@ DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
-GCM_API_KEY = 'AIzaSyDIyeO9auTHO6qqciEqsmZLexZtQ9kpey0'
 FACEBOOK_APP_ID = 256525961180911
 FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
 
@@ -64,10 +62,6 @@ cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "tru
 
 # Flask-Session
 Session(app)
-
-# Flask-Pushjack
-gcm_server = FlaskGCM()
-gcm_server.init_app(app)
 
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})

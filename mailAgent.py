@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import psycopg2
+from pushjack import GCMClient
 import ciceron_lib as lib
 import mail_temppplate
 from multiprocessing import Process
@@ -8,10 +9,11 @@ import argparse
 
 class MailAgent:
 
-    def __init__(self, dbInfo):
+    def __init__(self, dbInfo, GCMKey=''):
         self.conn = psycopg2.connect(dbInfo)
+        self.gcm_server = GCMClient(GCMKey)
 
-    def publicize(self):
+    def publicize(self, isCheck=False):
         # No Expected time
         cursor = self.conn.cursor()
         translator_list = []
@@ -24,10 +26,15 @@ class MailAgent:
         cursor.execute(query_no_expected_time)
         rs = cursor.fetchall()
         for item in rs:
-            lib.send_noti_suite(gcm_server, self.conn, item[0], 6, item[1], item[2])
-            lib.send_noti_suite(gcm_server, self.conn, item[1], 10, item[0], item[2])
-            translator_list.append(item[0])
-            client_list.append(item[1])
+            if isCheck == False:
+                lib.send_noti_suite(self.gcm_server, self.conn, item[0], 6, item[1], item[2])
+                lib.send_noti_suite(self.gcm_server, self.conn, item[1], 10, item[0], item[2])
+                translator_list.append(item[0])
+                client_list.append(item[1])
+
+            else:
+                self._monitorFileRefresher()
+                return
 
         # Expired deadline
         query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
@@ -36,10 +43,15 @@ class MailAgent:
         cursor.execute(query_expired_deadline)
         rs = cursor.fetchall()
         for item in rs:
-            lib.send_noti_suite(gcm_server, self.conn, item[1], 12, item[0], item[2])
-            lib.send_noti_suite(gcm_server, self.conn, item[0],  4, item[1], item[2])
-            translator_list.append(item[0])
-            client_list.append(item[1])
+            if isCheck == False:
+                lib.send_noti_suite(self.gcm_server, self.conn, item[1], 12, item[0], item[2])
+                lib.send_noti_suite(self.gcm_server, self.conn, item[0],  4, item[1], item[2])
+                translator_list.append(item[0])
+                client_list.append(item[1])
+
+            else:
+                self._monitorFileRefresher()
+                return
 
         # No translators
         query_no_translators = """SELECT client_user_id, id
@@ -48,21 +60,27 @@ class MailAgent:
         cursor.execute(query_no_translators)
         rs = cursor.fetchall()
         for item in rs:
-            lib.send_noti_suite(gcm_server, self.conn, item[0], 13, None, item[1])
-            client_list.append(item[0])
+            if isCheck == False:
+                lib.send_noti_suite(self.gcm_server, self.conn, item[0], 13, None, item[1])
+                client_list.append(item[0])
 
-        cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
-            WHERE isSos = false AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
-        cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
-            WHERE (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/2 AND start_translating_time + interval '30 minutes' < due_time)
-            OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/3 AND start_translating_time + interval '30 minutes' > due_time) """)
-        self.conn.commit()
+            else:
+                self._monitorFileRefresher()
+                return
 
-        for user_id in translator_list: lib.update_user_record(self.conn, translator_id=user_id)
-        for user_id in client_list:     lib.update_user_record(self.conn, client_id=user_id)
-        self.conn.commit()
+        if isCheck == False:
+            cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
+                WHERE isSos = false AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
+            cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
+                WHERE (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/2 AND start_translating_time + interval '30 minutes' < due_time)
+                OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/3 AND start_translating_time + interval '30 minutes' > due_time) """)
+            self.conn.commit()
 
-    def ask_expected_time(self):
+            for user_id in translator_list: lib.update_user_record(self.conn, translator_id=user_id)
+            for user_id in client_list:     lib.update_user_record(self.conn, client_id=user_id)
+            self.conn.commit()
+
+    def ask_expected_time(self, isCheck=False):
         cursor = self.conn.cursor()
         query = """SELECT fact.ongoing_worker_id, fact.id, fact.client_user_id FROM CICERON.F_REQUESTS fact
             LEFT OUTER JOIN CICERON.V_NOTIFICATION noti ON fact.id = noti.request_id AND noti.noti_type_id = 1
@@ -75,11 +93,15 @@ class MailAgent:
         cursor.execute(query) 
         rs = cursor.fetchall()
         for item in rs:
-            lib.send_noti_suite(gcm_server, self.conn, item[0], 2, item[2], item[1])
+            if isCheck == False:
+                lib.send_noti_suite(self.gcm_server, self.conn, item[0], 2, item[2], item[1])
+                self.conn.commit()
 
-        self.conn.commit()
+            else:
+                self._monitorFileRefresher()
+                return
 
-    def delete_sos(self):
+    def delete_sos(self, isCheck=False):
         # Expired deadline
         # Using ongoing_worker_id and client_user_id, and update statistics after commit
         cursor = self.conn.cursor()
@@ -92,10 +114,15 @@ class MailAgent:
         cursor.execute(query_expired_deadline)
         rs = cursor.fetchall()
         for item in rs:
-            lib.send_noti_suite(gcm_server, self.conn, item[1], 12, item[0], item[2])
-            lib.send_noti_suite(gcm_server, self.conn, item[0],  4, item[1], item[2])
-            translator_list.append(item[0])
-            client_list.append(item[1])
+            if isCheck == False:
+                lib.send_noti_suite(self.gcm_server, self.conn, item[1], 12, item[0], item[2])
+                lib.send_noti_suite(self.gcm_server, self.conn, item[0],  4, item[1], item[2])
+                translator_list.append(item[0])
+                client_list.append(item[1])
+
+            else:
+                self._monitorFileRefresher()
+                return
 
         # No translators
         query_no_translators = """SELECT client_user_id, id
@@ -104,16 +131,25 @@ class MailAgent:
         cursor.execute(query_no_translators)
         rs = cursor.fetchall()
         for item in rs:
-            send_noti_suite(gcm_server, self.conn, item[0], 13, None, item[1])
-            client_list.append(item[0])
+            if isCheck == False:
+                send_noti_suite(gcm_server, self.conn, item[0], 13, None, item[1])
+                client_list.append(item[0])
 
-        cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
-                         WHERE status_id in (0,1) AND isSos = true AND CURRENT_TIMESTAMP >= registered_time + interval '30 minutes'""")
-        self.conn.commit()
+            else:
+                self._monitorFileRefresher()
+                return
 
-        for user_id in translator_list: lib.update_user_record(self.conn, translator_id=user_id)
-        for user_id in client_list:     lib.update_user_record(self.conn, client_id=user_id)
+        if isCheck == False:
+            cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
+                             WHERE status_id in (0,1) AND isSos = true AND CURRENT_TIMESTAMP >= registered_time + interval '30 minutes'""")
+            self.conn.commit()
 
+            for user_id in translator_list: lib.update_user_record(self.conn, translator_id=user_id)
+            for user_id in client_list:     lib.update_user_record(self.conn, client_id=user_id)
+
+    def _monitorFileRefresher(self):
+        f = open('/tmp/mailer.log', 'w')
+        f.close()
 
     def _unitMailSender(self, user_name, user_email, noti_type, request_id, language_id, optional_info=None):
         template = mail_template.mail_format()
@@ -196,6 +232,7 @@ class MailAgent:
                  "link": (HOST + '/stoa')}
 
         lib.send_mail(user_email, "Here is your news, %s" % user_name, message)
+        print "Request ID: %d | Mail to: %s | Notification type ID: %d" % (request_id, user_email, noti_type)
 
     def parallel_send_email(self):
         cursor = self.conn.cursor()
@@ -245,7 +282,13 @@ class MailAgent:
         cursor.execute(query)
         self.conn.commit()
 
-    def run(self, isCheck=True):
+    def run(self, isCheck=False):
+        self.publicize(isCheck=isCheck)
+        self.ask_expected_time(isCheck=isCheck)
+        self.delete_sos(isCheck=isCheck)
+
+        if isCheck == False:
+            self.parallel_send_email()
 
 if __name__ == "__main__":
     DATABASE = None
@@ -257,7 +300,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Translation agent')
     parser.add_argument('--dbpass', dest='dbpass', help='DB password')
     parser.add_argument('--check', dest='check', default='false', help='Just for check')
+    parser.add_argument('--apikey', dest='apikey', help='GCM API key')
     args = parser.parse_args()
 
     dbInfo = DATABASE % args.dbpass
-    mailAgent = MailAgent(dbInfo)
+    mailAgent = MailAgent(dbInfo, GCMKey=args.apikey)
+    mailAgent.run(isCheck=args.check)
