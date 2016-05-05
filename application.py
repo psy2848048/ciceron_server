@@ -484,14 +484,14 @@ def recover_password():
         # Description: Same e-mail address tried to be inserted into DB
         return make_response (json.jsonify(message='Constraint violation error!'), 501)
 
+    elif hashed_new_password == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+        return make_response(json.jsonify(message='Need password'), 405)
+
     elif len(rs) == 1 and str(rs[0][0]) == hashed_code:
         cursor.execute("UPDATE CICERON.PASSWORDS SET hashed_pass = %s WHERE user_id = %s ", (hashed_new_password, user_id))
         cursor.execute("UPDATE CICERON.EMERGENCY_CODE SET code = null WHERE user_id = %s ", (user_id, ))
         g.db.commit()
         return make_response (json.jsonify(message='Password successfully changed for user %s' % email), 200)
-
-    elif hashed_new_password == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
-        return make_response(json.jsonify(message='Need password'), 405)
 
     else:
         return make_response (json.jsonify(message='Security code incorrect!'), 403)
@@ -517,13 +517,13 @@ def change_password():
         # Description: Same e-mail address tried to be inserted into DB
         return make_response(json.jsonify(message='Constraint violation error!'), 501)
 
+    elif hashed_new_password == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+        return make_response(json.jsonify(message='Need password'), 405)
+
     elif len(rs) == 1 and str(rs[0][0]) == hashed_old_password:
         cursor.execute("UPDATE CICERON.PASSWORDS SET hashed_pass = %s WHERE user_id = %s ", (hashed_new_password, user_id))
         g.db.commit()
         return make_response(json.jsonify(message='Password successfully changed for user %s' % email), 200)
-
-    elif hashed_new_password == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
-        return make_response(json.jsonify(message='Need password'), 405)
 
     else:
         return make_response(json.jsonify(message='Old password of user %s is incorrect!' % email), 403)
