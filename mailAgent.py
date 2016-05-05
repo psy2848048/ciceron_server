@@ -2,9 +2,9 @@
 import psycopg2
 from pushjack import GCMClient
 import ciceron_lib as lib
-import mail_temppplate
+import mail_template
 from multiprocessing import Process
-import argparse
+import argparse, os
 
 
 class MailAgent:
@@ -297,9 +297,15 @@ if __name__ == "__main__":
     else:
         DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=%s"
 
+    def _str_to_bool(s):
+        """Convert string to bool (in argparse context)."""
+        if s.lower() not in ['true', 'false']:
+            raise ValueError('Need bool; got %r' % s)
+        return {'true': True, 'false': False}[s.lower()]
+
     parser = argparse.ArgumentParser(description='Translation agent')
     parser.add_argument('--dbpass', dest='dbpass', help='DB password')
-    parser.add_argument('--check', dest='check', default='false', help='Just for check')
+    parser.add_argument('--check', dest='check', type=_str_to_bool, default=False, help='Just for check')
     parser.add_argument('--apikey', dest='apikey', help='GCM API key')
     args = parser.parse_args()
 
