@@ -2274,9 +2274,10 @@ def client_incompleted_item_control(request_id):
         ret = cursor.fetchone()
         points = None
         if ret is None or len(res) == 0:
-            return make_response(json.jsonify(
-                message="The point has already refunded about this request.",
-                request_id=request_id), 402)
+            #return make_response(json.jsonify(
+            #    message="The point has already refunded about this request.",
+            #    request_id=request_id), 402)
+            points = 0.0
             
         else:
             points = float(ret[0])
