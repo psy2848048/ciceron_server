@@ -1095,7 +1095,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         elif isIndivCode == 0:
             amount = amount - indivPoint
 
-    if pay_via == 'paypal':
+    if pay_via == 'paypal' and amount > 0:
         # SANDBOX
         paypalrestsdk.configure(
                 mode="sandbox",
@@ -1140,7 +1140,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         else:
             return 'paypal_error', None, None
 
-    elif pay_via == 'alipay':
+    elif pay_via == 'alipay' and amount > 0:
         from alipay import Alipay
         alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
         params = {
@@ -1164,7 +1164,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
 
         return 'alipay_success', provided_link, None
 
-    elif pay_via == 'iamport':
+    elif pay_via == 'iamport' and amount > 0:
         # Should check USD->KRW currency
         # Hard coded: 1200
         new_payload = payload
@@ -1196,18 +1196,19 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         elif pay_by == "mobile":
             return 'iamport_success', None, None
 
-    elif pay_via == "point_only":
+    elif pay_via == "point_only" or amount < 0.001:
         cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
         current_point = float(cursor.fetchall()[0][0])
 
         amount = 0
-        if current_point - use_point < -0.00001:
+        if use_point > 0.01 and current_point - use_point < -0.00001:
             return make_response(json.jsonify(
                 message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (total_amount, current_point)), 402)
         else:
             amount = current - use_point
 
-        cursor.execute("UPDATE CICERON.RETURN_POINT SET amount = amount - %s WHERE id = %s", (use_point, user_id, ))
+        if amount > 0.01:
+            cursor.execute("UPDATE CICERON.RETURN_POINT SET amount = amount - %s WHERE id = %s", (use_point, user_id, ))
 
         if is_additional == 'false':
             query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s"
