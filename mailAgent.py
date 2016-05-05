@@ -132,7 +132,7 @@ class MailAgent:
         rs = cursor.fetchall()
         for item in rs:
             if isCheck == False:
-                send_noti_suite(gcm_server, self.conn, item[0], 13, None, item[1])
+                lib.send_noti_suite(gcm_server, self.conn, item[0], 13, None, item[1])
                 client_list.append(item[0])
 
             else:
