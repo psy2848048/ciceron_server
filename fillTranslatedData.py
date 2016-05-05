@@ -30,6 +30,7 @@ class TranslationAgent:
         if result is None or len(result) == 0:
             return False, None
         else:
+            print "Translated text ID: %d | Paragragh ID: %d | Sentence ID: %d" % (result[3], result[0], result[1])
             return True, result
 
     def fillInitialTranslatedData(self, paragragh_seq, sentence_seq, sentence, translation_id, original_lang_id, target_lang_id):

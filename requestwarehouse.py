@@ -57,12 +57,15 @@ class Warehousing:
 
         cur_paragragh_id = 1
         result_string = ""
-        for paragragh_id, sentence_id, text in fetched_array:
+        for idx, paragragh_id, sentence_id, text in enumerate(fetched_array):
             if paragragh_id != cur_paragragh_id:
                 cur_paragragh_id = paragragh_id
                 result_string += '\n' + text
-            else:
+            elif paragragh_id == cur_paragragh_id and idx != 0:
                 result_string += ' ' + text
+
+            else:
+                result_string += text
 
         return result_string
 
@@ -84,8 +87,15 @@ class Warehousing:
         elif source == 'translated_text':
             query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
             cursor.execute(query_text, (translated_text_id, ))
+        inter_array = cursor.fetchall()
 
-        result_array = cursor.fetchall()
+        result_array = []
+        for paragragh_seq, sentence_seq, text in inter_array:
+            item = {}
+            item['paragragh_seq'] = paragragh_seq
+            item['sentence_seq'] = sentence_seq
+            item['text'] = text
+            result_array.append(item)
 
         return result_array
 

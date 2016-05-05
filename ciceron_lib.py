@@ -935,7 +935,6 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
     print "Send push to the device: %s" % regKeys_oneuser
     if len(regKeys_oneuser) > 0:
         gcm_noti = gcm_server.send(regKeys_oneuser, "Ciceron push", notification=message_dict)
-        print str(gcm_noti.responses)
 
 def signUpQuick(conn, email, hashed_password, name, mother_language_id, nationality_id=None, residence_id=None, external_service_provider=[]):
     # Duplicate check
@@ -1339,21 +1338,3 @@ def approve_negoPoint(conn, request_id, translator_id, user_id):
     conn.commit()
     return 200
 
-def logTransfer(conn):
-    cursor = conn.cursor()
-
-    query_getmax = "SELECT MAX(id) FROM CICERON.TEMP_ACTIONS_LOG"
-    cursor.execute(query_getmax)
-    max_id = cursor.fetchone()[0]
-
-    query_insertLog = """
-        INSERT INTO CICERON.USER_ACTIONS (id, user_id, method, api, log_time, ip_address)
-        SELECT id, user_id, method, api, log_time, ip_address
-        FROM CICERON.TEMP_ACTIONS_LOG
-        WHERE id <= %s """
-    cursor.execute(query_insertLog, (max_id, ))
-
-    query_deleteLog = """DELETE FROM CICERON.TEMP_ACTIONS_LOG WHERE id <= %s """
-    cursor.execute(query_deleteLog, (max_id, ))
-
-    conn.commit()
