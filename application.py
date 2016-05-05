@@ -2271,15 +2271,16 @@ def client_incompleted_item_control(request_id):
         user_id = get_user_id(g.db, session['useremail'])
 
         cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s AND is_paid = true ", (request_id, user_id))
-        ret = cursor.fetchone()[0]
+        ret = cursor.fetchone()
         points = None
-        if ret is not None:
-            points = float(ret)
-        else:
+        if ret is None or len(res) == 0:
             return make_response(json.jsonify(
                 message="The point has already refunded about this request.",
                 request_id=request_id), 402)
             
+        else:
+            points = float(ret[0])
+
         cursor.execute("UPDATE CICERON.REVENUE SET amount = amount + %s WHERE id = %s", (points, user_id))
 
         cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = false, status_id = -2 WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s ", (request_id, user_id))
