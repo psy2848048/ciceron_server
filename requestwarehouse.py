@@ -57,7 +57,11 @@ class Warehousing:
 
         cur_paragragh_id = 1
         result_string = ""
-        for idx, paragragh_id, sentence_id, text in enumerate(fetched_array):
+        for idx, item in enumerate(fetched_array):
+            paragragh_id = item[0]
+            sentence_id = item[1]
+            text = item[2]
+
             if paragragh_id != cur_paragragh_id:
                 cur_paragragh_id = paragragh_id
                 result_string += '\n' + text
