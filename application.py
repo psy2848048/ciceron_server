@@ -2312,7 +2312,7 @@ def check_promotionCode(str_request_id):
     user_id = get_user_id(g.db, session['useremail'])
     parameters = parse_request(request)
 
-    code = parameters['promotionCode'].upper()
+    code = parameters['promoCode'].upper()
 
     isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, code)
     isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, code)
@@ -2332,7 +2332,7 @@ def check_promotionCode(str_request_id):
 
     else:
         return make_response(json.jsonify(
-            promoType=None, message="There is no promo code matched,", code=3, point=0), 402)
+            promoType=None, message="There is no promo code matched,", code=3, point=0), 405)
         
 @app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
 #@exception_detector
