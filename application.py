@@ -2384,6 +2384,13 @@ def pay_for_request(str_request_id):
             message="Link to Alipay is provided.",
             link=provided_link), 200)
 
+    elif status_code == 'iamport_error':
+        return make_response(json.jsonify(
+            message="Something wrong in iamport"), 400)
+
+    elif status_code == 'iamport_success':
+        return redirect(HOST, code=302)
+
     elif status_code == 'point_success':
         return redirect(HOST, code=302)
 

@@ -325,6 +325,22 @@ def crossdomain(f, origin='*', methods=None, headers=None,
 
     return decorator
 
+def orderNoGenerator(conn):
+    cursor = conn.cursor()
+    order_no = None
+
+    for _ in xrange(1000):
+        order_no = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
+        cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no))
+        cnt = cursor.fetchone()[0]
+
+        if cnt == 0:
+            break
+        else:
+            continue
+
+    return order_no
+
 def getProfile(conn, user_id, rate=1, price=None):
     cursor = conn.cursor()
     query_userinfo = """
@@ -1142,15 +1158,17 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
 
     elif pay_via == 'alipay' and amount > 0:
         from alipay import Alipay
+        order_no = orderNoGenerator(conn)
+
         alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
         params = {
             'subject': '是写论翻译'.decode('utf-8'),
-            'out_trade_no': 12345,
+            'out_trade_no': order_no,
             #'subject': 'TEST',
             'total_fee': '%.2f' % amount,
             'currency': 'USD',
             'quantity': '1',
-            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code, is_additional)
+            'return_url': "%s:5000/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s&ciceron_order_no=%s" % (host_ip, request_id, session['useremail'], amount, pay_by, use_point, promo_type, promo_code, is_additional, order_no)
             }
 
         provided_link = None
@@ -1169,14 +1187,17 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         # Hard coded: 1200
         new_payload = payload
         kor_amount = amount * 1200
+        order_no = orderNoGenerator(conn)
 
-        new_payload['merchant_uid'] = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
+        new_payload['merchant_uid'] = order_no
         new_payload['amount'] = kor_amount
 
         pay_module = Iamport(imp_key=2311212273535904, imp_secret='jZM7opWBO5K2cZfVoMgYJhsnSw4TiSmBR8JgyGRnLCpYCFT0raZbsrylYDehvBSnKCDjivG4862KLWLd')
 
         payment_result = pay_module.pay_onetime(**new_payload)
-        double_check = pay_module.is_paid(amount, **payment_result)
+        double_check = pay_module.is_paid(**payment_result)
+        if double_check == False:
+            return 'iamport_error', None, None
 
         # DB process
         if is_additional == 'false':
@@ -1189,7 +1210,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
                     (payment_info_id, request_id, user_id, "iamport", order_no, amount))
 
-        g.db.commit()
+        conn.commit()
 
         if pay_by == "web":
             return 'iamport_success', None, None
@@ -1205,7 +1226,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
             return make_response(json.jsonify(
                 message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (total_amount, current_point)), 402)
         else:
-            amount = current - use_point
+            amount = current_point - use_point
 
         if amount > 0.01:
             cursor.execute("UPDATE CICERON.RETURN_POINT SET amount = amount - %s WHERE id = %s", (use_point, user_id, ))
@@ -1215,7 +1236,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         else:
             query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_additional_points_paid = %s WHERE id = %s"
         cursor.execute(query_setToPaid, (True, request_id, ))
-        g.db.commit()
+        conn.commit()
 
         if pay_by == "web":
             return 'point_success', None, None
@@ -1235,7 +1256,7 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
         payment_id = request.args['paymentId']
         payer_id = request.args['PayerID']
         if is_success:
-            payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
+            payment_info_id = get_new_id(conn, "PAYMENT_INFO")
             # Paypal payment exeuction
             payment = paypalrestsdk.Payment.find(payment_id)
             payment.execute({"payer_id": payer_id})
@@ -1250,13 +1271,14 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
             cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
                     (payment_info_id, request_id, user_id, "paypal", payment_id, amount, ))
 
-            g.db.commit()
+            conn.commit()
             #return redirect("success")
 
     elif pay_via == "alipay":
         if is_success:
             # Get & store order ID and price
-            payment_info_id = get_new_id(g.db, "PAYMENT_INFO")
+            payment_info_id = get_new_id(conn, "PAYMENT_INFO")
+            order_no = request.args['ciceron_order_no']
 
             if is_additional == 'false':
                 query_setToPaid = "UPDATE CICERON.F_REQUESTS SET is_paid = %s WHERE id = %s"
@@ -1266,14 +1288,14 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
 
             # Payment information update
             cursor.execute("INSERT INTO CICERON.PAYMENT_INFO (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time) VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)",
-                    (payment_info_id, request_id, user_id, "alipay", None, amount))
+                    (payment_info_id, request_id, user_id, "alipay", order_no, amount))
 
-            g.db.commit()
+            conn.commit()
 
     if promo_type == 'common':
-        commonPromotionCodeExecutor(g.db, user_id, promo_code)
+        commonPromotionCodeExecutor(conn, user_id, promo_code)
     elif promo_type == 'indiv':
-        individualPromotionCodeExecutor(g.db, user_id, promo_code)
+        individualPromotionCodeExecutor(conn, user_id, promo_code)
 
     # Notification for normal request
     cursor.execute("SELECT original_lang_id, target_lang_id FROM CICERON.F_REQUESTS WHERE id = %s ", (request_id, ))
@@ -1285,12 +1307,12 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
     original_lang_id = record[0]
     target_lang_id = record[1]
 
-    rs = pick_random_translator(g.db, 10, original_lang_id, target_lang_id)
+    rs = pick_random_translator(conn, 10, original_lang_id, target_lang_id)
     for item in rs:
-        store_notiTable(g.db, item[0], 1, None, request_id)
-        regKeys_oneuser = get_device_id(g.db, item[0])
+        store_notiTable(conn, item[0], 1, None, request_id)
+        regKeys_oneuser = get_device_id(conn, item[0])
 
-        message_dict = get_noti_data(g.db, 1, item[0], request_id)
+        message_dict = get_noti_data(conn, 1, item[0], request_id)
         if len(regKeys_oneuser) > 0:
             gcm_noti = gcm_server.send(regKeys_oneuser, message_dict)
 
