@@ -331,7 +331,7 @@ def orderNoGenerator(conn):
 
     for _ in xrange(1000):
         order_no = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
-        cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no))
+        cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no, ))
         cnt = cursor.fetchone()[0]
 
         if cnt == 0:
