@@ -484,7 +484,7 @@ def recover_password():
         # Description: Same e-mail address tried to be inserted into DB
         return make_response (json.jsonify(message='Constraint violation error!'), 501)
 
-    elif hashed_new_password == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+    elif str(hashed_new_password) == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
         return make_response(json.jsonify(message='Need password'), 405)
 
     elif len(rs) == 1 and str(rs[0][0]) == hashed_code:
@@ -517,7 +517,7 @@ def change_password():
         # Description: Same e-mail address tried to be inserted into DB
         return make_response(json.jsonify(message='Constraint violation error!'), 501)
 
-    elif hashed_new_password == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+    elif str(hashed_new_password) == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
         return make_response(json.jsonify(message='Need password'), 405)
 
     elif len(rs) == 1 and str(rs[0][0]) == hashed_old_password:
@@ -2273,7 +2273,7 @@ def client_incompleted_item_control(request_id):
         cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s AND is_paid = true ", (request_id, user_id))
         ret = cursor.fetchone()
         points = None
-        if ret is None or len(res) == 0:
+        if ret is None or len(ret) == 0:
             #return make_response(json.jsonify(
             #    message="The point has already refunded about this request.",
             #    request_id=request_id), 402)
