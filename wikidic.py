@@ -37,6 +37,27 @@ class WikiDic(object):
 
         return True
 
+    def _addUnitCentralDic(self, meaning_id, language_id, category, word, added_user_id):
+        cursor = self.conn.cursor()
+
+        central_dic_id = lib.get_new_id(self.conn, "CENTRAL_DICTIONARY")
+
+        query_insert = """
+            INSERT INTO CICERON.CENTRAL_DICTIONARY
+                (id, meaning_id, language_id, category, word, added_user_id, added_ts)
+            VALUES
+                (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """
+        try:
+            cursor.execute(query_insert, (central_dic_id, meaning_id, language_id, category, word, added_user_id, ))
+
+        except Exception:
+            print traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
     def _getNewMeaningIdFromUDFDic(self):
         cursor = self.conn.cursor()
         cursor.execute("SELECT nextval('CICERON.SEQ_USER_DEFINED_DICTIONARY_MEANING') ")
