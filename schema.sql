@@ -776,29 +776,23 @@ CREATE SEQUENCE CICERON.SEQ_CENTRAL_DICTIONARY;
 CREATE SEQUENCE CICERON.SEQ_CENTRAL_DICTIONARY_MEANING_ID;
 
 CREATE TABLE CICERON.COMMENT_SENTENCE (
-    id INT,
     request_id INT,
     paragraph_seq INT,
     sentence_seq INT,
     comment_string VARCHAR(5000),
 
-    PRIMARY KEY (id),
-    UNIQUE (request_id, paragraph_seq, sentence_seq),
+    PRIMARY KEY (request_id, paragraph_seq, sentence_seq),
     FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id)
 );
 CREATE INDEX request_id2 ON CICERON.COMMENT_SENTENCE (request_id);
-CREATE SEQUENCE CICERON.SEQ_COMMENT_SENTENCE;
 
 CREATE TABLE CICERON.COMMENT_PARAGRAPH (
-    id INT,
     request_id INT,
     paragraph_seq INT,
     comment_string VARCHAR(5000),
 
-    PRIMARY KEY (id),
-    UNIQUE (request_id, paragraph_seq),
+    PRIMARY KEY (request_id, paragraph_seq),
     FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id)
 );
 CREATE INDEX request_id3 ON CICERON.COMMENT_PARAGRAPH (request_id);
-CREATE SEQUENCE CICERON.SEQ_COMMENT_PARAGRAPH;
 

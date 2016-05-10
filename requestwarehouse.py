@@ -16,23 +16,23 @@ class Warehousing:
     def __parseSentence(self, strings):
         return self.sentence_detector.tokenize(strings.strip())
 
-    def _unitOriginalDataInsert(self, request_id, paragragh_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id):
+    def _unitOriginalDataInsert(self, request_id, paragraph_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id):
         cursor = self.conn.cursor()
 
         query = """INSERT INTO CICERON.D_REQUEST_TEXTS
-                       (id, paragragh_seq, sentence_seq, path, text, is_sent_to_machine, hit, translation_id, original_lang_id, target_lang_id)
+                       (id, paragraph_seq, sentence_seq, path, text, is_sent_to_machine, hit, translation_id, original_lang_id, target_lang_id)
                    VALUES
                        (%s, %s, %s, %s, %s, false, 0, %s, %s, %s) """
 
-        cursor.execute(query, (request_id, paragragh_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id, ))
+        cursor.execute(query, (request_id, paragraph_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id, ))
         self.conn.commit()
 
     def store(self, request_id, path, whole_texts, new_translation_id, original_lang_id, target_lang_id):
         paragraphs = self.__parseParagragh(whole_texts)
-        for paragragh_seq, paragraph in enumerate(paragraphs, start=1):
+        for paragraph_seq, paragraph in enumerate(paragraphs, start=1):
             sentences = self.__parseSentence(paragraph)
             for sentence_seq, sentence in enumerate(sentences, start=1):
-                self._unitOriginalDataInsert(request_id, paragragh_seq, sentence_seq, path, sentence, new_translation_id, original_lang_id, target_lang_id)
+                self._unitOriginalDataInsert(request_id, paragraph_seq, sentence_seq, path, sentence, new_translation_id, original_lang_id, target_lang_id)
 
     def _restore_string(self, request_id, source):
         cursor = self.conn.cursor()
@@ -47,25 +47,25 @@ class Warehousing:
         translated_text_id = res[1]
 
         if source == 'requested_text':
-            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
+            query_text = "SELECT paragraph_seq, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragraph_seq, sentence_seq"
             cursor.execute(query_text, (request_text_id, ))
         elif source == 'translated_text':
-            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
+            query_text = "SELECT paragraph_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragraph_seq, sentence_seq"
             cursor.execute(query_text, (translated_text_id, ))
 
         fetched_array = cursor.fetchall()
 
-        cur_paragragh_id = 1
+        cur_paragraph_id = 1
         result_string = ""
         for idx, item in enumerate(fetched_array):
-            paragragh_id = item[0]
+            paragraph_id = item[0]
             sentence_id = item[1]
             text = item[2]
 
-            if paragragh_id != cur_paragragh_id:
-                cur_paragragh_id = paragragh_id
+            if paragraph_id != cur_paragraph_id:
+                cur_paragraph_id = paragraph_id
                 result_string += '\n' + text
-            elif paragragh_id == cur_paragragh_id and idx != 0:
+            elif paragraph_id == cur_paragraph_id and idx != 0:
                 result_string += ' ' + text
 
             else:
@@ -86,20 +86,64 @@ class Warehousing:
         translated_text_id = res[1] if res[1] != None else -1 # -1: Dummy
 
         if source == 'requested_text':
-            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
+            query_text = """SELECT request.paragraph_seq, request.sentence_seq, request.text, comm.comment_string
+              FROM CICERON.D_REQUEST_TEXTS request
+              LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
+                ON request.request_id = comm.request_id
+                  AND request.paragraph_seq = comm.paragraph_seq
+                  AND request.sentence_seq = comm.sentence_seq
+              WHERE request.id = %s
+              ORDER BY request.paragraph_seq, request.sentence_seq"""
             cursor.execute(query_text, (request_text_id, ))
         elif source == 'translated_text':
-            query_text = "SELECT paragragh_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = %s ORDER BY paragragh_seq, sentence_seq"
+            query_text = """SELECT request.paragraph_seq, request.sentence_seq, request.text, comm.comment_string
+              FROM CICERON.D_TRANSLATED_TEXT request
+              LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
+                ON request.request_id = comm.request_id
+                  AND request.paragraph_seq = comm.paragraph_seq
+                  AND request.sentence_seq = comm.sentence_seq
+              WHERE request.id = %s
+              ORDER BY request.paragraph_seq, request.sentence_seq"""
             cursor.execute(query_text, (translated_text_id, ))
         inter_array = cursor.fetchall()
 
+        query_paragraphComment = """
+            SELECT paragraph_seq, comment_string
+              FROM CICERON.COMMENT_PARAGRAPH
+              WHERE request_id = %s ORDER BY paragraph_seq
+        """
+        cursor.execute(query_paragraphComment, (request_id, ))
+        paragaphcomment_array = cursor.fetchall()
+
         result_array = []
-        for paragragh_seq, sentence_seq, text in inter_array:
-            item = {}
-            item['paragragh_seq'] = paragragh_seq
-            item['sentence_seq'] = sentence_seq
-            item['text'] = text
-            result_array.append(item)
+        cur_paragraph_no = None
+        item = {}
+        for idx, row in enumerate(inter_array):
+            paragraph_seq = row[0]
+            sentence_seq = row[1]
+            text = row[2]
+            sentence_comment = row[3]
+
+            if cur_paragraph_no != paragraph_seq:
+                if idx != 0:
+                    result_array.append(item)
+
+                item = {}
+                item['paragraph_seq'] = paragraph_seq
+                item['paragraph_comment'] = paragaphcomment_array[ paragraph_seq-1 ]
+                item['sentences'] = []
+
+                cur_paragraph_no = paragraph_seq
+
+            sentence_item = {}
+            sentence_item['sentence_seq'] = sentence_seq
+            sentence_item['text'] = text
+            sentence_item['sentence_comment'] = sentence_comment
+
+            item['sentences'].append(sentence_item)
+
+            if idx == len(inter_array) - 1:
+                result_array.append(item)
 
         return result_array
 
@@ -115,7 +159,7 @@ class Warehousing:
     def restoreTranslationByArray(self, request_id):
         return self._restore_array(request_id, 'translated_text')
 
-    def updateTranslationOneLine(self, request_id, paragragh_id, sentence_id, text):
+    def updateTranslationOneLine(self, request_id, paragraph_id, sentence_id, text):
         cursor = self.conn.cursor()
 
         try:
@@ -131,8 +175,8 @@ class Warehousing:
             query_update = """
                 UPDATE CICERON.D_TRANSLATED_TEXT
                   SET text = %s
-                  WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
-            cursor.execute(query_update, (text, translated_text_id, paragragh_id, sentence_id, ))
+                  WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
+            cursor.execute(query_update, (text, translated_text_id, paragraph_id, sentence_id, ))
             self.conn.commit()
             return True
 
@@ -141,7 +185,7 @@ class Warehousing:
             self.conn.rollback()
             return True
 
-    def getTranslationOneLine(self, request_id, paragragh_id, sentence_id):
+    def getTranslationOneLine(self, request_id, paragraph_id, sentence_id):
         cursor = self.conn.cursor()
 
         query_getRequestText = "SELECT translatedText_id FROM CICERON.F_REQUESTS WHERE id = %s"
@@ -156,14 +200,86 @@ class Warehousing:
         query_update = """
             SELECT text
               FROM CICERON.D_TRANSLATED_TEXT
-              WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
-        cursor.execute(query_update, (translated_text_id, paragragh_id, sentence_id, ))
+              WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
+        cursor.execute(query_update, (translated_text_id, paragraph_id, sentence_id, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
             return False, None
 
         return_text = res[0]
         return True, return_text
+
+    def updateSentenceComment(self, request_id, paragraph_id, sentence_id, comment_string):
+        cursor = self.conn.cursor()
+
+        query_count = """
+            SELECT count(*) FROM CICERON.COMMENT_SENTENCE
+            WHERE request_id = %s AND paragraph_seq = %s AND sentence_seq = %s
+        """
+        query_insert = """
+            INSERT INTO CICERON.COMMENT_SENTENCE
+              (request_id, paragraph_seq, sentence_seq, comment_string)
+            VALUES (%s, %s, %s, %s)
+        """
+        query_update = """
+            UPDATE CICERON.COMMENT_SENTENCE
+              SET comment_string = %s
+            WHERE request_id = %s AND paragraph_seq = %s AND sentence_seq = %s
+        """
+
+        try:
+            cursor.execute(query_count, (request_id, paragraph_id, sentence_id, ))
+            count = cursor.fetchone()[0]
+
+            if count == 0:
+                cursor.execute(query_insert,
+                        (request_id, paragraph_id, sentence_id, comment_string, ))
+            else:
+                cursor.execute(query_update,
+                        (comment_string, request_id, paragraph_id, sentence_id, ))
+            self.conn.commit()
+
+        except Exception:
+            traceback.print_exc()
+            return False
+
+        return True
+
+    def updateParagraphComment(self, request_id, paragraph_id, comment_string):
+        cursor = self.conn.cursor()
+
+        query_count = """
+            SELECT count(*) FROM CICERON.COMMENT_PARAGRAPH
+            WHERE request_id = %s AND paragraph_seq = %s
+        """
+        query_insert = """
+            INSERT INTO CICERON.COMMENT_PARAGRAPH
+              (request_id, paragraph_seq, comment_string)
+            VALUES (%s, %s, %s)
+        """
+        query_update = """
+            UPDATE CICERON.COMMENT_PARAGRAPH
+              SET comment_string = %s
+            WHERE request_id = %s AND paragraph_seq = %s
+        """
+
+        try:
+            cursor.execute(query_count, (request_id, paragraph_id, ))
+            count = cursor.fetchone()[0]
+
+            if count == 0:
+                cursor.execute(query_insert,
+                        (request_id, paragraph_id, comment_string, ))
+            else:
+                cursor.execute(query_update,
+                        (comment_string, request_id, paragraph_id, ))
+            self.conn.commit()
+
+        except Exception:
+            traceback.print_exc()
+            return False
+
+        return True
 
     @classmethod
     def initTest(cls, name, method):
@@ -172,8 +288,8 @@ class Warehousing:
 if __name__ == "__main__":
     # Test purpose
 
-    def _unitOriginalDataInsert(self, request_id, paragragh_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id):
-        print "%s | %s | %s | %s | %s | %s | %s" % (request_id, paragragh_id, sentence_id, path, text, original_lang_id, target_lang_id)
+    def _unitOriginalDataInsert(self, request_id, paragraph_id, sentence_id, path, text, new_translation_id, original_lang_id, target_lang_id):
+        print "%s | %s | %s | %s | %s | %s | %s" % (request_id, paragraph_id, sentence_id, path, text, original_lang_id, target_lang_id)
 
     conn = None
     Warehousing.initTest('_unitOriginalDataInsert', _unitOriginalDataInsert)
