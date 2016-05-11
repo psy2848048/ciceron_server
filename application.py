@@ -1182,7 +1182,16 @@ def pick_request():
 @login_required
 def working_translate_item(request_id):
     if request.method == "GET":
+        user_id = get_user_id(g.db, session['useremail'])
         cursor = g.db.cursor()
+
+        query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+        cursor.execute(query, (request_id, user_id, ))
+        count = cursor.fetchone()[0]
+        if count == 0:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
         warehousing = Warehousing(g.db)
 
         query = None
@@ -1203,14 +1212,10 @@ def working_translate_item(request_id):
         cursor.execute(query, (request_id, ))
 
         rs = cursor.fetchall()
-        realData = []
-        if len(rs) != 0:
-            realData = warehousing.restoreArray(request_id)
-
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(
             data=result,
-            realData=realData
+            realData=warehousing.restoreArray(request_id)
             ), 200)
 
 @app.route('/api/user/translations/ongoing/<int:request_id>/paragraph/<int:paragraph_id>/sentence/<int:sentence_id>', methods=["GET", "PUT"])
@@ -1473,9 +1478,16 @@ def post_translate_item():
 @translator_checker
 def translation_completed_items_detail(request_id):
     cursor = g.db.cursor()
-    warehousing = Warehousing(g.db)
 
     user_id = get_user_id(g.db, session['useremail'])
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return make_response(json.jsonify(
+            message="You are not translator of the request"), 406)
+
+    warehousing = Warehousing(g.db)
     query = None
     if session['useremail'] in super_user:
         query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s "
