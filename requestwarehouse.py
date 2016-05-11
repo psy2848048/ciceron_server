@@ -73,7 +73,7 @@ class Warehousing:
 
         return result_string
 
-    def _restore_array(self, request_id, source):
+    def _restore_array(self, request_id, source=None):
         cursor = self.conn.cursor()
 
         query_getRequestText = "SELECT text_id, translatedText_id FROM CICERON.F_REQUESTS WHERE id = %s"
@@ -85,44 +85,58 @@ class Warehousing:
         request_text_id = res[0]
         translated_text_id = res[1] if res[1] != None else -1 # -1: Dummy
 
-        if source == 'requested_text':
-            query_text = """SELECT request.paragraph_seq, request.sentence_seq, request.text, comm.comment_string
-              FROM CICERON.D_REQUEST_TEXTS request
-              LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
-                ON request.request_id = comm.request_id
-                  AND request.paragraph_seq = comm.paragraph_seq
-                  AND request.sentence_seq = comm.sentence_seq
-              WHERE request.id = %s
-              ORDER BY request.paragraph_seq, request.sentence_seq"""
+        inter_array_request = None
+        inter_array_translation = None
+
+        if source == 'requested_text' or source is None:
+            query_text = """
+                SELECT texts.paragraph_seq, texts.sentence_seq, texts.text, comm.comment_string
+                FROM CICERON.D_REQUEST_TEXTS texts
+                LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
+                  ON texts.paragraph_seq = comm.paragraph_seq
+                    AND texts.sentence_seq = comm.sentence_seq
+                WHERE texts.id = %s
+                ORDER BY texts.paragraph_seq, texts.sentence_seq
+            """
             cursor.execute(query_text, (request_text_id, ))
-        elif source == 'translated_text':
-            query_text = """SELECT request.paragraph_seq, request.sentence_seq, request.text, comm.comment_string
-              FROM CICERON.D_TRANSLATED_TEXT request
-              LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
-                ON request.request_id = comm.request_id
-                  AND request.paragraph_seq = comm.paragraph_seq
-                  AND request.sentence_seq = comm.sentence_seq
-              WHERE request.id = %s
-              ORDER BY request.paragraph_seq, request.sentence_seq"""
+            inter_array_request = cursor.fetchall()
+
+        if source == 'translated_text' or source is None:
+            query_text = """
+                SELECT texts.paragraph_seq, texts.sentence_seq, texts.text, comm.comment_string
+                FROM CICERON.D_TRANSLATED_TEXT texts
+                LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
+                  ON texts.paragraph_seq = comm.paragraph_seq
+                    AND texts.sentence_seq = comm.sentence_seq
+                WHERE texts.id = %s
+                ORDER BY texts.paragraph_seq, texts.sentence_seq
+            """
             cursor.execute(query_text, (translated_text_id, ))
-        inter_array = cursor.fetchall()
+            inter_array_translation = cursor.fetchall()
+
+        inter_array = zip(inter_array_request, inter_array_translation)
 
         query_paragraphComment = """
-            SELECT paragraph_seq, comment_string
-              FROM CICERON.COMMENT_PARAGRAPH
-              WHERE request_id = %s ORDER BY paragraph_seq
+              SELECT trans.paragraph_seq, paragraph.comment_string
+              FROM CICERON.D_TRANSLATED_TEXT trans
+              LEFT OUTER JOIN CICERON.COMMENT_PARAGRAPH paragraph
+                ON trans.paragraph_seq = paragraph.paragraph_seq
+                  AND trans.sentence_seq = 1
+              WHERE trans.id = %s
+              ORDER BY paragraph.paragraph_seq
         """
-        cursor.execute(query_paragraphComment, (request_id, ))
+        cursor.execute(query_paragraphComment, (translated_text_id, ))
         paragaphcomment_array = cursor.fetchall()
 
         result_array = []
         cur_paragraph_no = None
         item = {}
         for idx, row in enumerate(inter_array):
-            paragraph_seq = row[0]
-            sentence_seq = row[1]
-            text = row[2]
-            sentence_comment = row[3]
+            paragraph_seq = row[0][0]
+            sentence_seq = row[0][1]
+            original_text = row[0][2]
+            translated_text = row[1][2]
+            sentence_comment = row[0][3]
 
             if cur_paragraph_no != paragraph_seq:
                 if idx != 0:
@@ -130,14 +144,15 @@ class Warehousing:
 
                 item = {}
                 item['paragraph_seq'] = paragraph_seq
-                item['paragraph_comment'] = paragaphcomment_array[ paragraph_seq-1 ]
+                item['paragraph_comment'] = paragaphcomment_array[ paragraph_seq-1 ][1]
                 item['sentences'] = []
 
                 cur_paragraph_no = paragraph_seq
 
             sentence_item = {}
             sentence_item['sentence_seq'] = sentence_seq
-            sentence_item['text'] = text
+            sentence_item['original_text'] = original_text
+            sentence_item['translated_text'] = translated_text
             sentence_item['sentence_comment'] = sentence_comment
 
             item['sentences'].append(sentence_item)
@@ -150,14 +165,11 @@ class Warehousing:
     def restoreRequestByString(self, request_id):
         return self._restore_string(request_id, 'requested_text')
 
-    def restoreRequestByArray(self, request_id):
-        return self._restore_array(request_id, 'requested_text')
-
     def restoreTranslationByString(self, request_id):
         return self._restore_string(request_id, 'translated_text')
 
-    def restoreTranslationByArray(self, request_id):
-        return self._restore_array(request_id, 'translated_text')
+    def restoreArray(self, request_id):
+        return self._restore_array(request_id)
 
     def updateTranslationOneLine(self, request_id, paragraph_id, sentence_id, text):
         cursor = self.conn.cursor()
@@ -240,6 +252,7 @@ class Warehousing:
             self.conn.commit()
 
         except Exception:
+            self.conn.rollback()
             traceback.print_exc()
             return False
 
@@ -276,6 +289,7 @@ class Warehousing:
             self.conn.commit()
 
         except Exception:
+            self.conn.rollback()
             traceback.print_exc()
             return False
 
@@ -302,4 +316,4 @@ if __name__ == "__main__":
 그 외에도 논문 분량이 당연히 백여 페이지를 한참 넘을 것으로 기대되는 분야들은 꽤 있다. 단, 학술지 논문에 비해 우리 위키러들이 정말로 궁금할 학위논문의 경우 분량이 그 5~10배 가량 육박하는 경우가 많으니 참고. 일부 박사논문은 납본되는 걸 보면 정말로 책 한 권이 나온다.(...)  좀 심하게 말하면, 어떤 학술적인 글을 쓰는데 분량을 신경쓰는 것은 레포트 쓰는 학부생들의 수준에서 바라보는 시각일 수 있다. (굳이 좋게 평하자면, 최소한의 논문다운 논문을 쓰기 위한 휴리스틱이다.) 학계에서 논문의 가치는 그 논문의 양이 얼마나 방대한지는 전혀 상관없다. 일부 사회과학 분야 논문들은 가설을 한번에 30개 이상씩(!) 검증하기도 하나, 그런 논문이 가설 하나 검증하는 논문, 아니 아무도 신경쓰지 않은 문제를 최초로 제기하느라 가설은 아예 검증하지도 못하고 제안하기만 한 논문보다 우월하다고 취급되지는 않는다.
 가설을 많이 검증한다고 해도 그 검증과정이나 논리적 차원에서 결함이나 비약이 있다면 가차없이 탈탈 털릴 뿐이다. 원론적으로, 인문학이나 예술분야라고 해도 자신의 독창적 생각을 타인에게 설득력 있게 전달하는 과정이 중요하게 취급되는 것은 당연하다.  공연히 분량을 늘린답시고 논문에서 논거를 질질 끌거나 쓸데없는 데이터를 넣거나 하면 당연히 또 탈탈 털린다. 애초에 학계라는 곳은 타인의 언급을 인용하는 것조차도 논리적 전개에 불필요해 보인다 싶으면 가차없이 불벼락을 내리는 바닥이다.[4] 필요한 말을 안 써서 까이기도 하지만, 쓸데없는 말이 너무 많다고 까이기도 하니, 논문을 준비하는 연구자는 이래저래 피곤하다. 게다가 교수들도 긴 글 읽기는 싫어하는 경우가 많다.(…)[5] """
 
-    warehousing.store(request_id, path, whole_text, 1)
+    warehousing.store(request_id, path, whole_text, 1, 0, 0)
