@@ -1203,10 +1203,14 @@ def working_translate_item(request_id):
         cursor.execute(query, (request_id, ))
 
         rs = cursor.fetchall()
+        realData = []
+        if len(rs) != 0:
+            realData = warehousing.restoreArray(request_id)
+
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(
             data=result,
-            realData=warehousing.restoreArray(request_id)
+            realData=realData
             ), 200)
 
 @app.route('/api/user/translations/ongoing/<int:request_id>/paragraph/<int:paragraph_id>/sentence/<int:sentence_id>', methods=["GET", "PUT"])
@@ -1215,11 +1219,14 @@ def working_translate_item(request_id):
 @login_required
 def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
     user_id = get_user_id(g.db, session['useremail'])
-    if strict_translator_checker(g.db, user_id, request_id) == False:
-        return make_response(
-            json.jsonify(
-               message = "You have no translate permission of given language."
-               ), 406)
+    cursor = g.db.cursor()
+
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return make_response(json.jsonify(
+            message="You are not translator of the request"), 406)
 
     if request.method == "PUT":
         parameters = parse_request(request)
@@ -1257,11 +1264,14 @@ def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
 @login_required
 def updateSentenceComment(request_id, paragraph_id, sentence_id):
     user_id = get_user_id(g.db, session['useremail'])
-    if strict_translator_checker(g.db, user_id, request_id) == False:
-        return make_response(
-            json.jsonify(
-               message = "You have no translate permission of given language."
-               ), 406)
+    cursor = g.db.cursor()
+
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return make_response(json.jsonify(
+            message="You are not translator of the request"), 406)
 
     if request.method == "PUT":
         warehousing = Warehousing(g.db)
@@ -1285,11 +1295,14 @@ def updateSentenceComment(request_id, paragraph_id, sentence_id):
 @login_required
 def updateParagraphComment(request_id, paragraph_id):
     user_id = get_user_id(g.db, session['useremail'])
-    if strict_translator_checker(g.db, user_id, request_id) == False:
-        return make_response(
-            json.jsonify(
-               message = "You have no translate permission of given language."
-               ), 406)
+    cursor = g.db.cursor()
+
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return make_response(json.jsonify(
+            message="You are not translator of the request"), 406)
 
     if request.method == "PUT":
         warehousing = Warehousing(g.db)
@@ -1338,13 +1351,13 @@ def expected_time(str_request_id):
     elif request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
+        user_id = get_user_id(g.db, session['useremail'])
 
         request_id = int(str_request_id)
         deltaFromRegTime = int(parameters['deltaFromNow'])
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET expected_time = CURRENT_TIMESTAMP + interval '%s seconds' WHERE status_id = 1 AND id = %s", (deltaFromRegTime, request_id) )
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET expected_time = CURRENT_TIMESTAMP + interval '%s seconds' WHERE status_id = 1 AND id = %s AND ongoing_worker_id = %s ", (deltaFromRegTime, request_id, user_id, ) )
         g.db.commit()
 
-        user_id = get_user_id(g.db, session['useremail'])
 
         # Notification
         query = "SELECT client_user_id, expected_time FROM CICERON.F_REQUESTS WHERE id = %s"
@@ -1361,7 +1374,8 @@ def expected_time(str_request_id):
     elif request.method == "DELETE":
         cursor = g.db.cursor()
         request_id = int(str_request_id)
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = null, status_id = 0, points = points + additional_points, is_need_additional_points = false, is_additional_points_paid = null WHERE status_id = 1 AND id = %s", (request_id, ))
+        user_id = get_user_id(g.db, session['useremail'])
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = null, status_id = 0, points = points + additional_points, is_need_additional_points = false, is_additional_points_paid = null WHERE status_id = 1 AND id = %s AND ongoing_worker_id = %s ", (request_id, user_id, ))
         g.db.commit()
 
         query = None
@@ -1431,8 +1445,8 @@ def post_translate_item():
             (translator_default_group_id, translator_id, "Incoming"))
 
     # Change the state of the request
-    cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 2, client_completed_group_id = %s, translator_completed_group_id = %s, submitted_time = CURRENT_TIMESTAMP WHERE id = %s",
-            (requester_default_group_id, translator_default_group_id, request_id))
+    cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 2, client_completed_group_id = %s, translator_completed_group_id = %s, submitted_time = CURRENT_TIMESTAMP WHERE id = %s AND ongoing_worker_id = %s ",
+            (requester_default_group_id, translator_default_group_id, request_id, translator_id, ))
     g.db.commit()
 
     update_user_record(g.db, client_id=requester_id, translator_id=translator_id)
@@ -1959,8 +1973,17 @@ def client_completed_items():
 #@exception_detector
 @login_required
 def client_completed_items_detail(request_id):
-    cursor = g.db.cursor()
     warehousing = Warehousing(g.db)
+    user_id = get_user_id(g.db, session['useremail'])
+    cursor = g.db.cursor()
+
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND client_user_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return make_response(json.jsonify(
+            message="You are not client of the request"), 406)
+
 
     user_id = get_user_id(g.db, session['useremail'])
     query = None
