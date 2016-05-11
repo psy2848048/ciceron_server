@@ -1183,6 +1183,7 @@ def pick_request():
 def working_translate_item(request_id):
     if request.method == "GET":
         cursor = g.db.cursor()
+        warehousing = Warehousing(g.db)
 
         query = None
         if session['useremail'] in super_user:
@@ -1203,13 +1204,16 @@ def working_translate_item(request_id):
 
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
-        return make_response(json.jsonify(data=result), 200)
+        return make_response(json.jsonify(
+            data=result,
+            realData=warehousing.restoreArray(request_id)
+            ), 200)
 
-@app.route('/api/user/translations/ongoing/<int:request_id>/paragragh/<int:paragragh_id>/sentence/<int:sentence_id>', methods=["GET", "PUT"])
+@app.route('/api/user/translations/ongoing/<int:request_id>/paragraph/<int:paragraph_id>/sentence/<int:sentence_id>', methods=["GET", "PUT"])
 #@exception_detector
 @translator_checker
 @login_required
-def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
+def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
     user_id = get_user_id(g.db, session['useremail'])
     if strict_translator_checker(g.db, user_id, request_id) == False:
         return make_response(
@@ -1222,7 +1226,7 @@ def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
 
         text = parameters['text']
         warehousing = Warehousing(g.db)
-        is_ok = warehousing.updateTranslationOneLine(request_id, paragragh_id, sentence_id, text)
+        is_ok = warehousing.updateTranslationOneLine(request_id, paragraph_id, sentence_id, text)
         
         if is_ok == True:
             return make_response(json.jsonify(
@@ -1237,7 +1241,7 @@ def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
 
     elif request.method == "GET":
         warehousing = Warehousing(g.db)
-        is_ok, sentence = warehousing.getTranslationOneLine(request_id, paragragh_id, sentence_id)
+        is_ok, sentence = warehousing.getTranslationOneLine(request_id, paragraph_id, sentence_id)
         if is_ok == True:
             return make_response(json.jsonify(
                 sentence=sentence
@@ -1246,6 +1250,61 @@ def reviseTranslatedItemByEachLine(request_id, paragragh_id, sentence_id):
             return make_response(json.jsonify(
                 message="Get sentence failure."
                 ), 401)
+
+@app.route('/api/user/translations/comment/<int:request_id>/paragraph/<int:paragraph_id>/sentence/<int:sentence_id>', methods=["PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def updateSentenceComment(request_id, paragraph_id, sentence_id):
+    user_id = get_user_id(g.db, session['useremail'])
+    if strict_translator_checker(g.db, user_id, request_id) == False:
+        return make_response(
+            json.jsonify(
+               message = "You have no translate permission of given language."
+               ), 406)
+
+    if request.method == "PUT":
+        warehousing = Warehousing(g.db)
+        parameter = parse_request(request)
+
+        comment_string = parameter['comment_string']
+
+        warehousing.updateSentenceComment(request_id, paragraph_id, sentence_id, comment_string)
+        return make_response(
+                json.jsonify(
+                    message='Update success',
+                    request_id=request_id,
+                    paragraph_seq=paragraph_id,
+                    sentence_seq=sentence_id,
+                    comment_string=comment_string
+                    ), 200)
+
+@app.route('/api/user/translations/comment/<int:request_id>/paragraph/<int:paragraph_id>', methods=["PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def updateParagraphComment(request_id, paragraph_id):
+    user_id = get_user_id(g.db, session['useremail'])
+    if strict_translator_checker(g.db, user_id, request_id) == False:
+        return make_response(
+            json.jsonify(
+               message = "You have no translate permission of given language."
+               ), 406)
+
+    if request.method == "PUT":
+        warehousing = Warehousing(g.db)
+        parameter = parse_request(request)
+
+        comment_string = parameter['comment_string']
+
+        warehousing.updateParagraphComment(request_id, paragraph_id, comment_string)
+        return make_response(
+                json.jsonify(
+                    message='Update success',
+                    request_id=request_id,
+                    paragraph_seq=paragraph_id,
+                    comment_string=comment_string
+                    ), 200)
 
 @app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
@@ -1400,6 +1459,8 @@ def post_translate_item():
 @translator_checker
 def translation_completed_items_detail(request_id):
     cursor = g.db.cursor()
+    warehousing = Warehousing(g.db)
+
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
@@ -1418,7 +1479,10 @@ def translation_completed_items_detail(request_id):
     cursor.execute(query, (request_id, user_id))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_translator")
-    return make_response(json.jsonify(data=result), 200)
+    return make_response(json.jsonify(
+        data=result,
+        realData=warehousing.restoreArray(request_id)
+        ), 200)
 
 @app.route('/api/user/translations/complete', methods = ["GET"])
 #@exception_detector
@@ -1896,6 +1960,7 @@ def client_completed_items():
 @login_required
 def client_completed_items_detail(request_id):
     cursor = g.db.cursor()
+    warehousing = Warehousing(g.db)
 
     user_id = get_user_id(g.db, session['useremail'])
     query = None
@@ -1914,7 +1979,10 @@ def client_completed_items_detail(request_id):
     cursor.execute(query, (user_id, request_id))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
-    return make_response(json.jsonify(data=result), 200)
+    return make_response(json.jsonify(
+        data=result,
+        realData=warehousing.restoreArray(request_id)
+        ), 200)
 
 @app.route('/api/user/requests/complete/<str_request_id>/rate', methods=["POST"])
 #@exception_detector

@@ -429,11 +429,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             num_of_letters = len(text_for_counting.decode('utf-8'))
             num_of_words = len(text_for_counting.decode('utf-8').split(' '))
 
-        main_text = None
-        if purpose not in ['ongoing_translator', 'complete_translator', 'complete_client']:
-            main_text = text_for_counting
-        else:
-            main_text = warehouse.restoreArray(row[0])
+        main_text = text_for_counting
 
         item = dict(
                 request_id=row[0],
@@ -509,7 +505,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 item['request_context'] = row[38]
                 item['request_text'] = main_text,
 
-            item['request_translatedText'] = warehouse.restoreArray(row[0])
+            item['request_translatedText'] = warehouse.restoreTranslationByString(row[0])
             item['request_title'] = None
 
         elif purpose == "ongoing_client":
