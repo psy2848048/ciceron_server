@@ -1041,15 +1041,14 @@ def show_queue():
             request_id=request_id
             ), 200)
 
-@app.route('/api/user/translations/pending/<str_request_id>', methods=["DELETE", "PUT"])
+@app.route('/api/user/translations/pending/<int:request_id>', methods=["DELETE", "PUT"])
 @login_required
 @translator_checker
 #@exception_detector
-def work_in_queue(str_request_id):
+def work_in_queue(request_id):
     if request.method == "DELETE":
         cursor = g.db.cursor()
 
-        request_id = int(str_request_id)
         my_user_id = get_user_id(g.db, session['useremail'])
         cursor.execute("SELECT count(*) FROM CICERON.D_QUEUE_LISTS WHERE request_id = %s AND user_id = %s ", (request_id, my_user_id))
         rs = cursor.fetchall()
@@ -1324,19 +1323,19 @@ def updateParagraphComment(request_id, paragraph_id):
                     comment_string=comment_string
                     ), 200)
 
-@app.route('/api/user/translations/ongoing/<str_request_id>/expected', methods=["GET", "POST", "DELETE"])
+@app.route('/api/user/translations/ongoing/<int:request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
 @translator_checker
 @login_required
-def expected_time(str_request_id):
+def expected_time(request_id):
     if request.method == "GET":
         cursor = g.db.cursor()
-        request_id = int(str_request_id)
+        user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
             query = "SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s "
         else:
-            query = """SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s
+            query = """SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s AND ongoing_worker_id = %s
             AND ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
@@ -1346,7 +1345,7 @@ def expected_time(str_request_id):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (request_id, ) )
+        cursor.execute(query, (request_id, user_id, ) )
         rs = cursor.fetchall()
         if len(rs) > 0:
             return make_response(json.jsonify(currentExpectedTime=rs[0][0], currentDueTime=rs[0][1]), 200)
@@ -1358,7 +1357,6 @@ def expected_time(str_request_id):
         parameters = parse_request(request)
         user_id = get_user_id(g.db, session['useremail'])
 
-        request_id = int(str_request_id)
         deltaFromRegTime = int(parameters['deltaFromNow'])
         cursor.execute("UPDATE CICERON.F_REQUESTS SET expected_time = CURRENT_TIMESTAMP + interval '%s seconds' WHERE status_id = 1 AND id = %s AND ongoing_worker_id = %s ", (deltaFromRegTime, request_id, user_id, ) )
         g.db.commit()
@@ -1378,7 +1376,6 @@ def expected_time(str_request_id):
 
     elif request.method == "DELETE":
         cursor = g.db.cursor()
-        request_id = int(str_request_id)
         user_id = get_user_id(g.db, session['useremail'])
         cursor.execute("UPDATE CICERON.F_REQUESTS SET ongoing_worker_id = null, status_id = 0, points = points + additional_points, is_need_additional_points = false, is_additional_points_paid = null WHERE status_id = 1 AND id = %s AND ongoing_worker_id = %s ", (request_id, user_id, ))
         g.db.commit()
@@ -1572,7 +1569,7 @@ def set_title_translator(str_request_id):
                 request_id=request_id),
             405)
 
-@app.route('/api/user/translations/complete/groups', methods = ["GET", "POST", "PUT", "DELETE"])
+@app.route('/api/user/translations/complete/groups', methods = ["GET", "POST"])
 #@exception_detector
 @login_required
 def translators_complete_groups():
@@ -1855,15 +1852,14 @@ def show_pending_list_client():
                 message='Success',
                 link='%s/stoa' % HOST), 200)
 
-@app.route('/api/user/requests/pending/<str_request_id>', methods=["GET"])
+@app.route('/api/user/requests/pending/<int:request_id>', methods=["GET"])
 #@exception_detector
 @login_required
-def show_pending_item_client(str_request_id):
+def show_pending_item_client(request_id):
     if request.method == "GET":
         cursor = g.db.cursor()
 
         user_id = get_user_id(g.db, session['useremail'])
-        request_id = int(str_request_id)
         query = None
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 "
@@ -1881,15 +1877,14 @@ def show_pending_item_client(str_request_id):
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
 
-@app.route('/api/user/requests/pending/<str_request_id>', methods=["DELETE"])
+@app.route('/api/user/requests/pending/<int:request_id>', methods=["DELETE"])
 #@exception_detector
 @login_required
-def delete_item_client(str_request_id):
+def delete_item_client(request_id):
     if request.method == "DELETE":
         cursor = g.db.cursor()
 
         user_id = get_user_id(g.db, session['useremail'])
-        request_id = int(str_request_id)
         query = None
         if session['useremail'] in super_user:
             query = "SELECT points FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 "
@@ -2011,7 +2006,7 @@ def client_completed_items_detail(request_id):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-    cursor.execute(query, (user_id, request_id))
+    cursor.execute(query, (user_id, request_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(
@@ -2019,14 +2014,13 @@ def client_completed_items_detail(request_id):
         realData=warehousing.restoreArray(request_id)
         ), 200)
 
-@app.route('/api/user/requests/complete/<str_request_id>/rate', methods=["POST"])
+@app.route('/api/user/requests/complete/<int:request_id>/rate', methods=["POST"])
 #@exception_detector
 @login_required
-def client_rate_request(str_request_id):
+def client_rate_request(request_id):
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
-    request_id = int(str_request_id)
     feedback_score = int(parameters['request_feedbackScore'])
 
     # Pay back part
@@ -2054,10 +2048,10 @@ def client_rate_request(str_request_id):
     else:
         pay_amount = rs[0][1] + rs[0][4]
 
-    # Input feedback score
-    cursor.execute("UPDATE CICERON.F_REQUESTS SET feedback_score = %s WHERE id = %s ", (feedback_score, request_id))
-
     user_id = get_user_id(g.db, session['useremail'])
+    # Input feedback score
+    cursor.execute("UPDATE CICERON.F_REQUESTS SET feedback_score = %s WHERE id = %s AND client_user_id = %s", (feedback_score, request_id, user_id, ))
+
     query_getCounts = "SELECT return_rate FROM CICERON.D_USERS WHERE id = %s"
     cursor.execute(query_getRate, (user_id, ))
     rs = cursor.fetchone()
@@ -2073,8 +2067,8 @@ def client_rate_request(str_request_id):
             (return_rate, pay_amount, translator_id) )
 
     # Notification
-    query = "SELECT ongoing_worker_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s "
-    cursor.execute(query, (request_id, ) )
+    query = "SELECT ongoing_worker_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s AND client_user_id = %s"
+    cursor.execute(query, (request_id, user_id, ) )
     rs = cursor.fetchall()
     send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
 
@@ -2085,15 +2079,14 @@ def client_rate_request(str_request_id):
         request_id=request_id),
         200)
 
-@app.route('/api/user/requests/complete/<str_request_id>/title', methods=["POST"])
+@app.route('/api/user/requests/complete/<int:request_id>/title', methods=["POST"])
 #@exception_detector
 @login_required
-def set_title_client(str_request_id):
+def set_title_client(request_id):
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
 
-        request_id = int(str_request_id)
         title_text = parameters['title_text']
 
         my_user_id = get_user_id(g.db, session['useremail'])
@@ -2162,16 +2155,15 @@ def modify_client_completed_groups(str_group_id):
         else:
             return make_response(json.jsonify(message="Group %d is deleted." % group_id), 200)
 
-@app.route('/api/user/requests/complete/groups/<str_group_id>', methods = ["POST", "GET"])
+@app.route('/api/user/requests/complete/groups/<int:group_id>', methods = ["POST", "GET"])
 #@exception_detector
 @login_required
-def client_completed_items_in_group(str_group_id):
+def client_completed_items_in_group(group_id):
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
-        group_id = int(str_group_id)
         request_id = int(parameters['request_id'])
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET client_completed_group_id = %s WHERE id = %s", (group_id, request_id))
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET client_completed_group_id = %s WHERE id = %s", (group_id, request_id, ))
         group_name = get_text_from_id(g.db, group_id, "D_CLIENT_COMPLETED_GROUPS")
         g.db.commit()
         return make_response(
@@ -2179,7 +2171,6 @@ def client_completed_items_in_group(str_group_id):
 
     elif request.method == "GET":
         cursor = g.db.cursor()
-        group_id = int(str_group_id)
         my_user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
@@ -2194,7 +2185,7 @@ def client_completed_items_in_group(str_group_id):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (my_user_id, group_id))
+        cursor.execute(query, (my_user_id, group_id, ))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
@@ -2408,10 +2399,10 @@ def client_incompleted_item_control(request_id):
             points=points,
             request_id=request_id), 200)
 
-@app.route('/api/user/requests/<str_request_id>/payment/checkPromoCode', methods = ["POST"])
+@app.route('/api/user/requests/<int:request_id>/payment/checkPromoCode', methods = ["POST"])
 #@exception_detector
 @login_required
-def check_promotionCode(str_request_id):
+def check_promotionCode(request_id):
     user_id = get_user_id(g.db, session['useremail'])
     parameters = parse_request(request)
 
@@ -2437,15 +2428,14 @@ def check_promotionCode(str_request_id):
         return make_response(json.jsonify(
             promoType=None, message="There is no promo code matched,", code=3, point=0), 405)
         
-@app.route('/api/user/requests/<str_request_id>/payment/start', methods = ["POST"])
+@app.route('/api/user/requests/<int:request_id>/payment/start', methods = ["POST"])
 #@exception_detector
 @login_required
-def pay_for_request(str_request_id):
+def pay_for_request(request_id):
     parameters = parse_request(request)
 
     pay_by = parameters.get('pay_by')
     pay_via = parameters.get('pay_via')
-    request_id = int(str_request_id)
     total_amount = float(parameters['pay_amount'])
     use_point = float(parameters.get('use_point', 0))
 
@@ -2497,11 +2487,10 @@ def pay_for_request(str_request_id):
     elif status_code == 'point_success':
         return redirect(HOST, code=302)
 
-@app.route('/api/user/requests/<str_request_id>/payment/postprocess', methods = ["GET"])
+@app.route('/api/user/requests/<int:request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
-def pay_for_request_process(str_request_id):
+def pay_for_request_process(request_id):
     cursor = g.db.cursor()
-    request_id = int(str_request_id)
     user = request.args['user_id']
     user_id = get_user_id(g.db, user)
     pay_via = request.args['pay_via']
