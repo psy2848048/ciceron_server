@@ -19,7 +19,7 @@ class TranslationAgent:
     def getOneRawData(self):
         cursor = self.conn.cursor()
 
-        query = """SELECT paragragh_seq, sentence_seq, text,
+        query = """SELECT paragraph_seq, sentence_seq, text,
                       translation_id, original_lang_id, target_lang_id
                    FROM CICERON.D_REQUEST_TEXTS
                    WHERE is_sent_to_machine != true LIMIT 1"""
@@ -33,17 +33,17 @@ class TranslationAgent:
             print "Translated text ID: %d | Paragragh ID: %d | Sentence ID: %d" % (result[3], result[0], result[1])
             return True, result
 
-    def fillInitialTranslatedData(self, paragragh_seq, sentence_seq, sentence, translation_id, original_lang_id, target_lang_id):
+    def fillInitialTranslatedData(self, paragraph_seq, sentence_seq, sentence, translation_id, original_lang_id, target_lang_id):
         cursor = self.conn.cursor()
 
         try:
             # Get translated data from detour server
             data = self.connector.getTranslatedData(sentence, original_lang_id, target_lang_id)
             query_fillTranslatedData = """
-                INSERT INTO CICERON.D_TRANSLATED_TEXT (id, paragragh_seq, sentence_seq, google_result, yandex_result, bing_result)
+                INSERT INTO CICERON.D_TRANSLATED_TEXT (id, paragraph_seq, sentence_seq, google_result, yandex_result, bing_result)
                   VALUES (%s, %s, %s, %s, %s, %s)"""
             cursor.execute(query_fillTranslatedData,
-                    (translation_id, paragragh_seq, sentence_seq
+                    (translation_id, paragraph_seq, sentence_seq
                     , data['google'], data['yandex'], data['bing'], ) )
 
             # Show randomly selected data amaong google, bing, and yandex result as initial translation
@@ -53,22 +53,22 @@ class TranslationAgent:
                 query_setInitTranslation = """
                     UPDATE CICERON.D_TRANSLATED_TEXT
                       SET text = google_result
-                      WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
+                      WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
             elif ran_num == 2:
                 query_setInitTranslation = """
                     UPDATE CICERON.D_TRANSLATED_TEXT
                       SET text = yandex_result
-                      WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
+                      WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
             elif ran_num == 3:
                 query_setInitTranslation = """
                     UPDATE CICERON.D_TRANSLATED_TEXT
                       SET text = bing_result
-                      WHERE id=%s AND paragragh_seq=%s AND sentence_seq=%s"""
-            cursor.execute(query_setInitTranslation, (translation_id, paragragh_seq, sentence_seq, ))
+                      WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
+            cursor.execute(query_setInitTranslation, (translation_id, paragraph_seq, sentence_seq, ))
 
             # Mark as complete initial translation by machine
-            query_markAsComplete = "UPDATE CICERON.D_REQUEST_TEXTS SET is_sent_to_machine = true WHERE translation_id=%s AND paragragh_seq=%s AND sentence_seq=%s"
-            cursor.execute(query_markAsComplete, (translation_id, paragragh_seq, sentence_seq, ))
+            query_markAsComplete = "UPDATE CICERON.D_REQUEST_TEXTS SET is_sent_to_machine = true WHERE translation_id=%s AND paragraph_seq=%s AND sentence_seq=%s"
+            cursor.execute(query_markAsComplete, (translation_id, paragraph_seq, sentence_seq, ))
 
             self.conn.commit()
 
