@@ -2482,10 +2482,12 @@ def pay_for_request(request_id):
             message="Something wrong in iamport"), 400)
 
     elif status_code == 'iamport_success':
-        return redirect(HOST, code=302)
+        return make_response(json.jsonify(message="Iamport success",
+            link="%s%s" % (HOST, '/stoa')), 200)
 
     elif status_code == 'point_success':
-        return redirect(HOST, code=302)
+        return make_response(json.jsonify(message="Point success",
+            link="%s%s" % (HOST, '/stoa')), 200)
 
 @app.route('/api/user/requests/<int:request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
@@ -2511,10 +2513,10 @@ def pay_for_request_process(request_id):
         return redirect(HOST, code=302)
 
     if pay_by == "web":
-        return redirect(HOST, code=302)
+        return redirect("%s%s" % (HOST, '/stoa'), code=302)
         #return make_response("OK", 200)
     elif pay_by == "mobile":
-        return redirect(HOST, code=302)
+        return redirect("%s%s" % (HOST, '/stoa'), code=302)
 
 @app.route('/api/user/translations/<int:request_id>', methods=["GET"])
 @login_required
