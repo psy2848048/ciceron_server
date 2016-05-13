@@ -46,25 +46,34 @@ class TranslationAgent:
                     (translation_id, paragraph_seq, sentence_seq
                     , data['google'], data['yandex'], data['bing'], ) )
 
-            # Show randomly selected data amaong google, bing, and yandex result as initial translation
-            ran_num = random.randint(1, 3)
-            query_setInitTranslation = None
-            if ran_num == 1:
+            if (original_lang_id == 1 and target_lang_id in [2, 3]) \
+                    or (original_lang_id in [2, 3] and target_lang_id == 1):
                 query_setInitTranslation = """
                     UPDATE CICERON.D_TRANSLATED_TEXT
                       SET text = google_result
                       WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
-            elif ran_num == 2:
-                query_setInitTranslation = """
-                    UPDATE CICERON.D_TRANSLATED_TEXT
-                      SET text = yandex_result
-                      WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
-            elif ran_num == 3:
-                query_setInitTranslation = """
-                    UPDATE CICERON.D_TRANSLATED_TEXT
-                      SET text = bing_result
-                      WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
-            cursor.execute(query_setInitTranslation, (translation_id, paragraph_seq, sentence_seq, ))
+                cursor.execute(query_setInitTranslation, (translation_id, paragraph_seq, sentence_seq, ))
+
+            else:
+                # Show randomly selected data amaong google, bing, and yandex result as initial translation
+                ran_num = random.randint(1, 3)
+                query_setInitTranslation = None
+                if ran_num == 1:
+                    query_setInitTranslation = """
+                        UPDATE CICERON.D_TRANSLATED_TEXT
+                          SET text = google_result
+                          WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
+                elif ran_num == 2:
+                    query_setInitTranslation = """
+                        UPDATE CICERON.D_TRANSLATED_TEXT
+                          SET text = yandex_result
+                          WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
+                elif ran_num == 3:
+                    query_setInitTranslation = """
+                        UPDATE CICERON.D_TRANSLATED_TEXT
+                          SET text = bing_result
+                          WHERE id=%s AND paragraph_seq=%s AND sentence_seq=%s"""
+                cursor.execute(query_setInitTranslation, (translation_id, paragraph_seq, sentence_seq, ))
 
             # Mark as complete initial translation by machine
             query_markAsComplete = "UPDATE CICERON.D_REQUEST_TEXTS SET is_sent_to_machine = true WHERE translation_id=%s AND paragraph_seq=%s AND sentence_seq=%s"

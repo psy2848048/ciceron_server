@@ -16,16 +16,40 @@ class Translator:
         self.bingAPI = Bing_Translator('welcome_ciceron', 'VL9isREJUILWMCLE2hr75xVaePRof6kuGkCM+r9oTb0=')
 
     def _googleTranslate(self, source_lang, target_lang, sentences):
-        result_google = self.googleAPI.translations().list(
-                                                source=source_lang,
-                                                target=target_lang,
-                                                     q=sentences
-                ).execute()
-        if result_google.get('translations') != None:
-            result_array = result_google['translations'][0]['translatedText']
-            return result_array
+        if (original_lang == 'ko' and target_lang_id == 'en') or \
+           (original_lang == 'en' and target_lang_id == 'ko'):
+            result_google_jp = self.googleAPI.translations().list(
+                                                    source=source_lang,
+                                                    target='jp',
+                                                         q=sentences
+                    ).execute()
+            if result_google_jp.get('translations') != None:
+                inter_text = result_google_jp['translations'][0]['translatedText']
+            else:
+                return False
+
+            result_google = self.googleAPI.translations().list(
+                                                    source='jp',
+                                                    target=target_lang_id,
+                                                         q=sentences
+                    ).execute()
+            if result_google.get('translations') != None:
+                result_text = result_google['translations'][0]['translatedText']
+                return result_text
+            else:
+                return False
+
         else:
-            return None
+            result_google = self.googleAPI.translations().list(
+                                                    source=source_lang,
+                                                    target=target_lang,
+                                                         q=sentences
+                    ).execute()
+            if result_google.get('translations') != None:
+                result_text = result_google['translations'][0]['translatedText']
+                return result_text
+            else:
+                return None
 
     def _bingTranslate(self, source_lang, target_lang, sentences):
         result_bing = self.bingAPI.translate(sentences, target_lang)
