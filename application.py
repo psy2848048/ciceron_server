@@ -1984,7 +1984,7 @@ def client_completed_items_detail(request_id):
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
-    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND client_user_id = %s """
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND client_user_id = %s """
     cursor.execute(query, (request_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
