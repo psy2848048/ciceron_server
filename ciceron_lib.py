@@ -735,9 +735,9 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     msg.attach(content)
 
     print msg
-    a = smtplib.SMTP('smtp.worksmobile.com:587')
+    a = smtplib.SMTP('smtp.gmail.com:587')
     a.starttls()
-    a.login('no-reply@ciceron.me', 'Ciceron01!')
+    a.login('no-reply@ciceron.me', 'ciceron0308!')
     a.sendmail('no-reply@ciceron.me', str(mail_to), msg.as_string())
     a.quit()
 
