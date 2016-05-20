@@ -22,6 +22,7 @@ CREATE TABLE CICERON.D_USERS (
     nationality INT,
     residence INT,
     return_rate REAL,
+    member_since TIMESTAMPTZ,
     
     PRIMARY KEY (id)
 );

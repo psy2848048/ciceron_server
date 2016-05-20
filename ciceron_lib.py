@@ -966,7 +966,7 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
 
     print "New user id: %d" % user_id
     cursor.execute("""INSERT INTO CICERON.D_USERS
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)""",
             (user_id,
              email,
              name,
