@@ -19,22 +19,22 @@ class MailAgent:
         translator_list = []
         client_list = []
 
-        query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
-            FROM CICERON.F_REQUESTS
-            WHERE (isSos = false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/2 AND start_translating_time + interval '30 minutes' < due_time)
-            OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/3 AND start_translating_time + interval '30 minutes' > due_time) """
-        cursor.execute(query_no_expected_time)
-        rs = cursor.fetchall()
-        for item in rs:
-            if isCheck == False:
-                lib.send_noti_suite(self.gcm_server, self.conn, item[0], 6, item[1], item[2])
-                lib.send_noti_suite(self.gcm_server, self.conn, item[1], 10, item[0], item[2])
-                translator_list.append(item[0])
-                client_list.append(item[1])
+        #query_no_expected_time = """SELECT ongoing_worker_id, client_user_id, id
+        #    FROM CICERON.F_REQUESTS
+        #    WHERE (isSos = false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/2 AND start_translating_time + interval '30 minutes' < due_time)
+        #    OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/3 AND start_translating_time + interval '30 minutes' > due_time) """
+        #cursor.execute(query_no_expected_time)
+        #rs = cursor.fetchall()
+        #for item in rs:
+        #    if isCheck == False:
+        #        lib.send_noti_suite(self.gcm_server, self.conn, item[0], 6, item[1], item[2])
+        #        lib.send_noti_suite(self.gcm_server, self.conn, item[1], 10, item[0], item[2])
+        #        translator_list.append(item[0])
+        #        client_list.append(item[1])
 
-            else:
-                self._monitorFileRefresher()
-                return
+        #    else:
+        #        self._monitorFileRefresher()
+        #        return
 
         # Expired deadline
         query_expired_deadline = """SELECT ongoing_worker_id, client_user_id, id
@@ -71,9 +71,9 @@ class MailAgent:
         if isCheck == False:
             cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
                 WHERE isSos = false AND status_id IN (0,1) AND CURRENT_TIMESTAMP > due_time """)
-            cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
-                WHERE (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/2 AND start_translating_time + interval '30 minutes' < due_time)
-                OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/3 AND start_translating_time + interval '30 minutes' > due_time) """)
+            #cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null
+            #    WHERE (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/2 AND start_translating_time + interval '30 minutes' < due_time)
+            #    OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) > (due_time - start_translating_time)/3 AND start_translating_time + interval '30 minutes' > due_time) """)
             self.conn.commit()
 
             for user_id in translator_list: lib.update_user_record(self.conn, translator_id=user_id)
@@ -290,7 +290,7 @@ class MailAgent:
 
     def run(self, isCheck=False):
         self.publicize(isCheck=isCheck)
-        self.ask_expected_time(isCheck=isCheck)
+        #self.ask_expected_time(isCheck=isCheck)
         self.delete_sos(isCheck=isCheck)
 
         if isCheck == False:
