@@ -37,6 +37,7 @@ FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
 
 SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
+PERMANENT_SESSION_LIFETIME = timedelta(days=15)
 
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
@@ -121,7 +122,7 @@ def get_facebook_token():
 def loginCheck():
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
-
+        isTranslator = translator_checker_plain(g.db, session['useremail'])
         #if client_os is not None and registration_id is not None:
         #    check_and_update_reg_key(g.db, client_os, registration_id)
         #    g.db.coomit()
@@ -129,12 +130,14 @@ def loginCheck():
         return make_response(json.jsonify(
             useremail=session['useremail'],
             isLoggedIn = True,
+            isTranslator=isTranslator,
             message="User %s is logged in" % session['useremail'])
             , 200)
     else:
         return make_response(json.jsonify(
             useremail=None,
             isLoggedIn=False,
+            isTranslator=False,
             message="No user is logged in")
             , 403)
 
@@ -174,8 +177,10 @@ def login():
         elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == hashed_password:
             # Status code 200 (OK)
             # Description: Success to log in
+            isTranslator = translator_checker_plain(g.db, email)
             session['logged_in'] = True
             session['useremail'] = email
+            session['isTranslator'] = isTranslator
             session.pop('salt', None)
         
             #if client_os is not None and registration_id is not None:
@@ -183,6 +188,7 @@ def login():
         
             return make_response(json.jsonify(
                 message='Logged in',
+                isTranslator=isTranslator,
                 email=email)
                 , 200)
 

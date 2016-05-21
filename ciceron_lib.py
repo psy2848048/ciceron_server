@@ -278,6 +278,16 @@ def translator_checker(f):
 
     return decorated_function
 
+def translator_checker_plain(conn, email):
+    cursor = g.db.cursor()
+    cursor.execute("SELECT is_translator FROM CICERON.D_USERS WHERE email = %s", (email, ) )
+    rs = cursor.fetchone()
+
+    if rs is None or len(rs) == 0:
+        return False
+    else:
+        return rs[0]
+
 def strict_translator_checker(conn, user_id, request_id):
     cursor = conn.cursor()
     cursor.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM CICERON.D_USERS WHERE id = %s ", (user_id, ))
