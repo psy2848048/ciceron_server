@@ -1672,7 +1672,7 @@ def translation_incompleted_items_all():
 
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE ((status_id IN (-1,1) AND ongoing_worker_id = %s) OR (request_id IN (SELECT request_id FROM D_QUEUE_LISTS WHERE user_id = %s))) "
+        query = "SELECT * FROM CICERON.V_REQUESTS WHERE ((status_id IN (-1,1) AND ongoing_worker_id = %s) OR (request_id IN (SELECT request_id FROM CICERON.D_QUEUE_LISTS WHERE user_id = %s))) "
     else:
         query = """SELECT * FROM CICERON.V_REQUESTS
             WHERE (
