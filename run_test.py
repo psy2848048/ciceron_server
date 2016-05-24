@@ -4,14 +4,15 @@ from flask import url_for
 
 class CiceronTestCase(unittest.TestCase):
     def setUp(self):
-        self.db_fd, application.app.config['DATABASE'] = tempfile.mkstemp()
+        #self.db_fd, application.app.config['DATABASE'] = tempfile.mkstemp()
         application.app.config['TESTING'] = True
         self.app = application.app.test_client()
-        application.init_db()
+        #self.app.g.db = application.connect_db()
 
     def tearDown(self):
-        os.close(self.db_fd)
-        os.unlink(application.app.config['DATABASE'])
+        #os.close(self.db_fd)
+        #os.unlink(application.app.config['DATABASE'])
+        pass
 
     def signUp(self, email, password, name, mother_language_id):
         hasher = hashlib.sha256()
@@ -24,25 +25,28 @@ class CiceronTestCase(unittest.TestCase):
                 mother_language_id=mother_language_id
                 ), follow_redirects=True)
 
-    def login(self, email, password):
-        rv = self.app.get('/api/login')
-        salt = json.loads(rv.data)['identifier']
-        salt = salt.encode('utf-8')
+    def login(self, email):
+        #rv = self.app.get('/api/login')
+        #salt = json.loads(rv.data)['identifier']
+        #salt = salt.encode('utf-8')
 
-        hasher = hashlib.sha256()
-        hasher.update(password)
-        temp_pass = hasher.hexdigest()
+        #hasher = hashlib.sha256()
+        #hasher.update(password)
+        #temp_pass = hasher.hexdigest()
 
-        hasher2 = hashlib.sha256()
-        hasher2.update(salt + temp_pass + salt)
-        value = hasher2.hexdigest()
-        return self.app.post('/api/login', data=dict(
-               email=email,
-               password=value
-           ), follow_redirects=True)
+        #hasher2 = hashlib.sha256()
+        #hasher2.update(salt + temp_pass + salt)
+        #value = hasher2.hexdigest()
+        #return self.app.post('/api/login', data=dict(
+        #       email=email,
+        #       password=value
+        #   ), follow_redirects=True)
+        with self.app.session_transaction() as sess:
+            sess['useremail'] = email
+            sess['logged_in'] = True
 
     def test_login(self):
-        print ("=============test_login==============")
+        print "=============test_login=============="
 
         self.signUp(email="psy2848048@gmail.com",
 		    password="ciceron!",
@@ -77,40 +81,23 @@ class CiceronTestCase(unittest.TestCase):
 
     def test_idChecker(self):
         print ("=================test-nickchecker====================")
-        
-        rv = self.app.post('/api/idCheck', data=dict(email='psy2848048@gmail.com'))
-        print rv.data
-        assert 'You may use' in  rv.data
-        
-        self.signUp(email="psy2848048@gmail.com",
-        	    password="ciceron!",
-        	    name="CiceronMaster",
-        	    mother_language_id=0)
-        
         rv = self.app.post('/api/idCheck', data=dict(email='psy2848048@gmail.com'))
         print rv.data
         assert 'Duplicated' in  rv.data
 
-    def test_login_decorator(self):
-        print ("==============test-login-req-decorator==============")
+    def test_profile(self):
+        print ("==============test-profile==============")
         rv = self.app.get("/api/user/profile")
         print (rv)
         print (rv.data)
         assert 'Login required' in rv.data
-
-        self.signUp(email="psy2848048@gmail.com",
-        	    password="ciceron!",
-        	    name="CiceronMaster",
-        	    mother_language_id=0)
-        rv = self.login(email="psy2848048@gmail.com",
-        	    password="ciceron!"
-        	    )
-
+        rv = self.login(email="psy2848048@gmail.com")
         print ("Login complete")
 
         rv = self.app.get("/api/user/profile")
         print (rv)
-        print (rv.data)
+        print "////Before prifileTest////"
+        print rv.data
 
         rv = self.app.post("/api/user/profile",
                 data=dict(
@@ -121,197 +108,22 @@ class CiceronTestCase(unittest.TestCase):
         rv = self.app.get("/api/user/profile")
         print (rv.data)
 
-    def test_request(self):
-        print ("=============test-request===================")
-        self.signUp(email="psy2848048@gmail.com",
-        	    password="ciceron!",
-        	    name="CiceronMaster",
-        	    mother_language_id=0)
-        self.login(email="psy2848048@gmail.com",
-        	    password="ciceron!"
-        	    )
-        
-        text = "This is test text\nAnd I donno how to deal with"
-        print ("Post normal request without money")
+    def test_pendingQueue(self):
+        print "================test-pendingQueue=============="
+
+        print "Login.."
+        self.login(email="psy2848048@nate.com")
+
+        print "Post SOS"
+        text = "테스트테스트! 신나는 테스트.\n어떻게 울궈먹고 놀까나 나도 모르겠다 이히힛ㅋㅋ."
         rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="psy2848048@gmail.com",
-                request_originalLang=0,
-                request_targetLang=1,
-                request_isSos=True,
-                request_format=0,
-                request_subject=0,
-                request_isText=True,
-                request_text = text,
-                request_isPhoto=False,
-                request_isSound=False,
-                request_isFile=False,
-                request_deltaFromDue=3600,
-        		request_points=0.50,
-                request_context=""
-        		))
-
-        try:
-            assert "Request ID" in rv.data
-        except:
-            print (rv.data)
-            raise AssertionError
-
-        print ("Pass step 1")
-
-        text2 = "testtesttest\nChinese\n안녕하세요,おはようございます"
-        #text2 = "testtesttest\nChinese\\"
-        
-        rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="psy2848048@gmail.com",
-                request_originalLang=0,
+        		request_clientId="psy2848048@nate.com",
+                request_originalLang=1,
                 request_targetLang=2,
                 request_isSos=True,
                 request_format=0,
                 request_subject=0,
                 request_isText=True,
-                request_text = text2,
-                request_isPhoto=False,
-                request_isSound=False,
-                request_isFile=False,
-                request_words=len(text.split(' ')),
-                request_deltaFromDue=5500,
-        		request_points=0,
-                request_context="Wow!"
-        		))
-        try:
-            assert "Request ID" in rv.data
-        except:
-            print rv.data
-            raise AssertionError
-
-        print "Passed step 2"
-        
-        rv = self.app.get('/api/requests')
-        print "Posted list"
-        print rv.data
-        
-        rv = self.app.get('/api/requests?since=%s' % time.time())
-        print "Posted list with last_post_time"
-        print rv.data
-        
-        print "Test with different user"
-        self.signUp(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-        	    name="CiceronUser",
-        	    mother_language_id=2)
-        self.login(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-        	    )
-        
-        rv = self.app.get('/api/requests')
-        print "Posted list"
-        print rv.data
-
-    def test_pick_request(self):
-        print "================test-pick-request=============="
-        self.signUp(email="psy2848048@gmail.com",
-        	    password="ciceron!",
-        	    name="CiceronMaster",
-        	    mother_language_id=0)
-        self.login(email="psy2848048@gmail.com",
-        	    password="ciceron!"
-        	    )
-        
-        text = "This is test text\nAnd I donno how to deal with"
-        rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="psy2848048@gmail.com",
-                request_originalLang=0,
-                request_targetLang=1,
-                request_isSos=True,
-                request_format=0,
-                request_subject=0,
-                request_isText=True,
-                request_text = text,
-                request_isPhoto=False,
-                request_isSound=False,
-                request_isFile=False,
-                request_words=len(text),
-        		request_points=0.50,
-                request_context=""
-        		))
-        text2 = "testtesttest\nChinese\na;eoifja;ef"
-        rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="psy2848048@gmail.com",
-                request_originalLang=0,
-                request_targetLang=2,
-                request_isSos=False,
-                request_format=0,
-                request_subject=0,
-                request_deltaFromDue=15020,
-                request_isText=True,
-                request_text = text2,
-                request_isPhoto=False,
-                request_isSound=False,
-                request_isFile=False,
-                request_words=len(text),
-        		request_points=0,
-                request_context="Wow!"
-        		))
-        
-        rv = self.app.get('/api/requests')
-        print "Posted list"
-        print rv.data
-
-        print "Attempt to translate what he/she requested"
-
-        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
-        print rv.data
-        
-        self.signUp(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-        	    name="CiceronUser",
-        	    mother_language_id=1)
-
-        self.signUp(email="admin@ciceron.me",
-        	    password="!master@Of#Ciceron$",
-        	    name="AdminCiceron",
-        	    mother_language_id=0)
-        self.login(email="admin@ciceron.me",
-        	    password="!master@Of#Ciceron$"
-        	    )
-        rv = self.app.post('/api/admin/language_assigner', data=dict(email='jun.hang.lee@sap.com', language_id=0))
-        print rv.data
-        self.app.get('/api/logout')
-
-        self.login(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-        	    )
-
-        rv = self.app.post('/api/user/translations/pending', data=dict(
-            request_id=0
-            ))
-        
-        print "Queue list"
-        print rv.data
-
-        rv = self.app.get('/api/user/translations/pending')
-        print "Posted list"
-        print rv.data
-
-    def test_translate(self):
-        print "================test-translate=============="
-        self.signUp(email="happyhj@gmail.com",
-        	    password="ciceron!",
-        	    name="CiceronMaster",
-        	    mother_language_id=0)
-        self.login(email="happyhj@gmail.com",
-        	    password="ciceron!"
-        	    )
-        
-        text = "This is test text\nAnd I donno how to deal with"
-        rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="happyhj@gmail.com",
-                request_originalLang=0,
-                request_targetLang=1,
-                request_isSos=True,
-                request_format=0,
-                request_subject=0,
-                request_isText=True,
                 request_text = text,
                 request_isPhoto=False,
                 request_isSound=False,
@@ -319,11 +131,12 @@ class CiceronTestCase(unittest.TestCase):
         		request_points=0.50,
                 request_context=""
         		))
-        print rv.data
-        text2 = "testtesttest\nChinese\na;eoifja;ef"
+
+        print "Post normal"
+        text2 = "난 잘 몰라 암치기나 함 해보지 뭐.\n잘해보셔. 대충 살어. 날라리날라리~."
         rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="happyhj@gmail.com",
-                request_originalLang=0,
+        		request_clientId="psy2848048@nate.com",
+                request_originalLang=1,
                 request_targetLang=2,
                 request_isSos=False,
                 request_format=0,
@@ -334,19 +147,25 @@ class CiceronTestCase(unittest.TestCase):
                 request_isSound=False,
                 request_isFile=False,
                 request_deltaFromDue=7890,
-        		request_points=0,
+        		request_points=23.0,
                 request_context="Wow!"
         		))
-        print rv.data
 
-        rv = self.app.get('/api/requests')
-        print rv.data
+        response = json.loads(rv.data)
+        sample_request_id = response['request_id']
+        rv = self.app.get("/api/user/requests/%d/payment/postprocess?pay_via=alipay&status=success&user_id=%s&pay_amt=%.2f&pay_by=%s&use_point=%.2f&promo_type=%s&promo_code=%s&is_additional=%s" % (
+            sample_request_id, 'psy2848048@nate.com', 23.0, 'web', 0, '', '', 'false'))
+
+        self.login(email="psy2848048@gmail.com")
+        rv = self.app.get('/api/user/translations/stoa')
+        print "    %d tickets are applied." % len(json.loads(rv.data)['data'])
 
         print "Unicode test"
-        text3 = "Who somebody can test it?\n한국어\tsiol"
+        self.login(email="psy2848048@nate.com")
+        text3 = "스파이더맨, 누가 좀 도와줘요!\n아니면 사이드킥이라도!! 살려줘요!"
         rv = self.app.post('/api/requests', data=dict(
-        		request_clientId="happyhj@gmail.com",
-                request_originalLang=0,
+        		request_clientId="psy2848048@nate.com",
+                request_originalLang=1,
                 request_targetLang=2,
                 request_isSos=True,
                 request_format=0,
@@ -359,95 +178,86 @@ class CiceronTestCase(unittest.TestCase):
         		request_points=0,
                 request_context="Korean request test"
         		))
+        rv = self.app.get('/api/user/requests/stoa')
+        requests = json.loads(rv.data)
+        print "    Requested text: %s" % requests['data'][0]['request_text']
 
-        rv = self.app.get('/api/requests')
-        print rv.data
+        meatshield_request_id = requests['data'][0]['request_id']
+        print "    meatshield_request_id: %d" % meatshield_request_id
+        print "    %d tickets are applied." % len(requests)
 
+        print ""
         print "Delete request"
-        rv = self.app.delete('/api/requests/2')
-        rv = self.app.get('/api/requests')
+        rv = self.app.delete('/api/user/requests/pending/%d' % meatshield_request_id)
+
+        self.login(email="psy2848048@gmail.com")
+        rv = self.app.get('/api/user/translations/stoa')
+
+        print ""
+        print "Try to nego"
+        print "    sample_request_id: %d" % sample_request_id
+        rv = self.app.post('/api/user/translations/pending',
+                data=dict(
+                        request_id=sample_request_id,
+                        translator_additionalPoint=28.0
+                    )
+                )
         print rv.data
 
-        print "Attempt to translate what he/she requested"
-
-        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
-        print rv.data
-
+        print "    Check client's pending"
+        self.login(email="psy2848048@nate.com")
         rv = self.app.get('/api/user/requests/pending')
         print rv.data
 
-        rv = self.app.get('/api/user/requests/pending/0')
+        rv = self.app.get('/api/user/requests/pending/%d' % sample_request_id)
+        requests = json.loads(rv.data)
+        print "    %d tickets are applied." % len(requests)
+
+        print "    Try to line in the double-queue"
+        self.login(email="psy2848048@gmail.com")
+        rv = self.app.post('/api/user/translations/pending',
+                data=dict(
+                        request_id=sample_request_id,
+                        translator_additionalPoint=30.0
+                    )
+                )
+        print rv.data
+
+        print "    Another user queuing"
+        self.login(email="admin@ciceron.me")
+        rv = self.app.post('/api/user/translations/pending',
+                data=dict(
+                    request_id=sample_request_id,
+                    translator_additionalPoint=31.0
+                    )
+                )
+        print rv.data
+
+        print "    Dequeue"
+        self.login(email="admin@ciceron.me")
+        rv = self.app.delete('/api/user/translations/pending/%d' % sample_request_id)
         print rv.data
         
-        self.signUp(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!",
-        	    name="CiceronUser",
-        	    mother_language_id=1)
-        self.signUp(email="admin@ciceron.me",
-        	    password="!master@Of#Ciceron$",
-        	    name="AdminCiceron",
-        	    mother_language_id=0)
-        self.login(email="admin@ciceron.me",
-        	    password="!master@Of#Ciceron$"
-        	    )
-        rv = self.app.post('/api/admin/language_assigner', data=dict(email='jun.hang.lee@sap.com', language_id=0))
-        print rv.data
-        self.login(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-        	    )
-
-        print "Line in the queue"
-        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
-        print rv.data
-
-        print "Try to line in the double-queue"
-        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
-        print rv.data
-
-        print "Another user queuing"
-        self.signUp(email="jae.hong.park@sap.com",
-        	    password="meeToo",
-        	    name="CiceronUser2",
-        	    mother_language_id=1)
-        self.login(email="admin@ciceron.me",
-        	    password="!master@Of#Ciceron$"
-        	    )
-        rv = self.app.post('/api/admin/language_assigner', data=dict(email='jae.hong.park@sap.com', language_id=0))
-        self.login(email="jae.hong.park@sap.com",
-        	    password="meeToo"
-        	    )
-        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
-        print rv.data
-
-        print "Re-login"
-        self.login(email="jun.hang.lee@sap.com",
-        	    password="IWantToExitw/SAPLabsKoreaFucking!!!"
-        	    )
-
-        print "Dequeue"
-        rv = self.app.delete('/api/user/translations/pending/0')
-        print rv.data
-        
-        print "Queue list"
+        print "    Queue list"
+        self.login(email="psy2848048@gmail.com")
         rv = self.app.get('/api/user/translations/pending')
-        print rv.data
+        result = json.loads(rv.data)
 
-        print "Line in the queue"
-        rv = self.app.post('/api/user/translations/pending', data=dict(request_id=0))
-        print rv.data
+        print "    psy2848048@nate.com accepts the nego psy2848048@gmail.com"
+        self.login(email="psy2848048@nate.com")
+        rv = self.app.post('/api/user/requests/pending',
+                data=dict(
+                    pay_by='web',
+                    pay_via='alipay',
+                    request_id=sample_request_id,
+                    translator_userEmail='psy2848048@gmail.com'
+                    )
+                )
+        result = json.loads(rv.data)
+        print "Provided link from alipay:"
+        print result
 
-        print "Queue list"
-        rv = self.app.get('/api/user/translations/pending')
-        print rv.data
-
-        rv = self.app.get('/api/user/translations/pending')
-        print "Posted list"
-        print rv.data
-
-        print "Take a request"
-        rv = self.app.post('/api/user/translations/ongoing', data=dict(request_id=0))
-        print rv.data
-
+    def test_translation(self):
         print "Check change"
         rv = self.app.get('/api/requests')
         print rv.data
@@ -705,6 +515,10 @@ class CiceronTestCase(unittest.TestCase):
 
         rv = self.app.get(response_temp['redirect_url'])
         rv = self.app.get('/requests')
+        print rv.data
+
+    def test_logWrite(self):
+        rv = self.app.get('/api/scheduler/log_transfer')
         print rv.data
 
 if __name__ == "__main__":

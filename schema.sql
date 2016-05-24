@@ -21,9 +21,12 @@ CREATE TABLE CICERON.D_USERS (
     trans_request_state INT,
     nationality INT,
     residence INT,
+    return_rate REAL,
+    member_since TIMESTAMPTZ,
     
     PRIMARY KEY (id)
 );
+CREATE UNIQUE INDEX useremail ON CICERON.D_USERS (email);
 
 CREATE TABLE CICERON.F_USER_PROFILE_PIC (
     user_id INT,
@@ -58,18 +61,22 @@ CREATE TABLE CICERON.PASSWORDS (
 CREATE TABLE CICERON.D_LANGUAGES (
     id INT,
     text varchar(100),
+    google_code varchar(10),
+    yandex_code varchar(10),
+    bing_code varchar(10),
     
     PRIMARY KEY (id)
 );
 
 CREATE SEQUENCE CICERON.SEQ_D_LANGUAGES;
 
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Korean');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(USA)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(UK)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Mandarin)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Cantonese)');
-INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Thai');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Korean', 'ko', 'ko', 'ko');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(USA)', 'en', 'en', 'en');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'English(UK)', 'en', 'en', 'en');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Mandarin)', 'zh-CN', 'zh', 'zh-CHS');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Cantonese)', 'zh-CN', 'zh', 'zh-CHS');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Thai', 'th', 'th', 'th');
+INSERT INTO CICERON.D_LANGUAGES VALUES (nextval('CICERON.SEQ_D_LANGUAGES'), 'Chinese(Taiwanese)', 'zh-TW', null, 'zh-CHT');
 
 CREATE TABLE CICERON.D_TRANSLATABLE_LANGUAGES (
     id INT,
@@ -89,12 +96,13 @@ CREATE TABLE CICERON.D_NATIONS (
     PRIMARY KEY (id)
 );
 
-INSERT INTO CICERON.D_NATIONS VALUES (0, 'Korea');
-INSERT INTO CICERON.D_NATIONS VALUES (1, 'USA');
-INSERT INTO CICERON.D_NATIONS VALUES (2, 'UK');
-INSERT INTO CICERON.D_NATIONS VALUES (3, 'China(Mainland)');
-INSERT INTO CICERON.D_NATIONS VALUES (4, 'China(Hong Kong, Macao)');
-INSERT INTO CICERON.D_NATIONS VALUES (5, 'Thailand');
+INSERT INTO CICERON.D_NATIONS VALUES (1, 'Korea');
+INSERT INTO CICERON.D_NATIONS VALUES (2, 'USA');
+INSERT INTO CICERON.D_NATIONS VALUES (3, 'UK');
+INSERT INTO CICERON.D_NATIONS VALUES (4, 'China(Mainland)');
+INSERT INTO CICERON.D_NATIONS VALUES (5, 'China(Hong Kong, Macao)');
+INSERT INTO CICERON.D_NATIONS VALUES (6, 'Thailand');
+INSERT INTO CICERON.D_NATIONS VALUES (7, 'China(Taiwan)');
 
 CREATE TABLE CICERON.D_RESIDENCE (
     id INT,
@@ -181,6 +189,9 @@ CREATE TABLE CICERON.F_REQUESTS (
     translatedText_id INT, -- D_TRANSLATED_TEXT
     feedback_score INT,
     start_translating_time TIMESTAMPTZ,
+    is_need_additional_points BOOLEAN,
+    additional_points REAL,
+    is_additional_points_paid BOOLEAN,
     
     PRIMARY KEY(id)
 );
@@ -189,11 +200,19 @@ CREATE SEQUENCE CICERON.SEQ_F_REQUESTS;
 
 CREATE TABLE CICERON.D_REQUEST_TEXTS (
     id INT,
+    paragragh_seq,
+    sentence_seq,
     path varchar(200),
     text TEXT,
+    hit INT,
+    translation_id INT,
+    is_sent_to_machine boolean,
+    original_lang_id INT,
+    target_lang_id INT,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
+CREATE INDEX sentence ON CICERON.D_REQUEST_TEXTS (text);
 
 CREATE SEQUENCE CICERON.SEQ_D_REQUEST_TEXTS;
 
@@ -298,6 +317,7 @@ CREATE TABLE CICERON.D_QUEUE_LISTS (
     id INT,
     request_id INT, -- REQUEST_ID from F_REQUESTS
     user_id INT, -- D_USERS
+    nego_price REAL,
     PRIMARY KEY (id, request_id, user_id),
     FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS
 );
@@ -306,10 +326,15 @@ CREATE SEQUENCE CICERON.SEQ_D_QUEUE_LISTS;
 
 CREATE TABLE CICERON.D_TRANSLATED_TEXT(
     id INT,
+    paragragh_seq INT,
+    sentence_seq INT,
     path varchar(300),
+    google_result TEXT,
+    yandex_result TEXT,
+    bing_result TEXT,
     text TEXT,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id, paragragh_seq, sentence_seq)
 );
 
 CREATE SEQUENCE CICERON.SEQ_D_TRANSLATED_TEXT;
@@ -379,6 +404,14 @@ CREATE TABLE CICERON.REVENUE (
     FOREIGN KEY (id) REFERENCES CICERON.D_USERS (id)
 );
 
+CREATE TABLE CICERON.RETURN_POINT (
+    id INT,
+    amount REAL,
+
+    PRIMARY KEY (id),
+    FOREIGN KEY (id) REFERENCES CICERON.D_USERS (id)
+);
+
 CREATE TABLE CICERON.PAYMENT_INFO (
     id INT,
     request_id INT,
@@ -397,6 +430,7 @@ CREATE TABLE CICERON.PAYMENT_INFO (
     FOREIGN KEY (client_id) REFERENCES CICERON.D_USERS (id),
     FOREIGN KEY (translator_id) REFERENCES CICERON.D_USERS (id)
 );
+CREATE INDEX order_no ON CICERON.PAYMENT_INFO (order_no);
 
 CREATE SEQUENCE CICERON.SEQ_PAYMENT_INFO;
 
@@ -467,7 +501,10 @@ CREATE VIEW CICERON.V_REQUESTS as
     fact.is_paid is_paid, --53
     fact.feedback_score feedback_score, --54
 
-    fact.start_translating_time start_translating_time --55
+    fact.start_translating_time start_translating_time, --55
+    fact.is_need_additional_points is_need_additional_points, --56
+    fact.additional_points additional_points, --57
+    fact.is_additional_points_paid is_additional_points_paid -- 58
 
   FROM
     CICERON.F_REQUESTS fact
@@ -523,20 +560,49 @@ CREATE VIEW CICERON.V_QUEUE_LISTS as
    users.numOfTranslationOngoing numOfTranslationOngoing,
     users.numOfTranslationCompleted numOfTranslationCompleted,
     users.badgeList_id badgeList_id, -- D_AWARDED_BADGES
-    users.profile_text profile_text
+    users.profile_text profile_text,
+   fact.nego_price nego_price
   FROM
     CICERON.D_QUEUE_LISTS fact
   LEFT OUTER JOIN CICERON.D_USERS users ON fact.user_id = users.id;
 
-CREATE TABLE CICERON.USER_ACTIONS (
+CREATE TABLE CICERON.TEMP_ACTIONS_LOG (
+    id INT,
     user_id INT,
     lati REAL,
     longi REAL,
     method varchar(10),
     api varchar(300),
-    request_id INT,
-    log_time TIMESTAMPTZ
+    log_time TIMESTAMPTZ,
+    ip_address varchar(100),
+
+    PRIMARY KEY (id)
 );
+
+CREATE TABLE CICERON.USER_ACTIONS (
+    id INT,
+    user_id INT,
+    lati REAL,
+    longi REAL,
+    method varchar(10),
+    api varchar(300),
+    log_time TIMESTAMPTZ,
+    ip_address varchar(100),
+
+    PRIMARY KEY (id)
+);
+CREATE SEQUENCE CICERON.SEQ_USER_ACTIONS;
+
+CREATE TABLE CICERON.BLACKLIST (
+    id INT,
+    user_id INT,
+    ip_address varchar(20),
+    time_from TIMESTAMPTZ,
+    time_to TIMESTAMPTZ,
+
+    PRIMARY KEY (id)
+);
+CREATE SEQUENCE CICERON.SEQ_BLACKLIST;
 
 CREATE TABLE CICERON.RETURN_MONEY_BANK_ACCOUNT (
     id INT,
@@ -590,6 +656,7 @@ CREATE TABLE CICERON.F_NOTIFICATION (
     request_id INT,
     ts TIMESTAMPTZ,
     is_read BOOLEAN,
+    is_mail_sent BOOLEAN,
 
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id),
@@ -622,7 +689,10 @@ CREATE VIEW CICERON.V_NOTIFICATION as
     fact.ts ts, --17
     fact.is_read is_read, --18
     users.profile_pic_path user_profile_pic_path,
-    req.status_id status_id
+    req.status_id status_id,
+
+    fact.is_mail_sent is_mail_sent
+
   FROM CICERON.F_NOTIFICATION fact
   LEFT OUTER JOIN CICERON.D_USERS users ON fact.user_id = users.id
   LEFT OUTER JOIN CICERON.D_USERS users2 ON fact.target_user_id = users2.id
@@ -663,3 +733,67 @@ CREATE TABLE CICERON.PROMOTIONCODES_USER (
 );
 
 CREATE SEQUENCE CICERON.SEQ_PROMOTIONCODES_USER;
+
+CREATE TABLE CICERON.USER_DEFINED_DICTIONARY(
+    id INT,
+    meaning_id INT,
+    request_id INT,
+    language_id INT,
+    category VARCHAR(20),
+    word VARCHAR(100),
+    added_user_id INT,
+    added_ts TIMESTAMPTZ,
+
+    PRIMARY KEY (id),
+    UNIQUE (request_id, language_id, category, word, added_user_id),
+    FOREIGN KEY (added_user_id) REFERENCES CICERON.D_USERS (id)
+);
+
+CREATE INDEX request_id ON CICERON.USER_DEFINED_DICTIONARY (request_id);
+CREATE INDEX meaning_id ON CICERON.USER_DEFINED_DICTIONARY (meaning_id);
+CREATE INDEX word ON CICERON.USER_DEFINED_DICTIONARY (word);
+CREATE INDEX added_user_id ON CICERON.USER_DEFINED_DICTIONARY (added_user_id);
+CREATE SEQUENCE CICERON.SEQ_USER_DEFINED_DICTIONARY;
+CREATE SEQUENCE CICERON.SEQ_USER_DEFINED_DICTIONARY_MEANING;
+
+CREATE TABLE CICERON.CENTRAL_DICTIONARY(
+    id INT,
+    meaning_id INT,
+    language_id INT,
+    category VARCHAR(20),
+    word VARCHAR(100),
+    added_user_id INT,
+    added_ts TIMESTAMPTZ,
+
+    PRIMARY KEY (id),
+    UNIQUE (language_id, category, word, added_user_id),
+    FOREIGN KEY (added_user_id) REFERENCES CICERON.D_USERS (id)
+);
+
+CREATE INDEX meaning_id2 ON CICERON.CENTRAL_DICTIONARY (meaning_id);
+CREATE INDEX word2 ON CICERON.CENTRAL_DICTIONARY (word);
+CREATE INDEX added_user_id2 ON CICERON.CENTRAL_DICTIONARY (added_user_id);
+CREATE SEQUENCE CICERON.SEQ_CENTRAL_DICTIONARY;
+CREATE SEQUENCE CICERON.SEQ_CENTRAL_DICTIONARY_MEANING_ID;
+
+CREATE TABLE CICERON.COMMENT_SENTENCE (
+    request_id INT,
+    paragraph_seq INT,
+    sentence_seq INT,
+    comment_string VARCHAR(5000),
+
+    PRIMARY KEY (request_id, paragraph_seq, sentence_seq),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id)
+);
+CREATE INDEX request_id2 ON CICERON.COMMENT_SENTENCE (request_id);
+
+CREATE TABLE CICERON.COMMENT_PARAGRAPH (
+    request_id INT,
+    paragraph_seq INT,
+    comment_string VARCHAR(5000),
+
+    PRIMARY KEY (request_id, paragraph_seq),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id)
+);
+CREATE INDEX request_id3 ON CICERON.COMMENT_PARAGRAPH (request_id);
+

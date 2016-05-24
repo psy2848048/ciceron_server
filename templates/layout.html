@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Sexycookie's translatebin powered by Google</title>
+<div class=page>
+  <h1>Sexycookie's translatebin</h1>
+    <form action="{{ url_for('translate') }}" method=post class=add-entry>
+      <dl>
+        <dd><input type=text size=30 name=where value=web readonly>
+        <dt>Email:
+        <dd><input type=text size=30 name=user_email>
+        <dt>Language of original text by ISO:
+        <dd><input type=text size=30 name=source_lang_id>
+        <dt>Target language by ISO:
+        <dd><input type=text size=30 name=target_lang_id>
+        <dt>Original text:
+        <dd><textarea type=text name=paragraph rows=10 cols=40></textarea>
+        <dd><input type=submit value=Share>
+      </dl>
+    </form>
+      <ul>
+        <li>Translated text:
+        <li>{{ translatedText }}
+      </ul>
+</div>
