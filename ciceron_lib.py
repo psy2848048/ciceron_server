@@ -502,7 +502,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 item['request_photoPath'] = None
                 item['request_filePath'] = None
 
-        elif purpose in ["pending_client", "complete_client", "complete_translator"]:
+        elif purpose in ["pending_client", "complete_client", "pending_translator", "ongoing_translator", "complete_translator"]:
             # Show context if normal request, or show main text
             if row[17] == True: # True
                 item['request_context'] = main_text
