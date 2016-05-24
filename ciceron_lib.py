@@ -954,9 +954,14 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
     store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id)
     message_dict = get_noti_data(conn, noti_type_id, user_id, request_id, optional_info=optional_info)
     regKeys_oneuser = get_device_id(conn, user_id)
-    print "Send push to the device: %s" % regKeys_oneuser
+    #print "Send push to the device: %s" % regKeys_oneuser
     if len(regKeys_oneuser) > 0:
         gcm_noti = gcm_server.send(regKeys_oneuser, "Ciceron push", notification=message_dict)
+
+def send_noti_lite(conn, user_id, noti_type_id, target_user_id, request_id, optional_info=None):
+    store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id)
+    message_dict = get_noti_data(conn, noti_type_id, user_id, request_id, optional_info=optional_info)
+    regKeys_oneuser = get_device_id(conn, user_id)
 
 def signUpQuick(conn, email, hashed_password, name, mother_language_id, nationality_id=None, residence_id=None, external_service_provider=[]):
     # Duplicate check

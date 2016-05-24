@@ -1144,7 +1144,7 @@ def pick_request():
         update_user_record(g.db, client_id=request_user_id, translator_id=user_id)
 
         # Notification
-        send_noti_suite(gcm_server, g.db, request_user_id, 7, user_id, request_id,
+        send_noti_lite(g.db, request_user_id, 7, user_id, request_id,
                 optional_info={"hero": user_id})
 
         g.db.commit()
@@ -1372,7 +1372,7 @@ def expected_time(request_id):
         query = "SELECT client_user_id, expected_time FROM CICERON.F_REQUESTS WHERE id = %s"
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 8, user_id, request_id, optional_info={"expected": rs[0][1]})
+        send_noti_lite(g.db, rs[0][0], 8, user_id, request_id, optional_info={"expected": rs[0][1]})
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -1403,7 +1403,7 @@ def expected_time(request_id):
         query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.F_REQUESTS WHERE id = %s "
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
-        send_noti_suite(gcm_server, g.db, rs[0][0], 9, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
+        send_noti_lite(g.db, rs[0][0], 9, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
         g.db.commit()
         return make_response(json.jsonify(
@@ -1466,7 +1466,7 @@ def post_translate_item():
     query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.F_REQUESTS WHERE id = %s"
     cursor.execute(query, (request_id, ))
     rs = cursor.fetchall()
-    send_noti_suite(gcm_server, g.db, rs[0][0], 11, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
+    send_noti_lite(g.db, rs[0][0], 11, rs[0][1], request_id, optional_info={"hero": rs[0][1]})
 
     g.db.commit()
 
@@ -1943,7 +1943,7 @@ def show_ongoing_item_client(request_id):
         if session['useremail'] in super_user:
             query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 "
         else:
-            query = """SELECT * FROM V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 AND
+            query = """SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 AND
            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
@@ -2076,7 +2076,7 @@ def client_rate_request(request_id):
     query = "SELECT ongoing_worker_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s AND client_user_id = %s"
     cursor.execute(query, (request_id, user_id, ) )
     rs = cursor.fetchall()
-    send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
+    send_noti_lite(g.db, rs[0][0], 3, rs[0][1], request_id)
 
     g.db.commit()
 
@@ -2266,7 +2266,7 @@ def client_incompleted_item_control(request_id):
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
         if rs[0][0] is not None:
-            send_noti_suite(gcm_server, g.db, rs[0][0], 4, rs[0][1], request_id,
+            send_noti_lite(g.db, rs[0][0], 4, rs[0][1], request_id,
                 optional_info={"hero": rs[0][1]})
 
         user_id = get_user_id(g.db, session['useremail'])
@@ -2393,7 +2393,7 @@ def client_incompleted_item_control(request_id):
         cursor.execute(query, (request_id, ))
         rs = cursor.fetchall()
         if rs[0][0] != None and rs[0][1] != None:
-            send_noti_suite(gcm_server, g.db, rs[0][0], 3, rs[0][1], request_id)
+            send_noti_lite(g.db, rs[0][0], 3, rs[0][1], request_id)
             update_user_record(g.db, translator_id=rs[0][1])
 
         update_user_record(g.db, client_id=rs[0][0])
@@ -3144,7 +3144,7 @@ def return_money():
         # Notification
         cursor.execute("SELECT user_id FROM CICERON.RETURN_MONEY_BANK_ACCOUNT WHERE id = %s AND order_no = %s ", (id_order, order_no))
         user_id_no = cursor.fetchall()[0][0]
-        send_noti_suite(gcm_server, g.db, user_id_no, 15, None, None)
+        send_noti_lite(g.db, user_id_no, 15, None, None)
 
         g.db.commit()
         return make_response(json.jsonify(
