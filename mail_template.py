@@ -5,8 +5,8 @@ class mail_format:
     translator_new_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
                  <br>
-                 방금 새로운 번역 티켓이 스토아에 올라왔습니다! <a href='%(link)s' target='_blank'>스토아</a>에 한 번 들려 티켓을 확인해 보세요<br>
-                 씨세론의 자랑스러운 히어로 %(user)s님, 당신의 능력을 보여주세요.<br>
+                 새로운 번역 티켓이 등록되었습니다! <a href='%(link)s' target='_blank'>스토아</a>에 한 번 들려 티켓을 확인해 보세요<br>
+                 히어로 %(user)s님의 능력을 필요로 하는 티켓들이 스토아에 기다리고 있습니다! 당신의 능력을 보여주세요.<br>
                  <br>
                  감사합니다,<br>
                  씨세론 팀""".decode('utf-8')
@@ -66,7 +66,7 @@ class mail_format:
                  <span style='color:#5F9EA0'><h1>Dear hero %(user)s,</h1></span><br>
                  <br>
                  당신의 능력을 빛내주셔서 감사합니다. 히어로님의 번역 덕분에 의뢰인께서 한시름 덜었을 것이라 믿습니다.<br>
-                 프로파일 페이지에서 적립금을 확인하실 수 있고, 작업내력 페이지에서 피드백을 확인할 수 있습니다.<br>
+                 프로필 페이지에서 적립금을 확인하실 수 있고, 작업내력 페이지에서 피드백을 확인할 수 있습니다.<br>
                  <br>
                  지금 이 순간에도 당신의 능력을 필요로하는 티켓들이 스토아에서 가디라고 있습니다.<br>
                  히어로님의 능력을 기다립니다.<br>
@@ -97,7 +97,7 @@ class mail_format:
     translator_exceeded_due_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
                  <br>
-                 안타깝지만, 도와주시기로 한 <a href='%(link)s' target='_blank'>이 티켓</a>이 마감 시간을 넘겼습니다.<br>
+                 히어로님께서 번역을 맡은 <a href='%(link)s' target='_blank'>이 티켓</a>이 의뢰인께서 설정한 마감 시간을 넘겼습니다.<br>
                  혹시 마감 시한이 넘지 않았는데 이 메일을 받아보시게 된다면 저희이게 <a href='mailto:webmaster@ciceron.me?Subject=False%20alarm%20report' target='_blank'>연락</a> 부탁드리겠습니다.<br>
                  <br>
                  씨세론 팀""".decode('utf-8')
@@ -122,7 +122,7 @@ class mail_format:
     translator_extended_due_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
                  <br>
-                 와우! <a href='%(link)s' target='_blank'>이 티켓</a>의 마감시한은 넘겼지만, 의뢰인께서 기한을 %(new_due)s까지 연장해주셨습니다.<br>
+                 <a href='%(link)s' target='_blank'>이 티켓</a>의 마감시한은 넘겼지만, 의뢰인께서 기한을 %(new_due)s까지 연장해주셨습니다.<br>
                  혹시 새로운 마감 기한에 대하여 의문점이 있으면 언제든지 저희에게 <a href='mailto:webmaster@ciceron.me?Subject=False%20alarm%20report' target='_blank'>연락</a> 부탁드립니다.<br>
                  <br>
                  감사합니다,<br>
@@ -148,7 +148,7 @@ class mail_format:
     translator_no_answer_expected_time_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>히어로 %(user)s님,</h1></span><br>
                  <br>
-                 예상 마감시한을 답변해주지 않으셔서 안타깝게도 <a href='%(link)s' target='_blank'>이 티켓</a>은 다른 히어로에게 기회가 가게 되었습니다.<br>
+                 예상 마감시한을 답변해주지 않으셔서 <a href='%(link)s' target='_blank'>이 티켓</a>은 다른 히어로에게 기회가 가게 되었습니다.<br>
                  하지만 낙심하지 않으셔도 됩니다. <a href='%(link)s' target='_blank'>스토아</a>에 가 보시면 더 많은 티켓들이 히어로님의 능력을 기다리고 있습니다!<br>
                  <br>
                  감사합니다,<br>
@@ -174,7 +174,7 @@ class mail_format:
     client_take_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
                  <br>
-                 <b>와우!</b> 히어로 <b>%(hero)s</b>&nbsp;님께서 <a href='%(link)s' target='_blank'>이 티켓</a>을 번역해주시기로 했습니다!<br>
+                 히어로 <b>%(hero)s</b>&nbsp;님께서 <a href='%(link)s' target='_blank'>이 티켓</a>을 번역해주시기로 했습니다!<br>
                  여러분들의 만족을 위하여 히어로들은 하나하나 꼼곰하게 검토하여 선발했습니다. 저희 히어로들은 단지 한 언어를 다른 언어로 옮겨주는 차원을 넘어, 내용을 읽고 문맥을 파악하여 해당 언어에 가장 알맞은 표현을 찾아낼 줄 아는 사람들입니다.<br>
                  저희 히어로를 믿고 기다려 주세요!<br>
                  <br>
@@ -230,7 +230,7 @@ class mail_format:
     client_giveup_ticket_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
                  <br>
-                 이런... 히어로 <b>%(hero)s</b>님께서 의뢰인님의 티켓은 기한 내에 번역이 어려울거라 답해주셨습니다.<br>
+                 히어로 <b>%(hero)s</b>님께서 의뢰인님의 티켓은 기한 내에 번역이 어려울거라 답해주셨습니다.<br>
                  <a href='%(link)s' target='_blank'>여기</a>에 가셔서 티켓을 다른 히어로에게 부탁할 지, 아니면 의뢰를 중단할 지 결정해주시기 바랍니다.<br>
                  완벽한 번역만을 제공하겠다는 저희 히어로들의 마음 때문에, 히어로 자신이 감당하지 못하는 수준의 티켓에 대해서는 이렇게 번역불가 의사를 표할 수도 있습니다. 양해 부탁드립니다.<br>
                  이유는 여러가지일 수 있습니다. 시간이 부족하다고 느꼈을수도, 혹은 자신에게 더 맞는 의뢰를 찾았을수도 있습니다.<br>
@@ -322,7 +322,7 @@ class mail_format:
     client_incomplete_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>%(user)s님께,</h1></span><br>
                  <br>
-                 티켓을 번역해주시기로 한 히어로님께서 안타깝게도 기한 내에 결과물을 제출하지 못했다는 소식을 전해드려 유감입니다.<br>
+                 티켓을 번역해주시기로 한 히어로님께서 안타깝게도 기한 내에 결과물을 제출하지 못했다는 소식을 전해드려게 되었습니다.<br>
                  부디 <a href='%(link)s' target='_blank'>이곳에</a> 잠시 방문하시어 기한을 연장할 지, 혹은 티켓을 취소할 지 결정해주시기 바랍니다.<br>
                  대부분의 티켓은 기한 내에 처리가 됩니다. 다만, 어떻게든 자연스럽게 문장을 만들기 위하여 정성을 기울이느라 시간이 늦어질 수는 있습니다.<br>
                  다시 한 번 죄송하다는 말씀 드립니다. 다음 의뢰시에는 좋은 기억을 가져다 드릴 수 있도록 노력하겠습니다!
@@ -351,7 +351,7 @@ class mail_format:
     client_no_hero_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
                  <br>
-                 안타깝게도 어느 히어로도 당신의 티켓을 선택해주지 않으셨습니다.<br>
+                 어느 히어로도 당신의 티켓을 선택해주지 않으셨습니다.<br>
                  잠시 시간을 내어 <a href='%(link)s' target='_blank'>이곳</a>을 방문해 주셔서 취소 및 연장 여부를 결정해주시기 바랍니다.<br>
                  <br>
                  저희 히어로들은 문장 호응에 맞는 매끄러운 번역을 위하여 많은 노력과 시간이 들어가기 때문에, 모든 히어로가 번역중이라면 이후 올라오는 티켓은 미처 발견하지 못할 수 있습니다.<br>
@@ -385,8 +385,8 @@ class mail_format:
     client_paidback_kr="""<img src='%(host)s/api/access_file/img/logo.png'><br>
                  <span style='color:#5F9EA0'><h1>%(user)s님,</h1></span><br>
                  <br>
-                 신청하신 적립금 환급이 완료되었습니다.<br>
-                 <a href='%(link)s' target='_blank'>이곳</a>에 방문하시어 적립금 환급 상태를 확인해주시기 바랍니다. (그리고 당신의 은행 계좌도요!)<br>
+                 신청하신 포인트 환급이 완료되었습니다.<br>
+                 <a href='%(link)s' target='_blank'>이곳</a>에 방문하시어 포인트 환급 상태를 확인해주시기 바랍니다. (그리고 당신의 은행 계좌도요!)<br>
                  문의사항 있으시면 주저말고 연락 부탁드립니다.<br>
                  <br>
                  감사합니다,<br>
