@@ -1135,18 +1135,20 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
 
     if pay_via == 'paypal' and amount > 0:
         # SANDBOX
-        paypalrestsdk.configure(
-                mode="sandbox",
-                client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
-                client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
-        )
+        if os.environ.get("PURPOSE") != "PROD":
+            paypalrestsdk.configure(
+                    mode="sandbox",
+                    client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
+                    client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
+            )
 
         # LIVE
-        #paypalrestsdk.set_config(
-        #        mode="live",
-        #        client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
-        #        client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
-        #        )
+        else:
+            paypalrestsdk.set_config(
+                    mode="live",
+                    client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
+                    client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
+                    )
 
         logging.basicConfig(level=logging.INFO)
         logging.basicConfig(level=logging.ERROR)
