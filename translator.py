@@ -22,7 +22,7 @@ class Translator:
            (source_lang == 'en' and target_lang == 'ko'):
             result_google_jp = self.googleAPI.translations().list(
                                                     source=source_lang,
-                                                    target='jp',
+                                                    target='ja',
                                                          q=sentences
                     ).execute()
             if result_google_jp.get('translations') != None:
