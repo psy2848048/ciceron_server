@@ -17,8 +17,8 @@ class Translator:
         self.bingAPI = Bing_Translator('welcome_ciceron', 'VL9isREJUILWMCLE2hr75xVaePRof6kuGkCM+r9oTb0=')
 
     def _googleTranslate(self, source_lang, target_lang, sentences):
-        if (source_lang == 'ko' and target_lang_id == 'en') or \
-           (source_lang == 'en' and target_lang_id == 'ko'):
+        if (source_lang == 'ko' and target_lang == 'en') or \
+           (source_lang == 'en' and target_lang == 'ko'):
             result_google_jp = self.googleAPI.translations().list(
                                                     source=source_lang,
                                                     target='jp',
@@ -31,7 +31,7 @@ class Translator:
 
             result_google = self.googleAPI.translations().list(
                                                     source='jp',
-                                                    target=target_lang_id,
+                                                    target=target_lang,
                                                          q=sentences
                     ).execute()
             if result_google.get('translations') != None:
