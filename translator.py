@@ -95,11 +95,23 @@ class Translator:
         is_targetId_OK, target_langCodeDict = self.getCountryCode(target_lang_id)
 
         if is_sourceId_OK == False or is_targetId_OK == False:
-            return False, None
+            fail_translation = u"초벌 번역 처리가 불가능한 언어입니다. / Unsupported language."
+            return False, {'google': fail_translation, 'bing': fail_translation, 'yandex': fail_translation}
 
-        result_google = self._googleTranslate(source_langCodeDict['google'], target_langCodeDict['google'], sentences)
-        result_bing = self._bingTranslate(source_langCodeDict['bing'], target_langCodeDict['bing'], sentences)
-        result_yandex = self._yandexTranslate(source_langCodeDict['yandex'], target_langCodeDict['yandex'], sentences)
+        try:
+            result_google = self._googleTranslate(source_langCodeDict['google'], target_langCodeDict['google'], sentences)
+        except Exception:
+            result_google = u"초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
+
+        try:
+            result_bing = self._bingTranslate(source_langCodeDict['bing'], target_langCodeDict['bing'], sentences)
+        except Exception:
+            result_bing = u"초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
+
+        try:
+            result_yandex = self._yandexTranslate(source_langCodeDict['yandex'], target_langCodeDict['yandex'], sentences)
+        except Exception:
+            result_yandex = u"초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
 
         return True, {'google': result_google, 'bing': result_bing, 'yandex': result_yandex}
 
