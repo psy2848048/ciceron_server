@@ -1287,7 +1287,7 @@ def updateSentenceComment(request_id, paragraph_id, sentence_id):
         warehousing = Warehousing(g.db)
         parameter = parse_request(request)
 
-        comment_string = parameter['comment_string']
+        comment_string = parameter.get('comment_string')
 
         warehousing.updateSentenceComment(request_id, paragraph_id, sentence_id, comment_string)
         return make_response(
