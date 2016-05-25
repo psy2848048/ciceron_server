@@ -435,7 +435,7 @@ CREATE INDEX order_no ON CICERON.PAYMENT_INFO (order_no);
 CREATE SEQUENCE CICERON.SEQ_PAYMENT_INFO;
 
 CREATE VIEW CICERON.V_REQUESTS as
-  SELECT
+  SELECT distinct
     -- Client
     fact.id request_id, --0
     fact.client_user_id client_user_id, --1

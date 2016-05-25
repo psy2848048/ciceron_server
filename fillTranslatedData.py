@@ -84,7 +84,6 @@ class TranslationAgent:
             return True
 
         except Exception:
-            print str(data)
             traceback.print_exc()
             self.conn.rollback()
 

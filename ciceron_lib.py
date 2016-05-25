@@ -436,7 +436,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             num_of_words = 0
             num_of_letters = 0
         else:
-            num_of_letters = len(text_for_counting.decode('utf-8'))
+            num_of_letters = len(text_for_counting.decode('utf-8').replace(' ', ''))
             num_of_words = len(text_for_counting.decode('utf-8').split(' '))
 
         main_text = text_for_counting
@@ -502,7 +502,7 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 item['request_photoPath'] = None
                 item['request_filePath'] = None
 
-        elif purpose in ["pending_client", "complete_client", "pending_translator", "ongoing_translator", "complete_translator"]:
+        elif purpose in ["pending_client", "pending_translator"]:
             # Show context if normal request, or show main text
             if row[17] == True: # True
                 item['request_context'] = main_text
@@ -511,12 +511,23 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 item['request_context'] = row[38]
 
         elif purpose == "ongoing_translator":
-            if row[17] == False: # False
+            if row[17] == True:
+                item['request_context'] = main_text
+                item['request_text'] = main_text
+            else:
                 item['request_context'] = row[38]
-                item['request_text'] = main_text,
 
             item['request_translatedText'] = warehouse.restoreTranslationByString(row[0])
-            item['request_title'] = None
+
+        elif purpose in ["complete_translator", "complete_client"]:
+            if row[17] == True:
+                item['request_context'] = main_text
+                item['request_text'] = main_text
+
+            else:
+                item['request_context'] = row[38]
+
+            item['request_translatedText'] = warehouse.restoreTranslationByString(row[0])
 
         elif purpose == "ongoing_client":
             if row[17] == False: # False

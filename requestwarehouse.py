@@ -91,45 +91,53 @@ class Warehousing:
         if source == 'requested_text' or source is None:
             query_text = """
                 SELECT texts.paragraph_seq, texts.sentence_seq, texts.text, comm.comment_string
-                FROM CICERON.D_REQUEST_TEXTS texts
+                FROM CICERON.F_REQUESTS req
+                JOIN CICERON.D_REQUEST_TEXTS texts
+                  ON req.text_id = texts.id
                 LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
-                  ON texts.paragraph_seq = comm.paragraph_seq
-                    AND texts.sentence_seq = comm.sentence_seq
-                WHERE texts.id = %s
-                ORDER BY texts.paragraph_seq, texts.sentence_seq
+                  ON req.id = comm.request_id
+                    AND texts.paragraph_seq = comm.paragraph_seq                             
+                    AND texts.sentence_seq = comm.sentence_seq                            
+                WHERE req.id = %s
+                ORDER BY texts.paragraph_seq, texts.sentence_seq 
             """
-            cursor.execute(query_text, (request_text_id, ))
+            cursor.execute(query_text, (request_id, ))
             inter_array_request = cursor.fetchall()
 
         if source == 'translated_text' or source is None:
             query_text = """
                 SELECT texts.paragraph_seq, texts.sentence_seq, texts.text, comm.comment_string
-                FROM CICERON.D_TRANSLATED_TEXT texts
+                FROM CICERON.F_REQUESTS req
+                JOIN CICERON.D_TRANSLATED_TEXT texts
+                  ON req.translatedText_id = texts.id
                 LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm
-                  ON texts.paragraph_seq = comm.paragraph_seq
-                    AND texts.sentence_seq = comm.sentence_seq
-                WHERE texts.id = %s
+                  ON req.id = comm.request_id
+                    AND texts.paragraph_seq = comm.paragraph_seq                             
+                    AND texts.sentence_seq = comm.sentence_seq                            
+                WHERE req.id = %s
                 ORDER BY texts.paragraph_seq, texts.sentence_seq
             """
-            cursor.execute(query_text, (translated_text_id, ))
+            cursor.execute(query_text, (request_id, ))
             inter_array_translation = cursor.fetchall()
 
         inter_array = zip(inter_array_request, inter_array_translation)
 
         query_paragraphComment = """
-              SELECT trans.paragraph_seq, paragraph.comment_string
-              FROM CICERON.D_TRANSLATED_TEXT trans
-              LEFT OUTER JOIN CICERON.COMMENT_PARAGRAPH paragraph
-                ON trans.paragraph_seq = paragraph.paragraph_seq
-                  AND trans.sentence_seq = 1
-              WHERE trans.id = %s
-              ORDER BY paragraph.paragraph_seq
+            SELECT texts.paragraph_seq, texts.text, comm.comment_string
+                FROM CICERON.F_REQUESTS req
+                JOIN CICERON.D_TRANSLATED_TEXT texts
+                  ON req.translatedText_id = texts.id
+                LEFT OUTER JOIN CICERON.COMMENT_PARAGRAPH comm
+                  ON req.id = comm.request_id
+                    AND texts.paragraph_seq = comm.paragraph_seq AND texts.sentence_seq = 1
+                WHERE req.id = %s
+                ORDER BY texts.paragraph_seq
         """
-        cursor.execute(query_paragraphComment, (translated_text_id, ))
+        cursor.execute(query_paragraphComment, (request_id, ))
         paragaphcomment_array = cursor.fetchall()
 
         result_array = []
-        cur_paragraph_no = None
+        cur_paragraph_no = 0
         item = {}
         for idx, row in enumerate(inter_array):
             paragraph_seq = row[0][0]
@@ -144,7 +152,7 @@ class Warehousing:
 
                 item = {}
                 item['paragraph_seq'] = paragraph_seq
-                item['paragraph_comment'] = paragaphcomment_array[ paragraph_seq-1 ][1]
+                item['paragraph_comment'] = paragaphcomment_array[ idx - 1 ][2]
                 item['sentences'] = []
 
                 cur_paragraph_no = paragraph_seq

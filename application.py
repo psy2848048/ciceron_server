@@ -718,7 +718,7 @@ def requests():
         if isSos == False:
             delta_from_due = int(parameters['request_deltaFromDue'])
         else:
-            delta_from_due = 30 * 60
+            delta_from_due = 360 * 60
 
         point = float(parameters.get('request_points')) if isSos == False else 0
         context = parameters.get('request_context')
@@ -1287,7 +1287,7 @@ def updateSentenceComment(request_id, paragraph_id, sentence_id):
         warehousing = Warehousing(g.db)
         parameter = parse_request(request)
 
-        comment_string = parameter['comment_string']
+        comment_string = parameter.get('comment_string')
 
         warehousing.updateSentenceComment(request_id, paragraph_id, sentence_id, comment_string)
         return make_response(
@@ -1318,7 +1318,7 @@ def updateParagraphComment(request_id, paragraph_id):
         warehousing = Warehousing(g.db)
         parameter = parse_request(request)
 
-        comment_string = parameter['comment_string']
+        comment_string = parameter.get('comment_string')
 
         warehousing.updateParagraphComment(request_id, paragraph_id, comment_string)
         return make_response(
@@ -1483,7 +1483,7 @@ def translation_completed_items_detail(request_id):
     cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
-    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s """
     cursor.execute(query, (request_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
