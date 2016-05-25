@@ -31,7 +31,7 @@ class Translator:
                 return False
 
             result_google = self.googleAPI.translations().list(
-                                                    source='jp',
+                                                    source='ja',
                                                     target=target_lang,
                                                          q=inter_text
                     ).execute()
