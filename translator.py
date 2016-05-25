@@ -7,6 +7,7 @@ from yandex_translate import YandexTranslate
 import psycopg2
 import os
 import traceback
+from urllib import quote
 
 
 class Translator:
@@ -32,7 +33,7 @@ class Translator:
             result_google = self.googleAPI.translations().list(
                                                     source='jp',
                                                     target=target_lang,
-                                                         q=sentences
+                                                         q=inter_text
                     ).execute()
             if result_google.get('translations') != None:
                 result_text = result_google['translations'][0]['translatedText']
@@ -87,7 +88,7 @@ class Translator:
         return True, {'google': res[0], 'yandex': res[1], 'bing': res[2]}
 
     def doWork(self, source_lang_id, target_lang_id, sentences):
-        if len(sentences.decode('utf-8') ) > 1000:
+        if len(sentences) > 1000:
             result_text = u"한 문장에 1000글자가 넘어가면 초벌 번역이 불가능합니다. / It is imposiible to initial-translate if the length of the sentence is over 1000 characters."
             return True, {'google': result_text, 'bing': result_text, 'yandex': result_text}
 
@@ -101,16 +102,19 @@ class Translator:
         try:
             result_google = self._googleTranslate(source_langCodeDict['google'], target_langCodeDict['google'], sentences)
         except Exception:
+            traceback.print_exc()
             result_google = u"초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
 
         try:
             result_bing = self._bingTranslate(source_langCodeDict['bing'], target_langCodeDict['bing'], sentences)
         except Exception:
+            traceback.print_exc()
             result_bing = u"초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
 
         try:
             result_yandex = self._yandexTranslate(source_langCodeDict['yandex'], target_langCodeDict['yandex'], sentences)
         except Exception:
+            traceback.print_exc()
             result_yandex = u"초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
 
         return True, {'google': result_google, 'bing': result_bing, 'yandex': result_yandex}
