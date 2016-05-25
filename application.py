@@ -1483,7 +1483,7 @@ def translation_completed_items_detail(request_id):
     cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
-    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s """
     cursor.execute(query, (request_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
