@@ -141,7 +141,7 @@ class MailAgent:
 
         if isCheck == False:
             cursor.execute("""UPDATE CICERON.F_REQUESTS SET status_id = -1
-                             WHERE status_id in (0,1) AND isSos = true AND CURRENT_TIMESTAMP >= registered_time + interval '30 minutes'""")
+                             WHERE status_id in (0,1) AND isSos = true AND CURRENT_TIMESTAMP >= registered_time + interval '360 minutes'""")
             self.conn.commit()
 
             for user_id in translator_list: lib.update_user_record(self.conn, translator_id=user_id)

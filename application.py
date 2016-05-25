@@ -718,7 +718,7 @@ def requests():
         if isSos == False:
             delta_from_due = int(parameters['request_deltaFromDue'])
         else:
-            delta_from_due = 30 * 60
+            delta_from_due = 360 * 60
 
         point = float(parameters.get('request_points')) if isSos == False else 0
         context = parameters.get('request_context')
