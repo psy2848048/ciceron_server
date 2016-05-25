@@ -152,7 +152,7 @@ class Warehousing:
 
                 item = {}
                 item['paragraph_seq'] = paragraph_seq
-                item['paragraph_comment'] = paragaphcomment_array[ idx - 1 ][1]
+                item['paragraph_comment'] = paragaphcomment_array[ idx - 1 ][2]
                 item['sentences'] = []
 
                 cur_paragraph_no = paragraph_seq
