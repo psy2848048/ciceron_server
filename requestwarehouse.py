@@ -203,7 +203,7 @@ class Warehousing:
         except Exception:
             traceback.print_exc()
             self.conn.rollback()
-            return True
+            return False
 
     def getTranslationOneLine(self, request_id, paragraph_id, sentence_id):
         cursor = self.conn.cursor()
