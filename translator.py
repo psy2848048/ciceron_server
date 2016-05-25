@@ -33,7 +33,7 @@ class Translator:
             result_google = self.googleAPI.translations().list(
                                                     source='jp',
                                                     target=target_lang,
-                                                         q=sentences
+                                                         q=inter_text
                     ).execute()
             if result_google.get('translations') != None:
                 result_text = result_google['translations'][0]['translatedText']
