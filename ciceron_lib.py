@@ -510,14 +510,24 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             else:
                 item['request_context'] = row[38]
 
-        elif purpose in ["ongoing_translator", "complete_translator", "complete_client"]:
-            if row[17] == False: # False
+        elif purpose == "ongoing_translator":
+            if row[17] == True:
+                item['request_context'] = main_text
+                item['request_text'] = main_text
+            else:
                 item['request_context'] = row[38]
-                item['request_text'] = main_text,
 
             item['request_translatedText'] = warehouse.restoreTranslationByString(row[0])
-            item['request_title'] = None
-            item['request_context'] = row[38]
+
+        elif purpose in ["complete_translator", "complete_client"]:
+            if row[17] == True:
+                item['request_context'] = main_text
+                item['request_text'] = main_text
+
+            else:
+                item['request_context'] = row[38]
+
+            item['request_translatedText'] = warehouse.restoreTranslationByString(row[0])
 
         elif purpose == "ongoing_client":
             if row[17] == False: # False
