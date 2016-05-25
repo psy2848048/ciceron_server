@@ -87,6 +87,10 @@ class Translator:
         return True, {'google': res[0], 'yandex': res[1], 'bing': res[2]}
 
     def doWork(self, source_lang_id, target_lang_id, sentences):
+        if len(sentences.decode('utf-8') ) > 1000:
+            result_text = u"한 문장에 1000글자가 넘어가면 초벌 번역이 불가능합니다. / It is imposiible to initial-translate if the length of the sentence is over 1000 characters."
+            return True, {'google': result_text, 'bing': result_text, 'yandex': result_text}
+
         is_sourceId_OK, source_langCodeDict = self.getCountryCode(source_lang_id)
         is_targetId_OK, target_langCodeDict = self.getCountryCode(target_lang_id)
 
