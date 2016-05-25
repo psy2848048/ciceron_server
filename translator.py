@@ -6,6 +6,7 @@ from microsofttranslator import Translator as Bing_Translator
 from yandex_translate import YandexTranslate
 import psycopg2
 import os
+import traceback
 
 
 class Translator:
@@ -52,8 +53,12 @@ class Translator:
                 return None
 
     def _bingTranslate(self, source_lang, target_lang, sentences):
-        result_bing = self.bingAPI.translate(sentences, target_lang)
-        return result_bing
+        try:
+            result_bing = self.bingAPI.translate(sentences, target_lang)
+            return result_bing
+        except Exception:
+            traceback.print_exc()
+            return None
 
     def _yandexTranslate(self, source_lang, target_lang, sentences):
         lang_FromTo = '%s-%s' % (source_lang, target_lang)
