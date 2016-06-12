@@ -380,7 +380,7 @@ def getProfile(conn, user_id, rate=1, price=None):
         user_email=                     str(userinfo[1]),
         user_name=                      str(userinfo[2]),
         user_motherLang=                userinfo[3],
-        user_profilePicPath=            str(userinfo[6]) if userinfo[6] != None else None,
+        user_profilePicPath=            str(userinfo[6]) if userinfo[6] != None else 'img/anon.jpg',
         user_translatableLang=          other_language_list,
         user_numOfRequestsPending=       userinfo[7],
         user_numOfRequestsOngoing=       userinfo[8],
