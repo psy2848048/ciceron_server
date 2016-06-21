@@ -2868,7 +2868,7 @@ def point_detail():
     SELECT 2 as message_id, request_time, -1 * amount as points, is_returned, return_time FROM CICERON.RETURN_MONEY_BANK_ACCOUNT WHERE user_id = %s
     UNION
     SELECT 1 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
-    FROM CICERON.F_REQUESTS WHERE status_id = 2 AND is_paid = true AND ongoing_worker_id = %s
+    FROM CICERON.F_REQUESTS WHERE status_id = 2 AND is_paid = true AND ongoing_worker_id = %s AND points > 0
     UNION
     SELECT 0 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
     FROM CICERON.F_REQUESTS WHERE status_id = -2 AND is_paid = false AND client_user_id = %s) total

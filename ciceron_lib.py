@@ -1210,7 +1210,7 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         # Should check USD->KRW currency
         # Hard coded: 1200
         new_payload = payload
-        kor_amount = amount * 1200
+        kor_amount = amount * 1160
         order_no = orderNoGenerator(conn)
 
         new_payload['merchant_uid'] = order_no
