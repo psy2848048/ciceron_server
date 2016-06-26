@@ -822,6 +822,7 @@ CREATE TABLE CICERON.F_I18N_TEXT_MAPPINGS (
     sentence_seq INT,
     text_id INT,
     is_curated BOOLEAN,
+    is_init_translated BOOLEAN,
 
     PRIMARY KEY (id),
     FOREIGN KEY (text_id) REFERENCES CICERON.D_I18N_TEXTS (id)
