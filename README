@@ -40,6 +40,9 @@ Ciceron server code
   - google-api-python-client
   - microsofttranslator
   - yandex.translate
+  - python-i18n
+  - nslocalizable
+  - xmltodict
 
 * Summary of set up
  1) Env

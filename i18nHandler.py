@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import xmltodict, json, csv, io
+import xmltodict, json, csv, io, hashlib
 from requestwarehouse import Warehousing
+from nslocalized import StringTable
 
 
 class I18nHandler(object):
@@ -16,7 +17,7 @@ class I18nHandler(object):
         cursor.execute(query, (lang_id, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
-            return "null"
+            return "!null!"
         else:
             return res[0]
 
@@ -27,7 +28,7 @@ class I18nHandler(object):
         cursor.execute(query, (lang_id, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
-            return "null"
+            return "!null!"
         else:
             return res[0]
 
@@ -69,7 +70,7 @@ class I18nHandler(object):
 
     # 각 UX별 서버 작업
     # 1. 새로 받아올 때
-    #   1) Parsing / MD5 Hashing
+    #   1) Parsing / MD5 Hashing (Done)
     #   2) Dict to DB
     #   3) History 검색 / 초벌번역 진행
     #
@@ -108,11 +109,54 @@ class I18nHandler(object):
     # 6. 번역 입력: 3번의 1)~5) 수행 후 텍스트 검색되면 해당 text 제공 is_curated=True, 검색 안되면 새 text ID 딴 후 새 Mapping 넣음, is_curated=False
     # 7. 각종 코멘트 입력
 
-    def __insertToDB(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq, text):
+    def __getMD5(self, text):
+        hash_maker = hashlib.md5()
+        hash_maker.update(text)
+        return hash_maker.hexdigest()
+
+    def __historyChecker(self, request_id, source_lang_id, target_lang_id, text):
         cursor = self.conn.cursor()
-        query = """
-            INSERT INTO CICERON.D_I18N_REQUESTS
-                (id, request_id, variable_id, %(source_id)s, %(target_lang_id)s, paragraph_seq, sentence_seq, text)"""
+
+        # MD5를 이용하여 원문 ID 검색
+        original_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        hashed_text = self.__getMD5(text)
+        query_textSearch = "SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_shecksum = %s ORDER BY hit_count LIMIT 1"
+        cursor.execute(query_textSearch, (hashed_text, ))
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return False, None
+        source_text_id = res[0]
+
+        # 원문 ID와 언어를 이용하여 이전 번역기록 추출
+        query_getAllRequests = "SELECT DISTINCT id FROM CICERON.F_REQUESTS WHERE original_lang_id = %s AND target_lang_id = %s"
+        cursor.execute(query_getAllRequests, (original_lang_id, target_lang_id, ))
+        res = cursor.fetchall()
+        if res is None or len(res) == 0:
+            return False, None
+
+        # 번역 기록 이용하여 후보 단어 추출
+        request_lists = ','.join([row[0] for row in res])
+        query_getAllTargetWords = "SELECT DISTINCT target_text_id FROM CICERON.F_I18N_VALUES WHERE request_id in (%s)"
+        query_getAllTargetWords = query_getAllTargetWords % request_lists
+        cursor.execute(query_getAllTargetWords)
+        res = cursor.fetchall()
+        if res in None or len(res) == 0:
+            return False, None
+
+        # 후보 단어 중 가장 추천 많이 된 것 골라줌
+        target_text_id_lists = ','.join([row[0] for row in res])
+        query_getTopTextId = "SELECT id, text FROM CICERON.D_I18N_TEXTS WHERE id in (%s) ORDER BY hit_count LIMIT 1"
+        query_getTopTextId = query_getTopTextId % target_text_id_lists
+        cursor.execute(query_getTopTextId)
+        res = cursor.fetchone()
+        curated_text_id, curated_text = res[0]
+
+        # 최종 후보 단어는 카운트 +1
+        query_hitUp = "UPDATE CICERON.D_I18N_TEXTS SET hit_count = hit_count + 1 WHERE id = %s"
+        cursor.execute(query_hitUp, (curated_text_id, ))
+        self.conn.commit()
+
+        return True, curated_text
 
     def __updateText(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq, text):
         pass
@@ -141,17 +185,70 @@ class I18nHandler(object):
 
         return dictObj
 
+    def _writeOneRecordToDB(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq, text):
+        cursor = self.conn.cursor()
+        query = """
+            INSERT INTO CICERON.D_I18N_VALUES
+                (id, request_id, variable_id, source_text_id, target_text_id)
+            VALUES
+                (%s, %s, %s, %s, %s)
+                """
+
+    def _jQueryToDict(self, jsonText, code):
+        obj = json.loads(jsonText)
+        return obj[code]
+
+    def _railsToDict(self, jsonText, code):
+        obj = json.loads(jsonText)
+        return obj[code.upper()]
+
     def _iosToDict(self, iosText):
-        pass
+        st = StringTable.read(iosText)
+        return st
 
     def _androidToDict(self, andrText):
-        pass
+        parsedData = xmltodict.parse(andrText)
+        result = []
 
-    def _unityToDict(self, unityText):
-        pass
+        for row in parsedData['resources']:
+            temp_row = {}
+            temp_row[ row['@value'] ] = row['#text']
+
+            result.append(temp_row)
+
+        return result
+
+    def _unityToDict(self, unityText, language):
+        result = []
+        items = csv.reader(unityText)
+
+        marker = None
+        for idx, row in enumerate(items):
+            if idx == 0:
+                for idx2, item in enumerate(row):
+                    if item == language:
+                        marker = idx2
+                        break
+
+            else:
+                temp_row = {}
+                temp_row[ row[0] ] = row[marker]
+
+                result.append(temp_row)
+
+        return result
 
     def _xamarinToDict(self, xamText):
-        pass
+        parsedData = xmltodict.parse(xamText)
+        result = []
+
+        for item in parsedData['root']['data']:
+            temp_row = {}
+            temp_row[ item['@value'] ] = item['#text']
+
+            result.append(temp_row)
+
+        return result
 
     def _dictToIOs(self, iosDict):
         output = io.BytesIO()
@@ -213,3 +310,7 @@ class I18nHandler(object):
         xamResult = xmltodict.unparse(wrappeddict)
         return ('AppResources.%s.resx' % lang_code, xamResult)
 
+    def _dictToRails(self, lang_code, jsonDict):
+        result = {}
+        result[lang_code] = jsonDict
+        return result
