@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import xmltodict, json, csv, io, hashlib
+import xmltodict, json, csv, io, hashlib, codecs, traceback
 from requestwarehouse import Warehousing
 from nslocalized import StringTable
+import xmlformatter, ciceron_lib
 
 
 class I18nHandler(object):
@@ -114,9 +115,7 @@ class I18nHandler(object):
         hash_maker.update(text)
         return hash_maker.hexdigest()
 
-    def __historyChecker(self, request_id, source_lang_id, target_lang_id, text):
-        cursor = self.conn.cursor()
-
+    def __historyChecker(self, cursor, request_id, source_lang_id, target_lang_id, text):
         # MD5를 이용하여 원문 ID 검색
         original_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         hashed_text = self.__getMD5(text)
@@ -124,15 +123,15 @@ class I18nHandler(object):
         cursor.execute(query_textSearch, (hashed_text, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
-            return False, None
+            return False, None, None
         source_text_id = res[0]
 
         # 원문 ID와 언어를 이용하여 이전 번역기록 추출
-        query_getAllRequests = "SELECT DISTINCT id FROM CICERON.F_REQUESTS WHERE original_lang_id = %s AND target_lang_id = %s"
+        query_getAllRequests = "SELECT DISTINCT id FROM CICERON.F_REQUESTS WHERE original_lang_id = %s AND target_lang_id = %s AND status_id = 2"
         cursor.execute(query_getAllRequests, (original_lang_id, target_lang_id, ))
         res = cursor.fetchall()
         if res is None or len(res) == 0:
-            return False, None
+            return False, None, None
 
         # 번역 기록 이용하여 후보 단어 추출
         request_lists = ','.join([row[0] for row in res])
@@ -141,7 +140,7 @@ class I18nHandler(object):
         cursor.execute(query_getAllTargetWords)
         res = cursor.fetchall()
         if res in None or len(res) == 0:
-            return False, None
+            return False, None, None
 
         # 후보 단어 중 가장 추천 많이 된 것 골라줌
         target_text_id_lists = ','.join([row[0] for row in res])
@@ -154,24 +153,197 @@ class I18nHandler(object):
         # 최종 후보 단어는 카운트 +1
         query_hitUp = "UPDATE CICERON.D_I18N_TEXTS SET hit_count = hit_count + 1 WHERE id = %s"
         cursor.execute(query_hitUp, (curated_text_id, ))
-        self.conn.commit()
 
-        return True, curated_text
+        return True, source_text_id, curated_text_id
 
-    def __updateText(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq, text):
-        pass
+    def __insertUnitText(self, cursor, text):
+        text_id = ciceron_lib.get_new_id(self.conn, "D_I18N_TEXTS")
+        md5_text = self.__getMD5(text)
+        query_newText = """
+            INSERT INTO CICERON.D_I18N_TEXTS
+                (id, text md5_checksum, hit_count)
+            VALUES
+                (%s, %s, %s, 0)
+        """
+        try:
+            cursor.execute(query_newText, (text_id, text, md5_text, ))
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False, None
 
-    def __updateVariable(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq, new_variable):
-        pass
+        return True, text_id
 
-    def __deleteLine(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq):
-        pass
+    def __updateUnitText(self, cursor, text_id, text):
+        md5_text = self.__getMD5(text)
+        query_updateText = """
+            UPDATE CICERON.D_I18N_TEXTS
+            SET text = %s, md5_checksum = %s
+            WHERE id = %s
+        """
+        try:
+            cursor.execute(query_updateText, (text, md5_text, text_id, ))
+        except Exception:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
 
-    def __dictToDb(self, request_id, dictData):
-        for key, text in iteritems(dictData):
+        return True
+
+    def __updateVariable(self, cursor, variable_id, text):
+        query_updateVariable = """
+            UPDATE CIERON.D_I18N_VARIABLE_NAMES
+            SET text = %s
+            WHERE id = %s
+        """
+        try:
+            cursor.execute(query_updateVariable, (text, variable_id, ))
+        except Exception:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
+
+        return True
+
+    def __insertVariable(self, cursor, text):
+        variable_id = ciceron_lib.get_new_id(self.conn, "D_I18N_VARIABLE_NAMES")
+        query_newVariable = """
+            INSERT INTO CIERON.D_I18N_VARIABLE_NAMES
+                (id, text)
+            VALUES
+                (%s, %s)
+        """
+        try:
+            cursor.execute(query_newVariable, (variable_id, text, ))
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False, None
+
+        return True, variable_id
+
+    def __insertMapping(self, cursor, variable_id, lang_id, paragraph_seq, sentence_seq, text_id, is_curated):
+        mapping_id = ciceron_lib.get_new_id(self.conn, "F_I18N_TEXT_MAPPINGS")
+        query_newMapping = """
+            INSERT INTO CICERON.F_I18N_TEXT_MAPPINGS
+                (id, variable_id, lang_id, paragraph_seq, sentence_seq, text_id, is_curated, is_init_translated)
+            VALUES
+                (%s, %s, %s, %s, %s, %s, %s, false)
+        """
+        try:
+            cursor.execute(query_newMapping, (mapping_id, lang_id, paragraph_seq, sentence_seq, text_id, is_curated, ))
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False, None
+
+        return True, mapping_id
+
+    def __updateMapping(self, cursor, mapping_id, new_text_id):
+        query_updateMapping = """
+            UPDATE CICERON.F_I18N_TEXT_MAPPINGS
+                SET text_id = %s
+            WHERE id = %s
+        """
+        try:
+            cursor.execute(query_updateMapping, (new_text_id, mapping_id, ))
+        except Exception:
+            tracevack.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def __insertValue(self, cursor, request_id, variable_id, source_text_mapping_id, target_text_mapping_id):
+        value_id = ciceron_lib.get_new_id(self.conn, "F_I18N_VALUES")
+        query_newValue = """
+            INSERT INTO CICERON.F_I18N_VALUES
+                (id, request_id, variable_id, source_text_mapping_id, target_text_mapping_id)
+            VALUES
+                (%s, %s, %s, %s, %s)
+        """
+        try:
+            cursor.execute(query_newValue, (value_id, request_id, variable_id, source_text_mapping_id, target_text_mapping_id, ))
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False, None
+
+        return True, value_id
+
+    def _deleteVariableAndText(self, request_id, variable_id):
+        cursor = self.conn.cursor()
+
+        query_deleteVariable = """
+            DELETE FROM CIERON.D_I18N_VARIABLE_NAMES
+            WHERE id = %s
+        """
+        query_findMapping = """
+            SELECT source_text_mapping_id, target_text_mapping_id
+            FROM CICERON.F_I18N_VALUES
+            WHERE request_id = %s
+              AND variable_id = %s
+        """
+        query_deleteMapping = """
+            DELETE FROM CICERON.F_I18N_TEXT_MAPPINGS
+            WHERE id = %s
+        """
+        query_deleteValue = """
+            DELETE FROM CICERON.F_I18N_VALUES
+            WHERE request_id = %s
+              AND variable_id = %s
+        """
+
+        try:
+            cursor.execute(query_deleteVariable, (variable_id, ))
+            cursor.execute(query_findMapping, (request_id, variable_id, ))
+            res = cursor.fetchone()
+            if res is not None and len(res) > 0:
+                source_text_mapping_id = res[0]
+                target_text_mapping_id = res[1]
+                cursor.execute(query_deleteMapping, (source_text_mapping_id, ))
+                cursor.execute(query_deleteMapping, (target_text_mapping_id, ))
+
+            cursor.execute(query_deleteValue, (request_id, variable_id, ))
+
+        except Exception:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
+
+        return True
+
+    def _writeOneRecordToDB(self, cursor, request_id, variable_name, paragraph_seq, sentence_seq, partial_text):
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        is_variable_inserted, variable_id = self.__insertVariable(variable_name)
+        is_exist, source_text_id, curated_text_id = self.__historyChecker(request_id, source_lang_id, target_lang_id, partial_text)
+
+        if is_exist == False:
+            is_unitText_inserted, curated_text_id = self.__insertUnitText(cursor, partial_text)
+
+        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_text_id, is_exist)
+        is_target_mapping_inserted, target_mapping_id = self.__insertMapping(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq, target_text_id, is_exist)
+
+        is_value_inserted, value_id = self.__insertValue(cursor, request_id, variable_id, source_mapping_id, target_mapping_id)
+
+        if      is_variable_inserted == True \
+            and is_source_mapping_inserted == True \
+            and is_target_mapping_inserted == True \
+            and is_value_inserted == True:
+            return True, value_id
+
+        else:
+            return False, None
+
+    def _dictToDb(self, request_id, dictData):
+        for key, text in dictData.iteritems():
             self.__insertToDB(request_id, key)
 
-    def __dbToDict(self, request_id):
+    def _dbToDict(self, request_id):
         query_db = "SELECT ..."
 
         self.conn.execute(query_db, (request_id, ))
@@ -184,15 +356,6 @@ class I18nHandler(object):
             dictObj.append(row)
 
         return dictObj
-
-    def _writeOneRecordToDB(self, request_id, variable_id, source_lang_id, target_lang_id, paragraph_seq, sentence_seq, text):
-        cursor = self.conn.cursor()
-        query = """
-            INSERT INTO CICERON.D_I18N_VALUES
-                (id, request_id, variable_id, source_text_id, target_text_id)
-            VALUES
-                (%s, %s, %s, %s, %s)
-                """
 
     def _jQueryToDict(self, jsonText, code):
         obj = json.loads(jsonText)
@@ -262,7 +425,7 @@ class I18nHandler(object):
         wrappeddict['resources'] = {}
         wrappeddict['resources']['string'] = []
 
-        for key, text in iteritems(andrDict):
+        for key, text in andrDict.iteritems():
             row = {}
             row['@value'] = key
             row['#text'] = text
@@ -314,3 +477,26 @@ class I18nHandler(object):
         result = {}
         result[lang_code] = jsonDict
         return result
+
+if __name__ == "__main__":
+    conn = None # Dummy
+
+    i18nObj = I18nHandler(conn)
+
+    dictData = {}
+    f = open('xmlReady.csv', 'r')
+    reader = csv.reader(f)
+
+    for key, text in reader:
+        dictData[key] = text
+
+    print dictData
+
+    # 1) Android test
+    filename_and, bin_and = i18nObj._dictToAndroid(dictData)
+    f_and = codecs.open(filename_and, 'w', 'utf-8')
+    f_and.write(bin_and)
+    f_and.close()
+
+    formatter = xmlformatter.Formatter(indent="4", indent_char=" ", encoding_output="utf-8")
+    formatter.format_string(filename_and)

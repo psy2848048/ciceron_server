@@ -817,6 +817,7 @@ CREATE SEQUENCE CICERON.SEQ_D_I18N_TEXTS;
 
 CREATE TABLE CICERON.F_I18N_TEXT_MAPPINGS (
     id INT,
+    variable_id INT,
     lang_id INT,
     paragraph_seq INT,
     sentence_seq INT,
@@ -825,7 +826,8 @@ CREATE TABLE CICERON.F_I18N_TEXT_MAPPINGS (
     is_init_translated BOOLEAN,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (text_id) REFERENCES CICERON.D_I18N_TEXTS (id)
+    FOREIGN KEY (text_id) REFERENCES CICERON.D_I18N_TEXTS (id),
+    FOREIGN KEY (variable_id) REFERENCES CIERON.D_I18N_VARIABLE_NAMES (id)
 );
 CREATE SEQUENCE CICERON.SEQ_F_I18N_TEXT_MAPPINGS;
 
@@ -833,8 +835,8 @@ CREATE TABLE CICERON.F_I18N_VALUES (
     id INT,
     request_id INT,
     variable_id INT,
-    source_text_id INT,
-    target_text_id INT,
+    source_text_mapping_id INT,
+    target_text_mapping_id INT,
 
     PRIMARY KEY (id),
     FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
