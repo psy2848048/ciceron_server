@@ -317,9 +317,8 @@ class I18nHandler(object):
 
         return True
 
-    def _writeOneRecordToDB(self, cursor, request_id, variable_name, paragraph_seq, sentence_seq, partial_text):
+    def _writeOneRecordToDB(self, cursor, request_id, variable_id, paragraph_seq, sentence_seq, partial_text):
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
-        is_variable_inserted, variable_id = self.__insertVariable(variable_name)
         is_exist, source_text_id, curated_text_id = self.__historyChecker(request_id, source_lang_id, target_lang_id, partial_text)
 
         if is_exist == False:
@@ -330,8 +329,7 @@ class I18nHandler(object):
 
         is_value_inserted, value_id = self.__insertValue(cursor, request_id, variable_id, source_mapping_id, target_mapping_id)
 
-        if      is_variable_inserted == True \
-            and is_source_mapping_inserted == True \
+        if      is_source_mapping_inserted == True \
             and is_target_mapping_inserted == True \
             and is_value_inserted == True:
             return True, value_id
