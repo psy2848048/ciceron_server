@@ -3,6 +3,7 @@ import xmltodict, json, csv, io, hashlib, codecs, traceback
 from requestwarehouse import Warehousing
 from nslocalized import StringTable
 import xmlformatter, ciceron_lib
+import nltk.data
 
 
 class I18nHandler(object):
@@ -10,6 +11,7 @@ class I18nHandler(object):
     def __init__(self, conn):
         self.conn = conn
         self.warehouser = Warehousing(conn)
+        self.sentence_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def __getCountryNameById(self, lang_id):
         query = "SELECT text FROM CICERON.D_LANGUAGES WHERE id = %s"
@@ -338,8 +340,29 @@ class I18nHandler(object):
             return False, None
 
     def _dictToDb(self, request_id, dictData):
-        for key, text in dictData.iteritems():
-            self.__insertToDB(request_id, key)
+        cursor = self.conn.cursor()
+
+        for key, whole_text in dictData.iteritems():
+            whole_text_temp = whole_text.replace("\r", "").replace("\n  ", "\n\n")
+            splited_text = whole_text_temp.split('\n\n')
+
+            is_variable_inserted, variable_id = self.__insertVariable(cursor, key)
+            if is_variable_inserted == False:
+                self.conn.rollback()
+                raise Exception
+
+            for paragraph_seq, paragraph in enumerate(splited_text):
+                parsed_sentences = self.sentence_detector.tokenize(paragraph.strip())
+
+                for sentence_seq, sentence in enumerate(parsed_sentences):
+                    is_sentence_inserted, value_id = self._writeOneRecordToDB(cursor, request_id, variable_id, paragraph_seq, sentence_seq, sentence)
+
+                    if is_sentence_inserted == False:
+                        self.conn.rollback()
+                        raise Exception
+
+        # 입력 모두 끝나면 Commit
+        self.conn.commit()
 
     def _dbToDict(self, request_id):
         query_db = "SELECT ..."
