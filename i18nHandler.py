@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import xmltodict, json, csv, io, hashlib, codecs, traceback
-from requestwarehouse import Warehousing
 from nslocalized import StringTable
 import xmlformatter, ciceron_lib
 import nltk.data
@@ -10,7 +9,6 @@ class I18nHandler(object):
 
     def __init__(self, conn):
         self.conn = conn
-        self.warehouser = Warehousing(conn)
         self.sentence_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def __getCountryNameById(self, lang_id):
@@ -365,18 +363,61 @@ class I18nHandler(object):
         self.conn.commit()
 
     def _dbToDict(self, request_id):
-        query_db = "SELECT ..."
+        query_db = """
+            SELECT f_values.request_id,                   -- 0
+                   variable.id as variable_id,            -- 1
+                   variable.text as variable,             -- 2
+                   source_mapping.paragraph_seq,          -- 3
+                   source_mapping.sentence_seq,           -- 4
+                   source_text.text as source_sentence,   -- 5
+                   target_text.text as target_sentence    -- 6
+
+            FROM CICERON.F_I18N_VALUES f_values
+            JOIN CICERON.D_I18N_VARIABLE_NAMES variable ON f_values.variable_id = variable.id
+            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS source_mapping ON f_values.source_text_mapping_id = source_mapping.id
+            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS target_mapping ON f_values.target_text_mapping_id = target_mapping.id
+            LEFT OUTER JOIN CICERON.D_I18N_TEXTS source_text ON source_mapping.text_id = source_text.id
+            LEFT OUTER JOIN CICERON.D_I18N_TEXTS target_text ON target_mapping.text_id = target_text.id
+            WHERE request_id = %s
+            ORDER BY variable_id, paragraph_seq, sentence_seq 
+        """
 
         self.conn.execute(query_db, (request_id, ))
         res = self.conn.fetchall()
 
-        dictObj = []
-        for key, text in res:
-            row = {}
-            row[key] = text
-            dictObj.append(row)
+        source_obj = {}
+        target_obj = {}
 
-        return dictObj
+        cur_variable_id = ""
+        cur_paragraph_seq = -1
+        source_paragraph_per_variable = ""
+        target_paragraph_per_variable = ""
+
+        for idx, row in enumerate(res):
+            variable = row[2]
+            paragraph_seq = row[3]
+            sentence_seq = row[4]
+            source_sentence = row[5]
+            target_sentence = row[6]
+
+            if cur_variable != variable:
+                source_obj[ cur_variable ] = source_paragraph_per_variable
+                target_obj[ cur_variable ] = target_paragraph_per_variable
+                cur_variable = variable
+
+            if cur_paragraph_seq != paragraph_seq:
+                source_paragraph_per_variable += '\n\n'
+                target_paragraph_per_variable += '\n\n'
+                cur_paragraph_seq = paragraph_seq
+
+            source_paragraph_per_variable += " " + source_sentence
+            target_paragraph_per_variable += " " + source_sentence
+
+            if idx == len(res) - 1:
+                source_obj[ cur_variable ] = source_paragraph_per_variable
+                target_obj[ cur_variable ] = target_paragraph_per_variable
+
+        return source_obj, target_obj
 
     def _jQueryToDict(self, jsonText, code):
         obj = json.loads(jsonText)
