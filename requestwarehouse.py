@@ -11,7 +11,8 @@ class Warehousing:
         self.sentence_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def __parseParagragh(self, strings):
-        return strings.split('\n')
+        result = strings.replace("\r", "").replace("\n  ", "\n\n")
+        return result.split('\n\n')
 
     def __parseSentence(self, strings):
         return self.sentence_detector.tokenize(strings.strip())
