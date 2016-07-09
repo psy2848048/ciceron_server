@@ -167,7 +167,6 @@ class I18nHandler(object):
         """
         try:
             cursor.execute(query_newText, (text_id, text, md5_text, ))
-            self.conn.commit()
         except Exception:
             self.conn.rollback()
             traceback.print_exc()
@@ -423,9 +422,14 @@ class I18nHandler(object):
         obj = json.loads(jsonText)
         return obj[code]
 
-    def _railsToDict(self, jsonText, code):
+    def _jsonToDict(self, jsonText, code):
         obj = json.loads(jsonText)
-        return obj[code.upper()]
+        if code in obj:
+            return obj[code]
+        elif code.upper() in obj:
+            return obj[code.upper()]
+        else:
+            return obj
 
     def _iosToDict(self, iosText):
         st = StringTable.read(iosText)
@@ -477,8 +481,8 @@ class I18nHandler(object):
 
     def _dictToIOs(self, iosDict):
         output = io.BytesIO()
-        for key, text in iteritems(iosDict):
-            output.write("\"%s\": \"%s\";" % (key, text))
+        for key, text in sorted(iosDict.iteritems()):
+            output.write(("\"%s\": \"%s\";\n" % (key, text)).encode('utf-16'))
 
         return ('Localizable.strings', output.getvalue())
 
@@ -487,21 +491,21 @@ class I18nHandler(object):
         wrappeddict['resources'] = {}
         wrappeddict['resources']['string'] = []
 
-        for key, text in andrDict.iteritems():
+        for key, text in sorted(andrDict.iteritems()):
             row = {}
             row['@value'] = key
             row['#text'] = text
 
             wrappeddict['resources']['string'].append(row)
 
-        xmlResult = xmltodict.unparse(wrappeddict)
+        xmlResult = xmltodict.unparse(wrappeddict, pretty=True)
         return ('string.xml', xmlResult)
 
     def _dictToUnity(self, language, unityDict):
         result = []
         result.append(['KEY', language])
 
-        for key, text in iteritems(unityDict):
+        for key, text in sorted(unityDict.iteritems()):
             result.append([key, text])
 
         output = io.BytesIO()
@@ -524,7 +528,7 @@ class I18nHandler(object):
 
         wrappeddict['root']['data'] = []
 
-        for key, text in iteritems(xamDict):
+        for key, text in sorted(xamDict.iteritems()):
             row = {}
             row['@xml:space'] = 'preserve'
             row['@name'] = key
@@ -539,6 +543,84 @@ class I18nHandler(object):
         result = {}
         result[lang_code] = jsonDict
         return result
+
+    def jsonResponse(self, request_id, is_restricted=True):
+        # For web response
+        source_obj, target_obj = self._dbToDict(request_id)
+
+        result = []
+        for key, value in source_obj.iteritems():
+            row = {}
+            row['variable'] = key
+            row['source_sentence'] = value
+            if is_restricted == False:
+                row['translated_sentence'] = target_obj[key]
+            else:
+                row['translated_sentence'] = None
+
+            result.append(row)
+
+        return result
+
+    def xmlToDb(self, request_id, xml_text):
+        dict_data = self._androidToDict(xml_text)
+        self._dictToDb(request_id, dict_data)
+
+    def jsonToDb(self, request_id, json_text):
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        source_lang = self.__getCountryCodeById(source_lang_id)
+        dict_data = self._jsonToDict(json_text, source_lang)
+        self._dictToDb(request_id, dict_data)
+
+    def iosToDb(self, request_id, ios_text):
+        dict_data = self._iosToDict(ios_text)
+        self._dictToDb(request_id, dict_data)
+
+    def xamarinToDb(self, request_id, xamText):
+        dict_data = self._xamarinToDict(xamTet)
+        self._dictToDb(request_id, dict_data)
+
+    def unityToDb(self, request_id, unityText):
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        source_lang = self.__getCountryCodeById(source_lang_id)
+        dict_data = self._unityToDict(request_id, unityText, source_lang)
+        self._dictToDb(request_id, dict_data)
+
+    def updateVariableName(self, request_id, variable_id, text):
+        cursor = self.conn.cursor()
+        is_updated = self.__updateVariable(cursor, variable_id, text)
+        if is_updated == True:
+            self.conn.commit()
+        else:
+            self.conn.rollback()
+
+    def insertVariable(self, request_id, text):
+        cursor = self.conn.cursor()
+
+        is_inserted_variable, variable_id = self.__insertVariable(cursor, text)
+        is_inserted_text, value_id = self._writeOneRecordToDB(cursor, request_id, variable_id, 0, 0, "")
+
+        if is_inserted_variable == True and is_inserted_text == True:
+            self.conn.commit()
+            return value_id
+        else:
+            self.conn.rollback()
+            return None
+
+    def deleteVariable(self, request_id, variable_id):
+        is_deleted = self._deleteVariableAndText(request_id, variable_id)
+        return is_deleted
+
+    def updateText(self, request_id, mapping_id, paragraph_seq, sentence_seq, new_text):
+        cursor = self.conn.cursor()
+
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        is_exist, source_text_id, curated_text_id = self.__historyChecker(request_id, source_lang_id, target_lang_id, new_text)
+        if is_exist == False:
+            is_unitText_inserted, new_text_id = self.__insertUnitText(cursor, new_text)
+            is_mapping_updated = self.__updateMapping(cursor, mapping_id, new_text_id)
+        else:
+            is_mapping_updated = self.__updateMapping(cursor, mapping_id, curated_text_id)
 
 if __name__ == "__main__":
     conn = None # Dummy
@@ -559,6 +641,3 @@ if __name__ == "__main__":
     f_and = codecs.open(filename_and, 'w', 'utf-8')
     f_and.write(bin_and)
     f_and.close()
-
-    formatter = xmlformatter.Formatter(indent="4", indent_char=" ", encoding_output="utf-8")
-    formatter.format_string(filename_and)
