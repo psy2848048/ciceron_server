@@ -112,14 +112,14 @@ class I18nHandler(object):
 
     def __getMD5(self, text):
         hash_maker = hashlib.md5()
-        hash_maker.update(text)
+        hash_maker.update(text.encode('utf-8'))
         return hash_maker.hexdigest()
 
     def __historyChecker(self, cursor, request_id, source_lang_id, target_lang_id, text):
         # MD5를 이용하여 원문 ID 검색
         original_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         hashed_text = self.__getMD5(text)
-        query_textSearch = "SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_shecksum = %s ORDER BY hit_count LIMIT 1"
+        query_textSearch = "SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_checksum = %s ORDER BY hit_count LIMIT 1"
         cursor.execute(query_textSearch, (hashed_text, ))
         res = cursor.fetchone()
         if res is None or len(res) == 0:
@@ -134,8 +134,8 @@ class I18nHandler(object):
             return False, None, None
 
         # 번역 기록 이용하여 후보 단어 추출
-        request_lists = ','.join([row[0] for row in res])
-        query_getAllTargetWords = "SELECT DISTINCT target_text_id FROM CICERON.F_I18N_VALUES WHERE request_id in (%s)"
+        request_lists = ','.join([str(row[0]) for row in res])
+        query_getAllTargetWords = "SELECT DISTINCT target_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE request_id in (%s)"
         query_getAllTargetWords = query_getAllTargetWords % request_lists
         cursor.execute(query_getAllTargetWords)
         res = cursor.fetchall()
@@ -161,7 +161,7 @@ class I18nHandler(object):
         md5_text = self.__getMD5(text)
         query_newText = """
             INSERT INTO CICERON.D_I18N_TEXTS
-                (id, text md5_checksum, hit_count)
+                (id, text, md5_checksum, hit_count)
             VALUES
                 (%s, %s, %s, 0)
         """
@@ -208,7 +208,7 @@ class I18nHandler(object):
     def __insertVariable(self, cursor, text):
         variable_id = ciceron_lib.get_new_id(self.conn, "D_I18N_VARIABLE_NAMES")
         query_newVariable = """
-            INSERT INTO CIERON.D_I18N_VARIABLE_NAMES
+            INSERT INTO CICERON.D_I18N_VARIABLE_NAMES
                 (id, text)
             VALUES
                 (%s, %s)
@@ -232,7 +232,7 @@ class I18nHandler(object):
                 (%s, %s, %s, %s, %s, %s, %s, false)
         """
         try:
-            cursor.execute(query_newMapping, (mapping_id, lang_id, paragraph_seq, sentence_seq, text_id, is_curated, ))
+            cursor.execute(query_newMapping, (mapping_id, variable_id, lang_id, paragraph_seq, sentence_seq, text_id, is_curated, ))
 
         except Exception:
             traceback.print_exc()
@@ -334,13 +334,14 @@ class I18nHandler(object):
 
     def _writeOneRecordToDB(self, cursor, request_id, variable_id, paragraph_seq, sentence_seq, partial_text):
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
-        is_exist, source_text_id, curated_text_id = self.__historyChecker(request_id, source_lang_id, target_lang_id, partial_text)
+        is_exist_source, source_text_id, curated_text_id = self.__historyChecker(cursor, request_id, source_lang_id, target_lang_id, partial_text)
+        is_exist_target, target_text_id, curated_text_id = self.__historyChecker(cursor, request_id, source_lang_id, target_lang_id, "")
 
-        if is_exist == False:
+        if is_exist_source == False:
             is_unitText_inserted, curated_text_id = self.__insertUnitText(cursor, partial_text)
 
-        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_text_id, is_exist)
-        is_target_mapping_inserted, target_mapping_id = self.__insertMapping(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq, target_text_id, is_exist)
+        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_text_id, is_exist_source)
+        is_target_mapping_inserted, target_mapping_id = self.__insertMapping(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq, target_text_id, is_exist_target)
 
         is_value_inserted, value_id = self.__insertValue(cursor, request_id, variable_id, source_mapping_id, target_mapping_id)
 
@@ -453,18 +454,15 @@ class I18nHandler(object):
 
     def _androidToDict(self, andrText):
         parsedData = xmltodict.parse(andrText)
-        result = []
+        result = {}
 
-        for row in parsedData['resources']:
-            temp_row = {}
-            temp_row[ row['@value'] ] = row['#text']
-
-            result.append(temp_row)
+        for row in parsedData['resources']['string']:
+            result[ row['@value'] ] = row['#text']
 
         return result
 
     def _unityToDict(self, unityText, language):
-        result = []
+        result = {}
         items = csv.reader(unityText)
 
         marker = None
@@ -476,22 +474,16 @@ class I18nHandler(object):
                         break
 
             else:
-                temp_row = {}
-                temp_row[ row[0] ] = row[marker]
-
-                result.append(temp_row)
+                result[ row[0] ] = row[marker]
 
         return result
 
     def _xamarinToDict(self, xamText):
         parsedData = xmltodict.parse(xamText)
-        result = []
+        result = {}
 
         for item in parsedData['root']['data']:
-            temp_row = {}
-            temp_row[ item['@value'] ] = item['#text']
-
-            result.append(temp_row)
+            result[ item['@value'] ] = item['#text']
 
         return result
 
@@ -578,7 +570,7 @@ class I18nHandler(object):
 
         return result
 
-    def xmlToDb(self, request_id, xml_text):
+    def androidToDb(self, request_id, xml_text):
         dict_data = self._androidToDict(xml_text)
         self._dictToDb(request_id, dict_data)
 
@@ -632,7 +624,7 @@ class I18nHandler(object):
 
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         is_mapping_exist, mapping_id = self.__getMappingIdFromVariable(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq)
-        is_exist, source_text_id, curated_text_id = self.__historyChecker(request_id, source_lang_id, target_lang_id, new_text)
+        is_exist, source_text_id, curated_text_id = self.__historyChecker(cursor, request_id, source_lang_id, target_lang_id, new_text)
         if is_exist == False:
             is_unitText_inserted, new_text_id = self.__insertUnitText(cursor, new_text)
             is_mapping_updated = self.__updateMapping(cursor, mapping_id, new_text_id)
@@ -644,49 +636,49 @@ class I18nHandler(object):
 
     def exportIOs(self, request_id):
         dict_data = self._dbToDict(request_id)
-        ios_binary = self._dictToIOs(dict_data)
-        return ios_binary
+        filename, ios_binary = self._dictToIOs(dict_data)
+        return filename, ios_binary
 
     def exportAndroid(self, request_id):
         dict_data = self._dbToDict(request_id)
-        android_binary = self._dictToAndroid(dict_data)
-        return android_binary
+        filename, android_binary = self._dictToAndroid(dict_data)
+        return filename, android_binary
 
     def exportUnity(self, request_id):
         dict_data = self._dbToDict(request_id)
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         target_lang = self.__getCountryCodeById(target_lang_id)
-        unity_binary = self._dictToUnity(target_lang, dict_data)
-        return unity_binary
+        filename, unity_binary = self._dictToUnity(target_lang, dict_data)
+        return filename, unity_binary
 
     def exportJson(self, request_id):
         dict_data = self._dbToDict(request_id)
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         target_lang = self.__getCountryCodeById(target_lang_id)
-        json_binary = self._dictToJson(target_lang, dict_data)
-        return json_binary
+        filename, json_binary = self._dictToJson(target_lang, dict_data)
+        return filename, json_binary
 
     def exportXamarin(self, request_id):
         dict_data = self._dbToDict(request_id)
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         target_lang = self.__getCountryCodeById(target_lang_id)
-        xamarin_binary = self._dictToXamarin(target_lang, dict_data)
-        return xamarin_binary
+        filename, xamarin_binary = self._dictToXamarin(target_lang, dict_data)
+        return filename, xamarin_binary
 
 if __name__ == "__main__":
-    conn = None # Dummy
+    import psycopg2
+    import os
+    if os.environ.get('PURPOSE') == 'PROD':
+        DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    else:
+        DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+
+    conn = psycopg2.connect(DATABASE)
 
     i18nObj = I18nHandler(conn)
 
     dictData = {}
-    f = open('xmlReady.csv', 'r')
-    reader = csv.reader(f)
-
-    for key, text in reader:
-        dictData[key] = text
-
-    # 1) Android test
-    filename_and, bin_and = i18nObj._dictToAndroid(dictData)
-    f_and = codecs.open(filename_and, 'w', 'utf-8')
-    f_and.write(bin_and)
-    f_and.close()
+    f = open('testdata/string.xml', 'r')
+    i18nObj.androidToDb(678, f.read())
+    result = i18nObj.jsonResponse(678)
+    print result
