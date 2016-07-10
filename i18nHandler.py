@@ -241,6 +241,22 @@ class I18nHandler(object):
 
         return True, mapping_id
 
+    def __getMappingIdFromVariable(self, cursor, variable_id, lang_id, paragraph_seq, sentence_seq):
+        query_getMapping = """
+            SELECT id FROM CICERON.F_I18N_TEXT_MAPPINGS
+            WHERE variabld_id = %s
+              AND paragraph_seq = %s
+              AND sentence_seq = %s
+              AND lang_id = %s
+        """
+        cursor.execute(query_getMapping, (variable_id, paragraph_seq, sentence_seq, lang_id, ))
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return False, None
+
+        else:
+            return True, res[0]
+
     def __updateMapping(self, cursor, mapping_id, new_text_id):
         query_updateMapping = """
             UPDATE CICERON.F_I18N_TEXT_MAPPINGS
@@ -536,10 +552,10 @@ class I18nHandler(object):
 
             wrappeddict['root']['data'].append(row)
 
-        xamResult = xmltodict.unparse(wrappeddict)
+        xamResult = xmltodict.unparse(wrappeddict, pretty=True)
         return ('AppResources.%s.resx' % lang_code, xamResult)
 
-    def _dictToRails(self, lang_code, jsonDict):
+    def _dictToJson(self, lang_code, jsonDict):
         result = {}
         result[lang_code] = jsonDict
         return result
@@ -611,16 +627,51 @@ class I18nHandler(object):
         is_deleted = self._deleteVariableAndText(request_id, variable_id)
         return is_deleted
 
-    def updateText(self, request_id, mapping_id, paragraph_seq, sentence_seq, new_text):
+    def updateText(self, request_id, variable_id, paragraph_seq, sentence_seq, new_text):
         cursor = self.conn.cursor()
 
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        is_mapping_exist, mapping_id = self.__getMappingIdFromVariable(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq)
         is_exist, source_text_id, curated_text_id = self.__historyChecker(request_id, source_lang_id, target_lang_id, new_text)
         if is_exist == False:
             is_unitText_inserted, new_text_id = self.__insertUnitText(cursor, new_text)
             is_mapping_updated = self.__updateMapping(cursor, mapping_id, new_text_id)
         else:
             is_mapping_updated = self.__updateMapping(cursor, mapping_id, curated_text_id)
+
+        if is_mapping_updated == True:
+            self.conn.commit()
+
+    def exportIOs(self, request_id):
+        dict_data = self._dbToDict(request_id)
+        ios_binary = self._dictToIOs(dict_data)
+        return ios_binary
+
+    def exportAndroid(self, request_id):
+        dict_data = self._dbToDict(request_id)
+        android_binary = self._dictToAndroid(dict_data)
+        return android_binary
+
+    def exportUnity(self, request_id):
+        dict_data = self._dbToDict(request_id)
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        target_lang = self.__getCountryCodeById(target_lang_id)
+        unity_binary = self._dictToUnity(target_lang, dict_data)
+        return unity_binary
+
+    def exportJson(self, request_id):
+        dict_data = self._dbToDict(request_id)
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        target_lang = self.__getCountryCodeById(target_lang_id)
+        json_binary = self._dictToJson(target_lang, dict_data)
+        return json_binary
+
+    def exportXamarin(self, request_id):
+        dict_data = self._dbToDict(request_id)
+        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+        target_lang = self.__getCountryCodeById(target_lang_id)
+        xamarin_binary = self._dictToXamarin(target_lang, dict_data)
+        return xamarin_binary
 
 if __name__ == "__main__":
     conn = None # Dummy
@@ -633,8 +684,6 @@ if __name__ == "__main__":
 
     for key, text in reader:
         dictData[key] = text
-
-    print dictData
 
     # 1) Android test
     filename_and, bin_and = i18nObj._dictToAndroid(dictData)
