@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import xmltodict, json, csv, io, hashlib, codecs, traceback
 from nslocalized import StringTable
-import xmlformatter, ciceron_lib
+import ciceron_lib
 import nltk.data
 
 
@@ -139,7 +139,7 @@ class I18nHandler(object):
         query_getAllTargetWords = query_getAllTargetWords % request_lists
         cursor.execute(query_getAllTargetWords)
         res = cursor.fetchall()
-        if res in None or len(res) == 0:
+        if res is None or len(res) == 0:
             return False, None, None
 
         # 후보 단어 중 가장 추천 많이 된 것 골라줌
@@ -379,6 +379,7 @@ class I18nHandler(object):
         self.conn.commit()
 
     def _dbToDict(self, request_id):
+        cursor = self.conn.cursor()
         query_db = """
             SELECT f_values.request_id,                   -- 0
                    variable.id as variable_id,            -- 1
@@ -398,13 +399,13 @@ class I18nHandler(object):
             ORDER BY variable_id, paragraph_seq, sentence_seq 
         """
 
-        self.conn.execute(query_db, (request_id, ))
-        res = self.conn.fetchall()
+        cursor.execute(query_db, (request_id, ))
+        res = cursor.fetchall()
 
         source_obj = {}
         target_obj = {}
 
-        cur_variable_id = ""
+        cur_variable = ""
         cur_paragraph_seq = -1
         source_paragraph_per_variable = ""
         target_paragraph_per_variable = ""
@@ -426,8 +427,10 @@ class I18nHandler(object):
                 target_paragraph_per_variable += '\n\n'
                 cur_paragraph_seq = paragraph_seq
 
-            source_paragraph_per_variable += " " + source_sentence
-            target_paragraph_per_variable += " " + source_sentence
+            if source_sentence != None:
+                source_paragraph_per_variable += " " + source_sentence
+            if target_sentence != None:
+                target_paragraph_per_variable += " " + target_sentence
 
             if idx == len(res) - 1:
                 source_obj[ cur_variable ] = source_paragraph_per_variable
