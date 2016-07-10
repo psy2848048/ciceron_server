@@ -41,7 +41,7 @@ Ciceron server code
   - microsofttranslator
   - yandex.translate
   - python-i18n
-  - nslocalizable
+  - nslocalized
   - xmltodict
 
 * Summary of set up
