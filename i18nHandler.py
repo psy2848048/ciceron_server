@@ -428,6 +428,9 @@ class I18nHandler(object):
                 target_obj[ cur_variable ] = target_paragraph_per_variable
                 cur_variable = variable
 
+                source_paragraph_per_variable = ""
+                target_paragraph_per_variable = ""
+
             if cur_paragraph_seq != paragraph_seq:
                 source_paragraph_per_variable += '\n\n'
                 target_paragraph_per_variable += '\n\n'
@@ -559,7 +562,7 @@ class I18nHandler(object):
     def _dictToJson(self, lang_code, jsonDict):
         result = {}
         result[lang_code] = jsonDict
-        return result
+        return ('i18n.json', json.dumps(result, indent=4, encoding='utf-8', sort_keys=True))
 
     def jsonResponse(self, request_id, is_restricted=True):
         # For web response
@@ -644,34 +647,34 @@ class I18nHandler(object):
             self.conn.commit()
 
     def exportIOs(self, request_id):
-        dict_data = self._dbToDict(request_id)
-        filename, ios_binary = self._dictToIOs(dict_data)
+        source_dict_data, target_dict_data = self._dbToDict(request_id)
+        filename, ios_binary = self._dictToIOs(target_dict_data)
         return filename, ios_binary
 
     def exportAndroid(self, request_id):
-        dict_data = self._dbToDict(request_id)
-        filename, android_binary = self._dictToAndroid(dict_data)
+        source_dict_data, target_dict_data = self._dbToDict(request_id)
+        filename, android_binary = self._dictToAndroid(target_dict_data)
         return filename, android_binary
 
     def exportUnity(self, request_id):
-        dict_data = self._dbToDict(request_id)
+        source_dict_data, target_dict_data = self._dbToDict(request_id)
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         target_lang = self.__getCountryCodeById(target_lang_id)
-        filename, unity_binary = self._dictToUnity(target_lang, dict_data)
+        filename, unity_binary = self._dictToUnity(target_lang, target_dict_data)
         return filename, unity_binary
 
     def exportJson(self, request_id):
-        dict_data = self._dbToDict(request_id)
+        source_dict_data, target_dict_data = self._dbToDict(request_id)
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         target_lang = self.__getCountryCodeById(target_lang_id)
-        filename, json_binary = self._dictToJson(target_lang, dict_data)
+        filename, json_binary = self._dictToJson(target_lang, target_dict_data)
         return filename, json_binary
 
     def exportXamarin(self, request_id):
-        dict_data = self._dbToDict(request_id)
+        source_dict_data, target_dict_data = self._dbToDict(request_id)
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         target_lang = self.__getCountryCodeById(target_lang_id)
-        filename, xamarin_binary = self._dictToXamarin(target_lang, dict_data)
+        filename, xamarin_binary = self._dictToXamarin(target_lang, target_dict_data)
         return filename, xamarin_binary
 
 if __name__ == "__main__":
@@ -690,3 +693,8 @@ if __name__ == "__main__":
     f = open('testdata/string.xml', 'r')
     i18nObj.androidToDb(678, f.read())
     result = i18nObj.jsonResponse(678)
+
+    filename, json_binary = i18nObj.exportJson(678)
+    f = open('testdata/%s' % filename, 'w')
+    f.write(json_binary)
+    f.close()
