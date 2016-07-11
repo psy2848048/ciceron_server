@@ -115,9 +115,8 @@ class I18nHandler(object):
         hash_maker.update(text.encode('utf-8'))
         return hash_maker.hexdigest()
 
-    def __historyChecker(self, cursor, request_id, source_lang_id, target_lang_id, text):
+    def __historyChecker(self, cursor, source_lang_id, target_lang_id, text):
         # MD5를 이용하여 원문 ID 검색
-        original_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         hashed_text = self.__getMD5(text)
         query_textSearch = "SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_checksum = %s ORDER BY hit_count LIMIT 1"
         cursor.execute(query_textSearch, (hashed_text, ))
@@ -128,7 +127,7 @@ class I18nHandler(object):
 
         # 원문 ID와 언어를 이용하여 이전 번역기록 추출
         query_getAllRequests = "SELECT DISTINCT id FROM CICERON.F_REQUESTS WHERE original_lang_id = %s AND target_lang_id = %s AND status_id = 2"
-        cursor.execute(query_getAllRequests, (original_lang_id, target_lang_id, ))
+        cursor.execute(query_getAllRequests, (source_lang_id, target_lang_id, ))
         res = cursor.fetchall()
         if res is None or len(res) == 0:
             return False, None, None
@@ -143,7 +142,7 @@ class I18nHandler(object):
             return False, None, None
 
         # 후보 단어 중 가장 추천 많이 된 것 골라줌
-        target_text_id_lists = ','.join([row[0] for row in res])
+        target_text_id_lists = ','.join([str(row[0]) for row in res])
         query_getTopTextId = "SELECT id, text FROM CICERON.D_I18N_TEXTS WHERE id in (%s) ORDER BY hit_count LIMIT 1"
         query_getTopTextId = query_getTopTextId % target_text_id_lists
         cursor.execute(query_getTopTextId)
@@ -334,14 +333,21 @@ class I18nHandler(object):
 
     def _writeOneRecordToDB(self, cursor, request_id, variable_id, paragraph_seq, sentence_seq, partial_text):
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
-        is_exist_source, source_text_id, curated_text_id = self.__historyChecker(cursor, request_id, source_lang_id, target_lang_id, partial_text)
-        is_exist_target, target_text_id, curated_text_id = self.__historyChecker(cursor, request_id, source_lang_id, target_lang_id, "")
+        is_exist_source, source_text_id, source_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
+        is_exist_target, target_text_id, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, "")
 
         if is_exist_source == False:
-            is_unitText_inserted, curated_text_id = self.__insertUnitText(cursor, partial_text)
+            is_unitText_inserted, source_curated_text_id = self.__insertUnitText(cursor, partial_text)
+            if is_unitText_inserted == False:
+                raise Exception
 
-        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_text_id, is_exist_source)
-        is_target_mapping_inserted, target_mapping_id = self.__insertMapping(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq, target_text_id, is_exist_target)
+        if is_exist_target == False:
+            is_unitText_inserted, target_curated_text_id = self.__insertUnitText(cursor, "")
+            if is_unitText_inserted == False:
+                raise Exception
+
+        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_curated_text_id, is_exist_source)
+        is_target_mapping_inserted, target_mapping_id = self.__insertMapping(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq, target_curated_text_id, is_exist_target)
 
         is_value_inserted, value_id = self.__insertValue(cursor, request_id, variable_id, source_mapping_id, target_mapping_id)
 
@@ -356,7 +362,7 @@ class I18nHandler(object):
     def _dictToDb(self, request_id, dictData):
         cursor = self.conn.cursor()
 
-        for key, whole_text in dictData.iteritems():
+        for key, whole_text in sorted(dictData.iteritems()):
             whole_text_temp = whole_text.replace("\r", "").replace("\n  ", "\n\n")
             splited_text = whole_text_temp.split('\n\n')
 
@@ -459,7 +465,7 @@ class I18nHandler(object):
         parsedData = xmltodict.parse(andrText)
         result = {}
 
-        for row in parsedData['resources']['string']:
+        for row in sorted(parsedData['resources']['string']):
             result[ row['@value'] ] = row['#text']
 
         return result
@@ -627,7 +633,7 @@ class I18nHandler(object):
 
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         is_mapping_exist, mapping_id = self.__getMappingIdFromVariable(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq)
-        is_exist, source_text_id, curated_text_id = self.__historyChecker(cursor, request_id, source_lang_id, target_lang_id, new_text)
+        is_exist, source_text_id, curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, new_text)
         if is_exist == False:
             is_unitText_inserted, new_text_id = self.__insertUnitText(cursor, new_text)
             is_mapping_updated = self.__updateMapping(cursor, mapping_id, new_text_id)
@@ -684,4 +690,3 @@ if __name__ == "__main__":
     f = open('testdata/string.xml', 'r')
     i18nObj.androidToDb(678, f.read())
     result = i18nObj.jsonResponse(678)
-    print result
