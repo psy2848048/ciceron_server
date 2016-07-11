@@ -115,6 +115,16 @@ class I18nHandler(object):
         hash_maker.update(text.encode('utf-8'))
         return hash_maker.hexdigest()
 
+    def __getTextId(self, cursor, text):
+        hashed_text = self.__getMD5(text)
+        query_textSearch = "SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_checksum = %s ORDER BY hit_count LIMIT 1"
+        cursor.execute(query_textSearch, (hashed_text, ))
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return False, None
+        else:
+            return True, res[0]
+
     def __historyChecker(self, cursor, source_lang_id, target_lang_id, text):
         # MD5를 이용하여 원문 ID 검색
         hashed_text = self.__getMD5(text)
@@ -333,20 +343,26 @@ class I18nHandler(object):
 
     def _writeOneRecordToDB(self, cursor, request_id, variable_id, paragraph_seq, sentence_seq, partial_text):
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
-        is_exist_source, source_text_id, source_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
-        is_exist_target, target_text_id, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, "")
+        # 원문은 똑같은 텍스트 있나 살펴보는 정도
+        is_exist_source, source_text_id = self.__getTextId(cursor, partial_text)
+        # 원문 텍스트 이용하여 기존 번역 있는지 검색
+        is_exist_target, source_text_id, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
 
         if is_exist_source == False:
-            is_unitText_inserted, source_curated_text_id = self.__insertUnitText(cursor, partial_text)
+            # 원문 부분은 기존 데이터 없을 시 원문 문장 삽입
+            is_unitText_inserted, source_text_id = self.__insertUnitText(cursor, partial_text)
             if is_unitText_inserted == False:
                 raise Exception
 
         if is_exist_target == False:
-            is_unitText_inserted, target_curated_text_id = self.__insertUnitText(cursor, "")
-            if is_unitText_inserted == False:
-                raise Exception
+            # 번역 결과 부분은 기존 데이터 없으면 빈 줄 삽입
+            is_dummy_exist, target_curated_text_id = self.__getTextId(cursor, "")
+            if is_dummy_exist == False:
+                is_unitText_inserted, target_curated_text_id = self.__insertUnitText(cursor, "")
+                if is_unitText_inserted == False:
+                    raise Exception
 
-        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_curated_text_id, is_exist_source)
+        is_source_mapping_inserted, source_mapping_id = self.__insertMapping(cursor, variable_id, source_lang_id, paragraph_seq, sentence_seq, source_text_id, is_exist_source)
         is_target_mapping_inserted, target_mapping_id = self.__insertMapping(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq, target_curated_text_id, is_exist_target)
 
         is_value_inserted, value_id = self.__insertValue(cursor, request_id, variable_id, source_mapping_id, target_mapping_id)
