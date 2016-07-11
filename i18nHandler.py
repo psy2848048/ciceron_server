@@ -705,12 +705,32 @@ if __name__ == "__main__":
 
     i18nObj = I18nHandler(conn)
 
+    # 불러오고 각 포멧으로 Export하는 테스트
     dictData = {}
     f = open('testdata/string.xml', 'r')
     i18nObj.androidToDb(678, f.read())
     result = i18nObj.jsonResponse(678)
 
-    filename, json_binary = i18nObj.exportJson(678)
-    f = open('testdata/%s' % filename, 'w')
-    f.write(json_binary)
-    f.close()
+    filename_json, json_binary = i18nObj.exportJson(678)
+    filename_unity, unity_binary = i18nObj.exportUnity(678)
+    filename_xamarin, xamarin_binary = i18nObj.exportXamarin(678)
+    filename_android, android_binary = i18nObj.exportAndroid(678)
+    filename_ios, ios_binary = i18nObj.exportIOs(678)
+
+    f0 = open('testdata/%s' % filename_json, 'w')
+    f1 = open('testdata/%s' % filename_unity, 'w')
+    f2 = open('testdata/%s' % filename_xamarin, 'w')
+    f3 = open('testdata/%s' % "string2.xml", 'w')
+    f4 = open('testdata/%s' % filename_ios, 'w')
+
+    f0.write(json_binary)
+    f1.write(unity_binary)
+    f2.write(xamarin_binary)
+    f3.write(android_binary)
+    f4.write(ios_binary)
+
+    f0.close()
+    f1.close()
+    f2.close()
+    f3.close()
+    f4.close()
