@@ -168,6 +168,8 @@ class I18nHandler(object):
     def __insertUnitText(self, cursor, text):
         text_id = ciceron_lib.get_new_id(self.conn, "D_I18N_TEXTS")
         md5_text = self.__getMD5(text)
+
+        is_double, text_id = self.__getTextId(cursor, text)
         query_newText = """
             INSERT INTO CICERON.D_I18N_TEXTS
                 (id, text, md5_checksum, hit_count)
@@ -175,7 +177,9 @@ class I18nHandler(object):
                 (%s, %s, %s, 0)
         """
         try:
-            cursor.execute(query_newText, (text_id, text, md5_text, ))
+            if is_double == False:
+                cursor.execute(query_newText, (text_id, text, md5_text, ))
+
         except Exception:
             self.conn.rollback()
             traceback.print_exc()
@@ -253,7 +257,7 @@ class I18nHandler(object):
     def __getMappingIdFromVariable(self, cursor, variable_id, lang_id, paragraph_seq, sentence_seq):
         query_getMapping = """
             SELECT id FROM CICERON.F_I18N_TEXT_MAPPINGS
-            WHERE variabld_id = %s
+            WHERE variable_id = %s
               AND paragraph_seq = %s
               AND sentence_seq = %s
               AND lang_id = %s
@@ -463,6 +467,70 @@ class I18nHandler(object):
 
         return source_obj, target_obj
 
+    def _dbToJsonResponse(self, request_id):
+        cursor = self.conn.cursor()
+        query_db = """
+            SELECT f_values.request_id,                   -- 0
+                   variable.id as variable_id,            -- 1
+                   variable.text as variable,             -- 2
+                   source_mapping.paragraph_seq,          -- 3
+                   source_mapping.sentence_seq,           -- 4
+                   source_text.text as source_sentence,   -- 5
+                   target_text.text as target_sentence    -- 6
+
+            FROM CICERON.F_I18N_VALUES f_values
+            JOIN CICERON.D_I18N_VARIABLE_NAMES variable ON f_values.variable_id = variable.id
+            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS source_mapping ON f_values.source_text_mapping_id = source_mapping.id
+            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS target_mapping ON f_values.target_text_mapping_id = target_mapping.id
+            LEFT OUTER JOIN CICERON.D_I18N_TEXTS source_text ON source_mapping.text_id = source_text.id
+            LEFT OUTER JOIN CICERON.D_I18N_TEXTS target_text ON target_mapping.text_id = target_text.id
+            WHERE request_id = %s
+            ORDER BY variable_id, paragraph_seq, sentence_seq 
+        """
+
+        cursor.execute(query_db, (request_id, ))
+        res = cursor.fetchall()
+
+        source_obj = {}
+        target_obj = {}
+
+        cur_variable = ""
+        cur_paragraph_seq = -1
+        source_paragraph_per_variable = []
+        target_paragraph_per_variable = []
+
+        for idx, row in enumerate(res):
+            variable = row[2]
+            paragraph_seq = row[3]
+            sentence_seq = row[4]
+            source_sentence = row[5]
+            target_sentence = row[6]
+
+            if cur_variable != variable:
+                source_obj[ cur_variable ] = source_paragraph_per_variable
+                target_obj[ cur_variable ] = target_paragraph_per_variable
+                cur_variable = variable
+
+                source_paragraph_per_variable = []
+                target_paragraph_per_variable = []
+
+            unit_row_source = {}
+            unit_row_target = {}
+
+            unit_row_source['paragraph_seq'] = paragraph_seq
+            unit_row_target['paragraph_seq'] = paragraph_seq
+            unit_row_source['sentence_seq'] = sentence_seq
+            unit_row_target['sentence_seq'] = sentence_seq
+            unit_row_source['sentence'] = source_sentence
+            unit_row_target['sentence'] = target_sentence
+
+            source_paragraph_per_variable.append(unit_row_source)
+            target_paragraph_per_variable.append(unit_row_target)
+
+            if idx == len(res) - 1:
+                source_obj[ cur_variable ] = source_paragraph_per_variable
+                target_obj[ cur_variable ] = target_paragraph_per_variable
+
     def _jQueryToDict(self, jsonText, code):
         obj = json.loads(jsonText)
         return obj[code]
@@ -661,6 +729,9 @@ class I18nHandler(object):
 
         if is_mapping_updated == True:
             self.conn.commit()
+        else:
+            self.conn.rollback()
+            raise Exception
 
     def exportIOs(self, request_id):
         source_dict_data, target_dict_data = self._dbToDict(request_id)
@@ -706,31 +777,34 @@ if __name__ == "__main__":
     i18nObj = I18nHandler(conn)
 
     # 불러오고 각 포멧으로 Export하는 테스트
-    dictData = {}
-    f = open('testdata/string.xml', 'r')
-    i18nObj.androidToDb(678, f.read())
-    result = i18nObj.jsonResponse(678)
+    #dictData = {}
+    #f = open('testdata/string.xml', 'r')
+    #i18nObj.androidToDb(678, f.read())
+    #result = i18nObj.jsonResponse(678)
 
-    filename_json, json_binary = i18nObj.exportJson(678)
-    filename_unity, unity_binary = i18nObj.exportUnity(678)
-    filename_xamarin, xamarin_binary = i18nObj.exportXamarin(678)
-    filename_android, android_binary = i18nObj.exportAndroid(678)
-    filename_ios, ios_binary = i18nObj.exportIOs(678)
+    #filename_json, json_binary = i18nObj.exportJson(678)
+    #filename_unity, unity_binary = i18nObj.exportUnity(678)
+    #filename_xamarin, xamarin_binary = i18nObj.exportXamarin(678)
+    #filename_android, android_binary = i18nObj.exportAndroid(678)
+    #filename_ios, ios_binary = i18nObj.exportIOs(678)
 
-    f0 = open('testdata/%s' % filename_json, 'w')
-    f1 = open('testdata/%s' % filename_unity, 'w')
-    f2 = open('testdata/%s' % filename_xamarin, 'w')
-    f3 = open('testdata/%s' % "string2.xml", 'w')
-    f4 = open('testdata/%s' % filename_ios, 'w')
+    #f0 = open('testdata/%s' % filename_json, 'w')
+    #f1 = open('testdata/%s' % filename_unity, 'w')
+    #f2 = open('testdata/%s' % filename_xamarin, 'w')
+    #f3 = open('testdata/%s' % "string2.xml", 'w')
+    #f4 = open('testdata/%s' % filename_ios, 'w')
 
-    f0.write(json_binary)
-    f1.write(unity_binary)
-    f2.write(xamarin_binary)
-    f3.write(android_binary)
-    f4.write(ios_binary)
+    #f0.write(json_binary)
+    #f1.write(unity_binary)
+    #f2.write(xamarin_binary)
+    #f3.write(android_binary)
+    #f4.write(ios_binary)
 
-    f0.close()
-    f1.close()
-    f2.close()
-    f3.close()
-    f4.close()
+    #f0.close()
+    #f1.close()
+    #f2.close()
+    #f3.close()
+    #f4.close()
+
+    # CRUD 테스트
+    i18nObj.updateText(678, 2781, 0, 0, u'음향 is 뭔들')
