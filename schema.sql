@@ -192,6 +192,11 @@ CREATE TABLE CICERON.F_REQUESTS (
     is_need_additional_points BOOLEAN,
     additional_points REAL,
     is_additional_points_paid BOOLEAN,
+
+    is_i18n BOOLEAN,
+    is_movie BOOLEAN,
+    is_splitTrans BOOLEAN,
+    is_docx BOOLEAN,
     
     PRIMARY KEY(id)
 );
@@ -504,7 +509,11 @@ CREATE VIEW CICERON.V_REQUESTS as
     fact.start_translating_time start_translating_time, --55
     fact.is_need_additional_points is_need_additional_points, --56
     fact.additional_points additional_points, --57
-    fact.is_additional_points_paid is_additional_points_paid -- 58
+    fact.is_additional_points_paid is_additional_points_paid, -- 58
+
+    fact.is_i18n is_i18n, -- 59
+    fact.is_movie is_movie, -- 60
+    fact.is_splitTrans is_splitTrans --61
 
   FROM
     CICERON.F_REQUESTS fact
