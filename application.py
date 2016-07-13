@@ -12,6 +12,7 @@ import psycopg2
 from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
+from i18nHandler import I18nHandler
 from ciceron_lib import *
 from requestwarehouse import Warehousing
 from flask.ext.cors import CORS
