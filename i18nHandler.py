@@ -205,7 +205,7 @@ class I18nHandler(object):
 
     def __updateVariable(self, cursor, variable_id, text):
         query_updateVariable = """
-            UPDATE CIERON.D_I18N_VARIABLE_NAMES
+            UPDATE CICERON.D_I18N_VARIABLE_NAMES
             SET text = %s
             WHERE id = %s
         """
@@ -303,11 +303,9 @@ class I18nHandler(object):
 
         return True, value_id
 
-    def _deleteVariableAndText(self, request_id, variable_id):
-        cursor = self.conn.cursor()
-
+    def _deleteVariableAndText(self, cursor, request_id, variable_id):
         query_deleteVariable = """
-            DELETE FROM CIERON.D_I18N_VARIABLE_NAMES
+            DELETE FROM CICERON.D_I18N_VARIABLE_NAMES
             WHERE id = %s
         """
         query_findMapping = """
@@ -327,16 +325,18 @@ class I18nHandler(object):
         """
 
         try:
-            cursor.execute(query_deleteVariable, (variable_id, ))
             cursor.execute(query_findMapping, (request_id, variable_id, ))
-            res = cursor.fetchone()
-            if res is not None and len(res) > 0:
-                source_text_mapping_id = res[0]
-                target_text_mapping_id = res[1]
-                cursor.execute(query_deleteMapping, (source_text_mapping_id, ))
-                cursor.execute(query_deleteMapping, (target_text_mapping_id, ))
+            res = cursor.fetchall()
 
             cursor.execute(query_deleteValue, (request_id, variable_id, ))
+            if res is not None and len(res) > 0:
+                for row in res:
+                    source_text_mapping_id = row[0]
+                    target_text_mapping_id = row[1]
+                    cursor.execute(query_deleteMapping, (source_text_mapping_id, ))
+                    cursor.execute(query_deleteMapping, (target_text_mapping_id, ))
+
+            cursor.execute(query_deleteVariable, (variable_id, ))
 
         except Exception:
             self.conn.rollback()
@@ -712,7 +712,12 @@ class I18nHandler(object):
             return None
 
     def deleteVariable(self, request_id, variable_id):
-        is_deleted = self._deleteVariableAndText(request_id, variable_id)
+        cursor = self.conn.cursor()
+
+        is_deleted = self._deleteVariableAndText(cursor, request_id, variable_id)
+        if is_deleted == True:
+            self.conn.commit()
+
         return is_deleted
 
     def updateText(self, request_id, variable_id, paragraph_seq, sentence_seq, new_text):
@@ -807,4 +812,7 @@ if __name__ == "__main__":
     #f4.close()
 
     # CRUD 테스트
-    i18nObj.updateText(678, 2781, 0, 0, u'음향 is 뭔들')
+    #i18nObj.updateText(678, 2781, 0, 0, u'음향 is 뭔들')
+    #i18nObj.updateVariableName(678, 2772, 'credit0001')
+    #i18nObj.insertVariable(678, 'credit_opening')
+    #i18nObj.deleteVariable(678, 2781)
