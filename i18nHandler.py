@@ -468,7 +468,7 @@ class I18nHandler(object):
 
         return source_obj, target_obj
 
-    def _dbToJsonResponse(self, request_id):
+    def _dbToJsonResponse(self, request_id, is_restricted=True):
         cursor = self.conn.cursor()
         query_db = """
             SELECT f_values.request_id,                   -- 0
@@ -493,14 +493,12 @@ class I18nHandler(object):
         cursor.execute(query_db, (request_id, ))
         res = cursor.fetchall()
 
-        source_obj = {}
-        target_obj = {}
+        result_obj = {}
 
         cur_variable = ""
         cur_paragraph_seq = -1
         cur_comment_string = ""
-        source_paragraph_per_variable = []
-        target_paragraph_per_variable = []
+        paragraph_per_variable = []
 
         for idx, row in enumerate(res):
             variable = row[2]
@@ -511,45 +509,35 @@ class I18nHandler(object):
             comment_string = row[7]
 
             if cur_variable != variable:
-                source_obj[ cur_variable ] = {
+                result_obj[ cur_variable ] = {
                         "comment": cur_comment_string,
-                        "texts": source_paragraph_per_variable
-                        }
-                target_obj[ cur_variable ] = {
-                        "comment": cur_comment_string,
-                        "texts": target_paragraph_per_variable
+                        "texts": paragraph_per_variable
                         }
 
                 cur_variable = variable
                 cur_comment_string = comment_string
 
-                source_paragraph_per_variable = []
-                target_paragraph_per_variable = []
+                paragraph_per_variable = []
 
-            unit_row_source = {}
-            unit_row_target = {}
+            unit_row = {}
 
-            unit_row_source['paragraph_seq'] = paragraph_seq
-            unit_row_target['paragraph_seq'] = paragraph_seq
-            unit_row_source['sentence_seq'] = sentence_seq
-            unit_row_target['sentence_seq'] = sentence_seq
-            unit_row_source['sentence'] = source_sentence
-            unit_row_target['sentence'] = target_sentence
+            unit_row['paragraph_seq'] = paragraph_seq
+            unit_row['sentence_seq'] = sentence_seq
+            unit_row['sentence'] = source_sentence
+            if is_restricted == False:
+                unit_row["translations"] = target_sentence
+            else:
+                unit_row["translations"] = None
 
-            source_paragraph_per_variable.append(unit_row_source)
-            target_paragraph_per_variable.append(unit_row_target)
+            paragraph_per_variable.append(unit_row)
 
             if idx == len(res) - 1:
-                source_obj[ cur_variable ] = {
+                result_obj[ cur_variable ] = {
                         "comment": cur_comment_string,
-                        "texts": source_paragraph_per_variable
-                        }
-                target_obj[ cur_variable ] = {
-                        "comment": cur_comment_string,
-                        "texts": target_paragraph_per_variable
+                        "texts": paragraph_per_variable
                         }
 
-        return source_obj, target_obj
+        return result_obj
 
     def _jQueryToDict(self, jsonText, code):
         obj = json.loads(jsonText)
@@ -683,21 +671,7 @@ class I18nHandler(object):
 
     def jsonResponse(self, request_id, is_restricted=True):
         # For web response
-        #source_obj, target_obj = self._dbToDict(request_id)
-        source_obj, target_obj = self._dbToJsonResponse(request_id)
-
-        result = []
-        for key, value in source_obj.iteritems():
-            row = {}
-            row['variable'] = key
-            row['source_sentence'] = value
-            if is_restricted == False:
-                row['translated_sentence'] = target_obj[key]
-            else:
-                row['translated_sentence'] = None
-
-            result.append(row)
-
+        result = self._dbToJsonResponse(request_id, is_restricted)
         return result
 
     def androidToDb(self, request_id, xml_text):
