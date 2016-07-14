@@ -333,6 +333,17 @@ def translationAuthChecker(conn, user_id, request_id):
     else:
         return True
 
+def clientAuthChecker(conn, user_id, request_id):
+    cursor = g.db.cursor()
+
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND client_user_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return False
+    else:
+        return True
+
 def crossdomain(f, origin='*', methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
                 automatic_options=True):

@@ -2687,6 +2687,70 @@ def getOneTicketOfClient(request_id):
             return make_response(json.jsonify(
                 message="Invalid request"), 404)
 
+@app.route('/api/user/requests/complete/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_getData(request_id):
+    cursor = g.db.cursor()
+    user_id = get_user_id(g.db, session['useremail'])
+
+    is_user_request = clientAuthChecker(g.db, user_id, request_id)
+    if is_user_request == False:
+        return make_response(json.jsonify(
+            message="Not your request"), 406)
+
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s "
+    else:
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s AND
+         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+    if 'since' in request.args.keys():
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+    query += " ORDER BY submitted_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+    cursor.execute(query, (user_id, request_id, ))
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
+
+    i18nObj = I18nHandler(g.db)
+
+    return make_response(json.jsonify(
+        data=result,
+        realData=i18nObj.jsonResponse(request_id, is_restricted=False)
+        ), 200)
+
+@app.route('/api/user/requests/complete/i18n/<int:request_id>/download', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_download(request_id):
+    user_id = get_user_id(g.db, session['useremail'])
+    is_user_request = clientAuthChecker(g.db, user_id, request_id)
+    if is_user_request == False:
+        return make_response(json.jsonify(
+            message="Not your request"), 406)
+
+    i18nObj = I18nHandler(g.db)
+    download_format = request.args.get('format', 'json')
+    download_binary = None
+
+    if   download_format == 'android':
+        filename, download_binary = i18nObj.exportAndroid(request_id)
+    elif download_format == 'iOS':
+        filename, download_binary = i18nObj.exportIOs(request_id)
+    elif download_format == 'unity':
+        filename, download_binary = i18nObj.exportUnity(request_id)
+    elif download_format == 'json':
+        filename, download_binary = i18nObj.exportJson(request_id)
+    elif download_format == 'xamarin':
+        filename, download_binary = i18nObj.exportXamarin(request_id)
+
+    return send_file(io.BytesIO(download_binary), attachment_filename=filename)
+
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
 @login_required
