@@ -809,6 +809,7 @@ CREATE INDEX request_id3 ON CICERON.COMMENT_PARAGRAPH (request_id);
 CREATE TABLE CICERON.D_I18N_VARIABLE_NAMES (
     id INT,
     text VARCHAR(100),
+    comment_string VARCHAR(5000),
 
     PRIMARY KEY (id)
 );

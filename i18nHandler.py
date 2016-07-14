@@ -413,7 +413,8 @@ class I18nHandler(object):
                    source_mapping.paragraph_seq,          -- 3
                    source_mapping.sentence_seq,           -- 4
                    source_text.text as source_sentence,   -- 5
-                   target_text.text as target_sentence    -- 6
+                   target_text.text as target_sentence,   -- 6
+                   variable.comment_string as comment     -- 7
 
             FROM CICERON.F_I18N_VALUES f_values
             JOIN CICERON.D_I18N_VARIABLE_NAMES variable ON f_values.variable_id = variable.id
@@ -476,7 +477,8 @@ class I18nHandler(object):
                    source_mapping.paragraph_seq,          -- 3
                    source_mapping.sentence_seq,           -- 4
                    source_text.text as source_sentence,   -- 5
-                   target_text.text as target_sentence    -- 6
+                   target_text.text as target_sentence,   -- 6
+                   variable.comment_string as comment     -- 7
 
             FROM CICERON.F_I18N_VALUES f_values
             JOIN CICERON.D_I18N_VARIABLE_NAMES variable ON f_values.variable_id = variable.id
@@ -496,6 +498,7 @@ class I18nHandler(object):
 
         cur_variable = ""
         cur_paragraph_seq = -1
+        cur_comment_string = ""
         source_paragraph_per_variable = []
         target_paragraph_per_variable = []
 
@@ -505,11 +508,20 @@ class I18nHandler(object):
             sentence_seq = row[4]
             source_sentence = row[5]
             target_sentence = row[6]
+            comment_string = row[7]
 
             if cur_variable != variable:
-                source_obj[ cur_variable ] = source_paragraph_per_variable
-                target_obj[ cur_variable ] = target_paragraph_per_variable
+                source_obj[ cur_variable ] = {
+                        "comment": cur_comment_string,
+                        "texts": source_paragraph_per_variable
+                        }
+                target_obj[ cur_variable ] = {
+                        "comment": cur_comment_string,
+                        "texts": target_paragraph_per_variable
+                        }
+
                 cur_variable = variable
+                cur_comment_string = comment_string
 
                 source_paragraph_per_variable = []
                 target_paragraph_per_variable = []
@@ -528,8 +540,16 @@ class I18nHandler(object):
             target_paragraph_per_variable.append(unit_row_target)
 
             if idx == len(res) - 1:
-                source_obj[ cur_variable ] = source_paragraph_per_variable
-                target_obj[ cur_variable ] = target_paragraph_per_variable
+                source_obj[ cur_variable ] = {
+                        "comment": cur_comment_string,
+                        "texts": source_paragraph_per_variable
+                        }
+                target_obj[ cur_variable ] = {
+                        "comment": cur_comment_string,
+                        "texts": target_paragraph_per_variable
+                        }
+
+        return source_obj, target_obj
 
     def _jQueryToDict(self, jsonText, code):
         obj = json.loads(jsonText)
@@ -648,9 +668,23 @@ class I18nHandler(object):
         result[lang_code] = jsonDict
         return ('i18n.json', json.dumps(result, indent=4, encoding='utf-8', sort_keys=True))
 
+    def _updateComment(self, cursor, variable_id, comment):
+        query = """
+            UPDATE CICERON.D_I18N_VARIABLE_NAMES
+              SET comment_string = %s
+            WHERE id = %s
+        """
+        try:
+            cursor.execute(query, (comment, variable_id, ))
+        except Exception:
+            self.conn.rollback()
+            traceback.print_exc()
+            raise Exception
+
     def jsonResponse(self, request_id, is_restricted=True):
         # For web response
-        source_obj, target_obj = self._dbToDict(request_id)
+        #source_obj, target_obj = self._dbToDict(request_id)
+        source_obj, target_obj = self._dbToJsonResponse(request_id)
 
         result = []
         for key, value in source_obj.iteritems():
@@ -670,8 +704,7 @@ class I18nHandler(object):
         dict_data = self._androidToDict(xml_text)
         self._dictToDb(request_id, dict_data)
 
-    def jsonToDb(self, request_id, json_text):
-        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+    def jsonToDb(self, request_id, source_lang_id, json_text):
         source_lang = self.__getCountryCodeById(source_lang_id)
         dict_data = self._jsonToDict(json_text, source_lang)
         self._dictToDb(request_id, dict_data)
@@ -684,8 +717,7 @@ class I18nHandler(object):
         dict_data = self._xamarinToDict(xamTet)
         self._dictToDb(request_id, dict_data)
 
-    def unityToDb(self, request_id, unityText):
-        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+    def unityToDb(self, request_id, source_lang_id, unityText):
         source_lang = self.__getCountryCodeById(source_lang_id)
         dict_data = self._unityToDict(request_id, unityText, source_lang)
         self._dictToDb(request_id, dict_data)
@@ -720,7 +752,7 @@ class I18nHandler(object):
 
         return is_deleted
 
-    def updateText(self, request_id, variable_id, paragraph_seq, sentence_seq, new_text):
+    def updateTranslation(self, request_id, variable_id, paragraph_seq, sentence_seq, new_text):
         cursor = self.conn.cursor()
 
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
@@ -737,6 +769,11 @@ class I18nHandler(object):
         else:
             self.conn.rollback()
             raise Exception
+
+    def updateComment(self, request_id, variable_id, comment):
+        cursor = self.conn.cursor()
+        self._updateComment(cursor, variable_id, comment)
+        self.conn.commit()
 
     def exportIOs(self, request_id):
         source_dict_data, target_dict_data = self._dbToDict(request_id)

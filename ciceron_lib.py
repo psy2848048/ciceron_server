@@ -323,6 +323,16 @@ def strict_translator_checker(conn, user_id, request_id):
         #           message = "You are not translator. This API is only for translators."
         #           ), 401)
 
+def translationAuthChecker(conn, user_id, request_id):
+    cursor = conn.cursor()
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
+    cursor.execute(query, (request_id, user_id, ))
+    count = cursor.fetchone()[0]
+    if count == 0:
+        return False
+    else:
+        return True
+
 def crossdomain(f, origin='*', methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
                 automatic_options=True):

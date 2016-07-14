@@ -715,6 +715,9 @@ def requests():
         is_photo = parameter_to_bool(parameters.get('request_isPhoto', False))
         is_sound = parameter_to_bool(parameters.get('request_isSound', False))
         is_file = parameter_to_bool(parameters.get('request_isFile', False))
+        is_i18n = parameter_to_bool(parameters.get('request_isI18n', False))
+        is_movie = parameter_to_bool(parameters.get('request_isMovie', False))
+        is_splitTrans = parameter_to_bool(parameters.get('request_isSplitTrans', False))
 
         if isSos == False:
             delta_from_due = int(parameters['request_deltaFromDue'])
@@ -804,8 +807,30 @@ def requests():
 
             ##################################################
 
+        if is_i18n == True:
+            i18nObj = I18nHandler(g.db)
+            i18n_file_format = parameters.get('request_i18nFileFormat')
+            i18n_binary = request.files['request_i18nFileBinary']
+
+            try:
+                if i18n_file_format == 'android':
+                    i18nObj.androidToDb(request_id, i18n_binary)
+                elif i18n_file_format == 'json':
+                    i18nObj.jsonToDb(request_id, original_lang_id, i18n_binary)
+                elif i18n_file_format == 'iOS':
+                    i18nObj.iosToDb(request_id, i18n_binary)
+                elif i18n_file_format == 'xamarin':
+                    i18nObj.xamarinToDb(request_id, i18n_binary)
+                elif i18n_file_format == 'unity':
+                    i18nObj.unityToDb(request_id, original_lang_id, i18n_binary)
+
+            except Exception:
+                g.db.rollback()
+                return make_response(json.jsonify(
+                    message="Something wrong in your file"), 413)
+
         new_translation_id = None
-        if text_string:
+        if text_string and is_i18n == False and is_movie == False:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
             new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
@@ -819,7 +844,7 @@ def requests():
         cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
         cursor.execute("""INSERT INTO CICERON.F_REQUESTS
-            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid, is_need_additional_points)
+            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid, is_need_additional_points, is_i18n, is_movie, is_splitTrans, is_docx)
                 VALUES
                 (%s,%s,%s,%s,%s,
                  %s,%s,%s,%s,%s,
@@ -827,7 +852,7 @@ def requests():
                  %s,%s,%s,%s,%s,
                  %s,%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '%s seconds', %s,
                  %s,%s,%s,%s,%s,
-                 %s)""", 
+                 %s,%s,%s,%s,%s)""", 
             (
                     request_id,                       # id
                     client_user_id,                   # client_user_id
@@ -858,7 +883,13 @@ def requests():
                     None,                 # tone_id
                     new_translation_id,                 # translatedText_id
                     is_paid,              # is_paid
-                    False))               # is_need_additional_points
+                    False,                # is_need_additional_points
+                    is_i18n,
+                    is_movie,
+                    is_splitTrans,
+                    is_docx,
+             )
+        )
 
         g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
@@ -1329,6 +1360,79 @@ def updateParagraphComment(request_id, paragraph_id):
                     paragraph_seq=paragraph_id,
                     comment_string=comment_string
                     ), 200)
+
+@app.route('/api/user/translations/ongoing/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_checkSourceAndTranslation(request_id, variable_id, paragraph_seq, sentence_seq):
+    if request.method == 'GET':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        i18nObj = I18nHandler(g.db)
+        result = i18nObj.updateTranslation(request_id, variable_id, paragraph_seq, sentence_seq, text)
+
+        return make_response(json.jsonify(
+                message="Update success",
+                request_id=request_id,
+                variable_id=variable_id,
+                paragraph_seq=paragraph_seq,
+                sentence_seq=sentence_seq
+            ), 200)
+
+@app.route('/api/user/translations/ongoing/i18n/<int:request_id>/variable/<int:variable_id>/paragraph/<int:paragraph_seq>/sentence/<int:sentence_seq>', methods=["PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_updateSentence(request_id, variable_id, paragraph_seq, sentence_seq):
+    if request.method == 'PUT':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        parameters = parse_request(request)
+        text = parameters['text']
+
+        i18nObj = I18nHandler(g.db)
+        i18nObj.updateTranslation(request_id, variable_id, paragraph_seq, sentence_seq, text)
+
+        return make_response(json.jsonify(
+                message="Update success",
+                request_id=request_id,
+                variable_id=variable_id,
+                paragraph_seq=paragraph_seq,
+                sentence_seq=sentence_seq
+            ), 200)
+
+@app.route('/api/user/translations/ongoing/i18n/<int:request_id>/variable/<int:variable_id>/comment', methods=["PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_updateComment(request_id, variable_id):
+    if request.method == 'PUT':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        parameters = parse_request(request)
+        comment_string = parameters['comment_string']
+
+        i18nObj = I18nHandler(g.db)
+        i18nObj.updateComment(request_id, variable_id, comment_string)
+
+        return make_response(json.jsonify(
+                message="Update success",
+                request_id=request_id,
+                variable_id=variable_id
+            ), 200)
 
 @app.route('/api/user/translations/ongoing/<int:request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
