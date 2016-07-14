@@ -444,7 +444,8 @@ class I18nHandler(object):
             source_sentence = row[5]
             target_sentence = row[6]
 
-            if cur_variable != variable:
+            #
+            if cur_variable != variable and idx > 0:
                 source_obj[ cur_variable ] = source_paragraph_per_variable
                 target_obj[ cur_variable ] = target_paragraph_per_variable
                 cur_variable = variable
@@ -452,6 +453,10 @@ class I18nHandler(object):
                 source_paragraph_per_variable = ""
                 target_paragraph_per_variable = ""
 
+            elif cur_variable != variable and idx == 0:
+                cur_variable = variable
+
+            #
             if cur_paragraph_seq != paragraph_seq:
                 source_paragraph_per_variable += '\n\n'
                 target_paragraph_per_variable += '\n\n'
@@ -508,7 +513,7 @@ class I18nHandler(object):
             target_sentence = row[6]
             comment_string = row[7]
 
-            if cur_variable != variable:
+            if cur_variable != variable and idx > 0:
                 result_obj[ cur_variable ] = {
                         "comment": cur_comment_string,
                         "texts": paragraph_per_variable
@@ -518,6 +523,9 @@ class I18nHandler(object):
                 cur_comment_string = comment_string
 
                 paragraph_per_variable = []
+
+            elif cur_variable != variable and idx == 0:
+                cur_variable = variable
 
             unit_row = {}
 
