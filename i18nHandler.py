@@ -506,6 +506,7 @@ class I18nHandler(object):
         paragraph_per_variable = []
 
         for idx, row in enumerate(res):
+            variable_id = row[1]
             variable = row[2]
             paragraph_seq = row[3]
             sentence_seq = row[4]
@@ -515,6 +516,7 @@ class I18nHandler(object):
 
             if cur_variable != variable and idx > 0:
                 result_obj[ cur_variable ] = {
+                        "variable_id": variable_id,
                         "comment": cur_comment_string,
                         "texts": paragraph_per_variable
                         }
@@ -541,6 +543,7 @@ class I18nHandler(object):
 
             if idx == len(res) - 1:
                 result_obj[ cur_variable ] = {
+                        "variable_id": variable_id,
                         "comment": cur_comment_string,
                         "texts": paragraph_per_variable
                         }

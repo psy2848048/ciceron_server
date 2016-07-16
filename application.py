@@ -1365,23 +1365,19 @@ def updateParagraphComment(request_id, paragraph_id):
 #@exception_detector
 @translator_checker
 @login_required
-def i18n_checkSourceAndTranslation(request_id, variable_id, paragraph_seq, sentence_seq):
+def i18n_checkSourceAndTranslation(request_id):
     if request.method == 'GET':
         user_id = get_user_id(g.db, session['useremail'])
-        has_translation_auth = translationAuthChecker(g.db, user_id, request_id)
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
         if has_translation_auth == False:
             return make_response(json.jsonify(
                 message="You are not translator of the request"), 406)
 
         i18nObj = I18nHandler(g.db)
-        result = i18nObj.updateTranslation(request_id, variable_id, paragraph_seq, sentence_seq, text)
+        result = i18nObj.jsonResponse(request_id, is_restricted=False)
 
         return make_response(json.jsonify(
-                message="Update success",
-                request_id=request_id,
-                variable_id=variable_id,
-                paragraph_seq=paragraph_seq,
-                sentence_seq=sentence_seq
+            realData=result
             ), 200)
 
 @app.route('/api/user/translations/ongoing/i18n/<int:request_id>/variable/<int:variable_id>/paragraph/<int:paragraph_seq>/sentence/<int:sentence_seq>', methods=["PUT"])
@@ -1391,7 +1387,7 @@ def i18n_checkSourceAndTranslation(request_id, variable_id, paragraph_seq, sente
 def i18n_updateSentence(request_id, variable_id, paragraph_seq, sentence_seq):
     if request.method == 'PUT':
         user_id = get_user_id(g.db, session['useremail'])
-        has_translation_auth = translationAuthChecker(g.db, user_id, request_id)
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
         if has_translation_auth == False:
             return make_response(json.jsonify(
                 message="You are not translator of the request"), 406)
@@ -1417,7 +1413,7 @@ def i18n_updateSentence(request_id, variable_id, paragraph_seq, sentence_seq):
 def i18n_updateComment(request_id, variable_id):
     if request.method == 'PUT':
         user_id = get_user_id(g.db, session['useremail'])
-        has_translation_auth = translationAuthChecker(g.db, user_id, request_id)
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
         if has_translation_auth == False:
             return make_response(json.jsonify(
                 message="You are not translator of the request"), 406)
@@ -2687,15 +2683,49 @@ def getOneTicketOfClient(request_id):
             return make_response(json.jsonify(
                 message="Invalid request"), 404)
 
-@app.route('/api/user/requests/complete/i18n/<int:request_id>', methods=["GET"])
+@app.route('/api/user/requests/ongoing/i18n/<int:request_id>', methods=["GET"])
 #@exception_detector
-@translator_checker
 @login_required
-def i18n_getData(request_id):
+def i18n_getData_ongoing(request_id):
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
-    is_user_request = clientAuthChecker(g.db, user_id, request_id)
+    is_user_request = clientAuthChecker(g.db, user_id, request_id, 1)
+    if is_user_request == False:
+        return make_response(json.jsonify(
+            message="Not your request"), 406)
+
+    if session['useremail'] in super_user:
+        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND client_user_id = %s AND request_id = %s "
+    else:
+        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND client_user_id = %s AND request_id = %s AND
+         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+    if 'since' in request.args.keys():
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+    query += " ORDER BY submitted_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+    cursor.execute(query, (user_id, request_id, ))
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
+
+    i18nObj = I18nHandler(g.db)
+
+    return make_response(json.jsonify(
+        data=result,
+        realData=i18nObj.jsonResponse(request_id, is_restricted=True)
+        ), 200)
+
+@app.route('/api/user/requests/complete/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@login_required
+def i18n_getData_complete(request_id):
+    cursor = g.db.cursor()
+    user_id = get_user_id(g.db, session['useremail'])
+
+    is_user_request = clientAuthChecker(g.db, user_id, request_id, 2)
     if is_user_request == False:
         return make_response(json.jsonify(
             message="Not your request"), 406)
@@ -2725,11 +2755,10 @@ def i18n_getData(request_id):
 
 @app.route('/api/user/requests/complete/i18n/<int:request_id>/download', methods=["GET"])
 #@exception_detector
-@translator_checker
 @login_required
 def i18n_download(request_id):
     user_id = get_user_id(g.db, session['useremail'])
-    is_user_request = clientAuthChecker(g.db, user_id, request_id)
+    is_user_request = clientAuthChecker(g.db, user_id, request_id, 2)
     if is_user_request == False:
         return make_response(json.jsonify(
             message="Not your request"), 406)

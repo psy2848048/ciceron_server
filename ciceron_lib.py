@@ -323,21 +323,21 @@ def strict_translator_checker(conn, user_id, request_id):
         #           message = "You are not translator. This API is only for translators."
         #           ), 401)
 
-def translationAuthChecker(conn, user_id, request_id):
+def translationAuthChecker(conn, user_id, request_id, status_id):
     cursor = conn.cursor()
-    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND ongoing_worker_id = %s """
-    cursor.execute(query, (request_id, user_id, ))
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = %s AND request_id = %s AND ongoing_worker_id = %s """
+    cursor.execute(query, (status_id, request_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
         return False
     else:
         return True
 
-def clientAuthChecker(conn, user_id, request_id):
+def clientAuthChecker(conn, user_id, request_id, status_id):
     cursor = g.db.cursor()
 
-    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND client_user_id = %s """
-    cursor.execute(query, (request_id, user_id, ))
+    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = %s AND request_id = %s AND client_user_id = %s """
+    cursor.execute(query, (status_id, request_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
         return False
@@ -500,6 +500,9 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_submittedTime=int(row[26].strftime("%s")) * 1000 if row[26] != None else None,
                 request_feedbackScore=row[54],
                 request_title=None, # For marking
+                request_isI18n=row[59],
+                request_isMovie=row[60],
+                request_isSplitTrans=row[61]
             )
 
         item['request_isAdditionalPointNeeded'] = row[56]
