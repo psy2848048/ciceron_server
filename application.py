@@ -23,10 +23,14 @@ from flask_oauth import OAuth
 
 #DATABASE = '../db/ciceron.db'
 DATABASE = None
+parser = argparse.ArgumentParser(description='Translation agent')
+parser.add_argument('--dbpass', dest='dbpass', help='DB password')
+args = parser.parse_args()
+
 if os.environ.get('PURPOSE') == 'PROD':
-    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=%s" % args.dbpass
 else:
-    DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=%s" % args.dbpass
 
 VERSION = '1.1'
 DEBUG = True
