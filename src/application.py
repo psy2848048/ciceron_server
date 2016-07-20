@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
+"""
+어플리케이션 서버 본 코드
+URL rule과 Response가 정의되어 있음.
+
+TODO: 이 파일에서는 Function call만 하고, Query 날리는 것은 모두 라이브러리화 시켜 서버 갈아타기 쉽게 하기
+"""
 
 from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory, url_for, send_file
 from contextlib import closing
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time, requests, sys, logging, io
+import hashlib, sqlite3, os, time, requests, sys, logging, io, argparse
 #os.environ['DYLD_LIBRARY_PATH'] = '/usr/local/opt/openssl/lib'
 """ Execute following first!!"""
 """ export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
@@ -23,14 +29,14 @@ from flask_oauth import OAuth
 
 #DATABASE = '../db/ciceron.db'
 DATABASE = None
-parser = argparse.ArgumentParser(description='Translation agent')
-parser.add_argument('--dbpass', dest='dbpass', help='DB password')
-args = parser.parse_args()
+#parser = argparse.ArgumentParser(description='Translation agent')
+#parser.add_argument('--dbpass', dest='dbpass', help='DB password')
+#args = parser.parse_args()
 
 if os.environ.get('PURPOSE') == 'PROD':
-    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=%s" % args.dbpass
+    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 else:
-    DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=%s" % args.dbpass
+    DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 
 VERSION = '1.1'
 DEBUG = True
@@ -92,15 +98,30 @@ date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
 
 def pic_allowed_file(filename):
+    """
+    확장자를 보고 사진(그림)인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
 
 def doc_allowed_file(filename):
+    """
+    확장자를 보고 문서인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
 def sound_allowed_file(filename):
+    """
+    확장자를 보고 음성인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_WAV']
 
 def connect_db():
+    """
+    DB connector 함수
+    """
     return psycopg2.connect(app.config['DATABASE'])
 
 ################################################################################
@@ -109,10 +130,16 @@ def connect_db():
 
 @app.before_request
 def before_request():
+    """
+    모든 API 실행 전 실행하는 부분. 여기서는 DB 연결.
+    """
     g.db = connect_db()
 
 @app.teardown_request
 def teardown_request(exception):
+    """
+    모든 API 실행 후 실행하는 부분. 여기서는 DB 연결종료.
+    """
     db = getattr(g, 'db', None)
     if db is not None:
         db.close()
@@ -125,6 +152,15 @@ def get_facebook_token():
 #@exception_detector
 @cache.cached(timeout=50, key_prefix='loginStatusCheck')
 def loginCheck():
+    """
+    해당 세션의 상태를 보여준다.
+    아래 return값은 session[var_name]으로 접근 가능하다
+
+    :returns JSON response
+        useremail: 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
+        isLoggedIn: 로그인 여부 True/False
+        isTranslator: 로그인한 유저의 번역가여부 True/False
+    """
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
         isTranslator = translator_checker_plain(g.db, session['useremail'])
@@ -149,6 +185,22 @@ def loginCheck():
 @app.route('/api/login', methods=['POST', 'GET'])
 #@exception_detector
 def login():
+    """
+    로그인 함수
+
+    로그인 로직
+        1. GET /api/login에 접속
+        2. 로그인 Salt를 받는다.
+        3. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
+        4. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
+
+    GET
+        No parameter
+
+    POST
+        :param string email: 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
+        :param string password: 3번 참조
+    """
     if request.method == "POST":
         # Parameter
         #     email:        E-mail ID
@@ -321,6 +373,10 @@ def facebook_signUp(resp):
 @app.route('/api/logout', methods=["GET"])
 #@exception_detector
 def logout():
+    """
+    로그아웃 함수
+        - session에 들어있는 모든 키 제거
+    """
     # No parameter needed
     if session['logged_in'] == True:
         cache.clear()
@@ -343,14 +399,16 @@ def logout():
 @app.route('/api/signup', methods=['POST', 'GET'])
 #@exception_detector
 def signup():
-    # Request method: POST
-    # Parameters
-    #     email: String, email ID ex) psy2848048@gmail.com
-    #     password: String, password
-    #     name: String, this name will be used and appeared in Ciceron system
-    #     mother_language_id: Enum integer, 1st language of user
-    #     (not yet) client_os
-    #     (not yet) registration_id
+    """
+    회원가입 함수
+    
+    :param string email: 회원 email
+    :param string password: sha256(password) 전송. Salt 없음
+    :param string name: 이름
+    :param int mother_tongue_id: 모국어 ID. ID-언어 대응은 원노트 참고
+
+    핵심 동작 함수: ciceron_lib.signUpQuick()
+    """
 
     if request.method == 'POST':
         # Get parameter values
@@ -399,6 +457,11 @@ def signup():
 @app.route('/api/idCheck', methods=['POST'])
 #@exception_detector
 def idChecker():
+    """
+    ID 중복조회
+
+        CICERON.D_USERS에 중복된 이메일주소가 있는지 살펴본다.
+    """
     cursor = g.db.cursor()
 
     # Method: GET
