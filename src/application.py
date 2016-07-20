@@ -487,6 +487,17 @@ def idChecker():
 @app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
 def create_recovery_code():
+    """
+    패스워드 잊어버렸을 때 가입한 이메일로 복구 코드 전송
+    담당하는 테이블: CICERON.EMERGENCY_CODE
+    로직
+        1. 유저 이름 받아옴 (핵심은 아니고, 이메일 보낼 때, Dear xx할 때 넣을 이름 조회 목적..)
+        2. ciceron_lib.random_string_gen을 이용하여 랜덤 스트링 12자리로 이루어진 복구 코드를 받아옴
+        3. UPDATE OR INSERT 복구코드
+        4. 복구코드 이메일로 전송
+
+    1 유저당 1레코드만 허용
+    """
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
@@ -542,6 +553,14 @@ def create_recovery_code():
 @app.route('/api/user/recover_password', methods=['POST'])
 #@exception_detector
 def recover_password():
+    """
+    복구 코드를 받아 패스워드 재설정하는 부분
+
+    로직
+        1. 해당 ID의 복구코드 조회
+        2. 새 패스워드 중 패스워드가 아무것도 없는 빈 스트링인 경우 막기 위하여 elif에서 빈 스트링에 대한 hash값은 빠꾸처리
+        3. 패스워드 변경 후 복구 코드는 비움.
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
     email = parameters['email']
@@ -574,6 +593,13 @@ def recover_password():
 @login_required
 #@exception_detector
 def change_password():
+    """
+    패스워드 변경
+
+    로직
+        1. 현재 패스워드의 sha256 값 불러와서 비교
+        2. 일치하면 새로운 패스워드의 sha256값 엎어치기
+    """
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
@@ -606,6 +632,26 @@ def change_password():
 @login_required
 #@exception_detector
 def user_profile():
+    """
+    프로파일 조회 API (GET), 정보 업데이트 API (POST)
+
+    1) GET
+        응답 정보는 원노트 조회 요망
+
+        엥간한 유저 정보: CICERON.D_USERS
+        일반 유저의 적립금 정보: CICERON.REVENUE  (뜻은 안 맞지만... 이전 설계때문에 이리 되었으니 참아주세요 ㅜㅜ)
+        번역가 유저의 수당 정보: CICERON.RETURN_POINT
+
+        GET으로 불러올 때 ?user_email=<other_user_email> 파라미터로 다른 유저 정보를 조회해올 수 있음
+        이 때에는, 다른 유저의 포인트 및 적립금은 -65535로 마스킹됨.
+
+    2) POST
+        프로필 소개글이나 프로필 사진 변경가능
+        프로필 사진 올릴 때에는 Content-Type을 JSON이나 www-urlencode말고, multipart/form-data로 업로드하기 바람
+
+        프로파일 사진 바이너리는 CICERON.F_USER_PROFILE_PIC 에 저장됨. 서버에 물리 파일로 저장하지 않음에 유의.
+        API 경로랍시고 profile_pic_path에 스트링 넣긴 하지만, 의미없음.
+    """
     if request.method == 'GET':
         # Method: GET
         # Parameters
@@ -710,6 +756,25 @@ def user_profile():
 @login_required
 #@exception_detector
 def user_keywords_control(keyword):
+    """
+    프로파일에서 자신을 표현할 수 있는 키워드 기 입력된 키워드에서 검색(GET), 추가(POST), 및 삭제(DELETE)
+    1) GET
+        <keyword>에 집어 넣은 글자를 처음으로 하는, 기 입력된 키워드를 조회하여 후보를 보여준다.
+        키워드 입력시, 연관검색어를 제공하고자 함이다.
+
+    2) POST
+        <keyword>를 입력한다.
+        Keyword Dimension table: CICERON.D_KEYWORDS
+        Keyword Fact table: CICERON.D_USER_KEYWORDS
+
+        기 입력된 키워드면 키워드ID를 찾아서 유저별로 Mapping한다.
+        기존에 입력된 키워드가 아니라면 Dimension table에 INSERT한다.
+
+    3) DELETE
+        해당 유저의 키워드에서 입력된 <keyword>를 삭제한다.
+        Dimension table의 레코드는 건드리지 않고, Fact table에 적혀있는 mapping만 지운다.
+
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
 
@@ -754,6 +819,18 @@ def user_keywords_control(keyword):
 @app.route('/api/requests', methods=["POST"])
 #@exception_detector
 def requests():
+    """
+    번역물 의뢰 API
+
+    로직
+        1. 로그인 판별
+        2. CICERON.F_REQUEST의 새로운 ID따기 (ciceron_lib.get_new_id() 사용)
+        3. 여러 파라미터 받아옴 (원노트 API 문서 참고)
+        4. 텍스트, 사진, 음성, 문서, i18n 등등의 형식에 따라 후처리
+        5. 단문 번역의 경우, isSos = True, 이 경우에는 결제와 상관없이 is_paid = True
+        6. 일반 의뢰의 경우, isSos = False, 이 경우에는 결제 진행해야 리스트에 보이게 해야 하므로, is_paid = False
+        7. splitTrans는 번역 공동구매 여부 선택. is_sound, is_text, is_doc 의 true/false와는 독립적이다.
+    """
     if request.method == "POST":
         if session.get('useremail') == None or session.get('useremail') == False:
             return make_response(json.jsonify(
@@ -982,6 +1059,17 @@ def requests():
 @app.route('/api/user/translations/stoa', methods=["GET"])
 #@exception_detector
 def translator_stoa():
+    """
+    번역가의 스토아 보여주기
+
+    Store 아니다. Stoa다. 상점 아니다. 기둥 사이, 토론 공간이다.
+
+    로직
+        1. 일반 번역인 경우 (isSos = False) 작업중인 번역가가 없으며, (ongoing_worker_id = null) 번역 진행 상태가 pending이고, (status_id = 0) 번역비 결제가 된 경우 (is_paid = True)
+        2. 단문 번역인 경우 (isSos = True) 모든 상태를 다 보여줌.
+        3. 쿼리 후 결과를 ciceron_lib.json_form_V_REQUESTS()를 이용하여 Response를 parsing한다.
+        4. ciceron_lib.json_form_V_REQUESTS()이 하는 일은, 각 의뢰에 필요한 정보를 추려 JSON 꼴로 만들어 주는 라이브러리 함수다.
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -1017,6 +1105,21 @@ def translator_stoa():
 #@exception_detector
 @translator_checker
 def show_queue():
+    """
+    [현재는 사용 안함, 기획 후 사용할수도]
+    번역가가 가격 네고를 건 티켓 보여주기 (GET), 가격제시하기 (POST)
+    티켓 단가가 너무 낮아서 번역가들이 작업을 기피하고 있을 때, 번역가들이 티켓 가격을 좀만 올려주면 작업을 하겠다고 말해주는 가격제시 API
+
+    GET 로직
+        1. 장바구니 관리 테이블: CICERON.D_QUEUE_LISTS
+        2. CICERON.D_QUEUE_LISTS에 있는 티켓 중 내 의뢰인 티켓 번호를 찾아 뿌려줌. 결제 완료 의뢰여야 함 (is_paid = True)
+
+    POST 로직
+        1. 기본적으로, 의뢰인 API에서는 의뢰인 입장에서 지불한 금액을 보여주고, 번역가 API에서는 번역가 입장에서 받을 수 있는 금액을 보여준다. 예를 들어, USD 5로 의뢰한 금액을 의뢰인한데는 USD 5로 보여주지만, 번역가에게는 USD 3.5로 보여준다. 번역가 입장에서는 5를 벌고 나중에 가져갈 때 1.5를 공제한다고 하는 것보단 아싸리 3.5 받는다고 하는게 여러모로 좋을 것이라 생각하기 때문이다.
+        2. D_USERS 테이블을 보면 번역가의 등급에 따라 return_rate를 다르게 설정할 수 있다. 기본은 0.7이다. 즉, 의뢰금의 70%를 번역가가 가져간다.
+        3. 이 원리를 거꾸로 생각하면, 번역가가 가격 제시를 할 때에는 return_rate를 고려하여 추가 결제금을 생각향 한다는 것이다. 예를 들어 0.7인 번역가가 7을 제시했으면 의뢰인한테 보여지는 금액은 10이 되어야 한다는 뜻이다.
+        4. 나머지 짜글짜글한 exception의뜻들이 궁금하면 브라이언에게 문의..
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -1151,6 +1254,10 @@ def show_queue():
 @translator_checker
 #@exception_detector
 def work_in_queue(request_id):
+    """
+    네고를 걸었던 티켓 네고취소 (DELETE), 네고금액 수정 (PUT)
+    네고 로직 돌아가는 원리는 바로 위 API의 설명 참고
+    """
     if request.method == "DELETE":
         cursor = g.db.cursor()
 
@@ -1204,6 +1311,17 @@ def work_in_queue(request_id):
 @translator_checker
 #@exception_detector
 def pick_request():
+    """
+    내가 번역중인 티켓 리스트 보여주기 (GET), 내가 번역하기 (POST)
+
+    POST 로직
+        1. 혹시 다른 번역가가 작업중인지 체크
+        2. 이미 내가 번역중인지 체크
+        3. 내가 해당 언어쌍에 번역 권한이 있는지 체크 (ciceron_lib.strict_translator_checker() )
+        4. 번역중 상태로 바꿈 (status_id = 1), 번역중인 번역가를 내 ID로 고침 (ongoing_worker_id = %s)
+        5. 네고 중이었다면, 네고 테이블에서 삭제
+        6. 이메일 알람 전송
+    """
     if request.method == "POST":
         # Request method: POST
         # Parameters
@@ -1229,13 +1347,13 @@ def pick_request():
                 message = "You cannot translate your request. Request ID: %d" % request_id
                 ), 406)
 
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 1, ongoing_worker_id = %s, start_translating_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = 0", (user_id, request_id))
-
         if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(
                 json.jsonify(
                    message = "You have no translate permission of given language."
                    ), 401)
+
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 1, ongoing_worker_id = %s, start_translating_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = 0", (user_id, request_id))
 
         cursor.execute("DELETE FROM CICERON.D_QUEUE_LISTS WHERE id = %s and request_id = %s and user_id = %s", (queue_id, request_id, user_id))
         g.db.commit()
@@ -1285,6 +1403,13 @@ def pick_request():
 @translator_checker
 @login_required
 def working_translate_item(request_id):
+    """
+    번역중인 티켓 개별로 보기
+
+    로직
+        1. 기본적으로 위와 로직은 동일
+        2. 그런데 웨어하우징된 티켓을 프론트에 맞게 재구성하여 보여줌
+    """
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
         cursor = g.db.cursor()
@@ -1327,6 +1452,13 @@ def working_translate_item(request_id):
 @translator_checker
 @login_required
 def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
+    """
+    문장별 번역 업데이트(PUT), 문장별 원문/번역 살펴보기 (GET)
+
+    로직
+        1. 일단 자신이 번역하는 티켓인지 체크
+        2. 그 다음 보여줄 지, 업데이트할지 하는거 함.
+    """
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
@@ -1372,6 +1504,10 @@ def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
 @translator_checker
 @login_required
 def updateSentenceComment(request_id, paragraph_id, sentence_id):
+    """
+    문장별 주석 달기
+    """
+
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
@@ -1403,6 +1539,9 @@ def updateSentenceComment(request_id, paragraph_id, sentence_id):
 @translator_checker
 @login_required
 def updateParagraphComment(request_id, paragraph_id):
+    """
+    문단별 주석 달기 (혼동주의: 위는 문장별, 여기는 문단별)
+    """
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
