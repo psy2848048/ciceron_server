@@ -1572,6 +1572,10 @@ def updateParagraphComment(request_id, paragraph_id):
 @translator_checker
 @login_required
 def i18n_checkSourceAndTranslation(request_id):
+    """
+    i18n 번역 불러오기
+    i18nHandler.jsonResponse() 사용
+    """
     if request.method == 'GET':
         user_id = get_user_id(g.db, session['useremail'])
         has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
@@ -1591,6 +1595,10 @@ def i18n_checkSourceAndTranslation(request_id):
 @translator_checker
 @login_required
 def i18n_updateSentence(request_id, variable_id, paragraph_seq, sentence_seq):
+    """
+    해당 Variable, 해당 문단의 해당 문장 번역 업데이트.
+    i18nHandler.updateTranslation() 사용
+    """
     if request.method == 'PUT':
         user_id = get_user_id(g.db, session['useremail'])
         has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
@@ -1617,6 +1625,10 @@ def i18n_updateSentence(request_id, variable_id, paragraph_seq, sentence_seq):
 @translator_checker
 @login_required
 def i18n_updateComment(request_id, variable_id):
+    """
+    각 Variable의 comment를 다는 API
+    평문 번역과는 다르게 i18n 번역에서는 comment를 문장별로 달지 않고 variable 별로 단다.
+    """
     if request.method == 'PUT':
         user_id = get_user_id(g.db, session['useremail'])
         has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
@@ -1641,6 +1653,15 @@ def i18n_updateComment(request_id, variable_id):
 @translator_checker
 @login_required
 def expected_time(request_id):
+    """
+    (현재 사용하지 않음)
+    예상완료시간 보기 (GET), 입력(POST), 번역포기 (DELETE)
+
+    번역가가 번역을 하겠다고 마킹을 하면 바로 번역을 진행하는 것이 아니라, 먼저 본문을 한 번 열람을 하고,
+    언제까지 번역이 가능한지 예상 시간을 입력한다. (혹은 번역 포기를 한다.)
+    만약 번역하겠다고 한 시간에서 1/3 시점까지 예상시간을 입력하지 않으면 자동으로 번역불가로 간주하고 도로 스토아로 되돌려놓는다.
+    주가 되는 column은 CICERON.F_REQUESTS.expected_time이다.
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
@@ -1722,6 +1743,15 @@ def expected_time(request_id):
 @login_required
 @translator_checker
 def post_translate_item():
+    """
+    해당 의뢰 번역 완료 선언을 하는 곳이다.
+    로직
+        1. status_id = 1인 놈을 status_id = 2로 업데이트
+        2. 작업 완료한 번역은 폴더 관리가 된다. 폴더 중 Incoming 폴더에 갖다 집어넣는다. 만약 없다면 만들어 준 다음 집어넣는다.
+        3. 처음 가입할 때에는 작업 완료된 폴더가 없다. 처음 완료할 때 생성된다. 나중에 번역완료 탭에 가서 폴더를 옮길 수 있다.
+        4. 해당 의뢰에 네고를 건 것들 모두 삭제한다.
+        5. 이메일 노티 전송
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
