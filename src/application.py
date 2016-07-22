@@ -1817,6 +1817,10 @@ def post_translate_item():
 @login_required
 @translator_checker
 def translation_completed_items_detail(request_id):
+    """
+    특정 티켓 조회 + 토글뷰 지원
+    warehousing.restoreArray() 사용
+    """
     cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
@@ -1855,6 +1859,14 @@ def translation_completed_items_detail(request_id):
 @login_required
 @translator_checker
 def translation_completed_items_all():
+    """
+    작업 완료한 티켓 전체조회
+
+    status_id = 2 : 작업완료
+    is_paid: 처음에 지불 완료
+    is_need_additional_points: 만일, 해당 티켓에 네고가 있었고, 그것을 수락하여 추가 결제가 일어났을 때.
+    is_additional_points_paid: 추가결제 완료?
+    """
     cursor = g.db.cursor()
     since = request.args.get('since', None)
     user_id = get_user_id(g.db, session['useremail'])
@@ -1884,6 +1896,18 @@ def translation_completed_items_all():
 @login_required
 @translator_checker
 def set_title_translator(str_request_id):
+    """
+    작업 완료한 번역에 제목 달기
+
+    작업 완료한 번역은 폴더식으로 관리한다.
+    그리하여 원하는 때에 쉽게 꺼내 볼 수 있도록 지원해준다.
+    여기서 하나 도움을 주는 것이 티켓에 제목달기이다.
+
+    로직
+        1. CICERON.D_TRANSLATOR_COMPLETED_REQUEST_TITLES 에 새 sequence를 딴다. 제목 관리하는 테이블이다. ciceron_lib.get_new_id()
+        2. ciceron_lib.get_group_id_from_user_and_text()를 이용하여 Incoming 폴더의 ID를 찾는다.
+        3. CICERON.F_REQUESTS 테이블에 업데이트한다.
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
@@ -1916,6 +1940,9 @@ def set_title_translator(str_request_id):
 #@exception_detector
 @login_required
 def translators_complete_groups():
+    """
+    해당 유저의 작업 완료 그룹 리스트를 불러온다.(GET), 새 그룹을 등록한다. (POST)
+    """
     if request.method == "GET":
         since = None
         if 'since' in request.args.keys():
@@ -1941,6 +1968,9 @@ def translators_complete_groups():
 @translator_checker
 @login_required
 def modify_translators_complete_groups(str_group_id):
+    """
+    해당 그룹을 삭제한다. (DELETE) 해당 그룹 이름을 바꾼다. (PUT)
+    """
     parameters = parse_request(request)
 
     if request.method == "DELETE":
@@ -1963,6 +1993,15 @@ def modify_translators_complete_groups(str_group_id):
 @translator_checker
 @login_required
 def translation_completed_items_in_group(str_group_id):
+    """
+    해당 그룹에 속한 티켓을 보여준다. (GET) 해당 그룹으로 티켓을 이동한다. (POST)
+
+    POST 로직
+        1. CICERON.F_REQUESTS에서 translator_completed_group_id 값만 업데이트해주면 된다.
+
+    GET 로직
+        1. translator_completed_group_id로만 필터링하면 된다. 거기에 결제여부 체크 필터 넣어서 보여준다.
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
@@ -2003,6 +2042,11 @@ def translation_completed_items_in_group(str_group_id):
 @login_required
 @translator_checker
 def translation_incompleted_items_all():
+    """
+    미완료 리스트 불러오기
+    내가 작업중이라서 완료가 되지 않았거나 (status_id = 1), 혹은 시간을 초과한 티켓 (status_id = -1)을 보여준다.
+    결제여부 필터는 기본이다.
+    """
     cursor = g.db.cursor()
     since = request.args.get('since', None)
     user_id = get_user_id(g.db, session['useremail'])
@@ -2037,6 +2081,9 @@ def translation_incompleted_items_all():
 @login_required
 @translator_checker
 def translation_incompleted_items_each(request_id):
+    """
+    미완료 결제를 티켓 단위로 보는 API. 기본 로직은 위와 동일
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -2062,6 +2109,12 @@ def translation_incompleted_items_each(request_id):
 @app.route('/api/user/requests/stoa', methods=["GET"])
 #@exception_detector
 def user_stoa():
+    """
+    의뢰인의 스토아.
+    번역가 스토아와는 다르게, 일반 의뢰는 보여주지 않고, 대신 모든 사람의 단문번역 내역을 보여준다.
+    일반의뢰는 나름 프라이버시로 취급한다.
+    (단, 9월에 들고갈 번역 공동구매 시작하면 공동구매건은 스토아에 보이게 된다.)
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -2092,6 +2145,12 @@ def user_stoa():
 #@exception_detector
 @login_required
 def show_pending_list_client():
+    """
+    [현재 사용하지 않음]
+
+    티켓을 스토아에 올려는 놓았는데 번역가가 아직 번역을 잡지 않은 경우. 해당 티켓 리스트 보기 (GET)
+    번역가가 네고를 걸었을 때 수락하면서 차액 지불할 때 (POST)
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -2199,6 +2258,9 @@ def show_pending_list_client():
 #@exception_detector
 @login_required
 def show_pending_item_client(request_id):
+    """
+    의뢰한 티켓 개별 정보 보기
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -2224,6 +2286,15 @@ def show_pending_item_client(request_id):
 #@exception_detector
 @login_required
 def delete_item_client(request_id):
+    """
+    의뢰한 티켓 삭제
+
+    의미는 삭제지만, 실제 구동은 status_id = -2이다. status_id = -2의 의미는 삭제라는 뜻이다.
+    로직
+        1. 티켓 가격을 불러운다.
+        2. 사용한 티켓값은 적립금으로 돌려준다.
+        3. 티켓 status_id = -2 로 변경한다.
+    """
     if request.method == "DELETE":
         cursor = g.db.cursor()
 
