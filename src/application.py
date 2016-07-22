@@ -2317,6 +2317,10 @@ def delete_item_client(request_id):
 #@exception_detector
 @login_required
 def show_ongoing_list_client():
+    """
+    자신이 의뢰한 티켓 중 번역 진행중인 것 표시 (status_id = 1)
+    + 결제완료 여부 필터 첨가
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -2343,6 +2347,9 @@ def show_ongoing_list_client():
 #@exception_detector
 @login_required
 def show_ongoing_item_client(request_id):
+    """
+    자신이 의뢰한 티켓 중 개별 티켓 확인
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -2369,6 +2376,9 @@ def show_ongoing_item_client(request_id):
 #@exception_detector
 @login_required
 def client_completed_items():
+    """
+    완료한 번역 보여주기 (목록)
+    """
     cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
@@ -2394,6 +2404,10 @@ def client_completed_items():
 #@exception_detector
 @login_required
 def client_completed_items_detail(request_id):
+    """
+    완료한 번역 보여주기 (개별)
+    토글뷰 지원 ( warehousing.restoreArray() )
+    """
     warehousing = Warehousing(g.db)
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
@@ -2432,6 +2446,13 @@ def client_completed_items_detail(request_id):
 #@exception_detector
 @login_required
 def client_rate_request(request_id):
+    """
+    완료한 번역 유저평가
+    CICERON.F_REQUESTS.feedback_score에 0~2점 입력
+
+    + Rating 전에는 번역가에게 대금이 들어가지 않도록 설계 (추후, 1주일동안 평가 없으면 돈 들어가도록 수정)
+    + 해당 거래에 대금 지급 완료되었는지도 CICERON.PAYMENT_INFO에 마킹
+    """
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
@@ -2497,6 +2518,11 @@ def client_rate_request(request_id):
 #@exception_detector
 @login_required
 def set_title_client(request_id):
+    """
+    완료한 번역에 제목달기
+    위부터 읽어왔으면 우리는 완료한 번역을 폴더로 관리하는 것은 알 것이리라 믿음
+    폴더별로 관리하는 티켓에 제목을 달아주는 일임
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
@@ -2525,6 +2551,10 @@ def set_title_client(request_id):
 #@exception_detector
 @login_required
 def client_complete_groups():
+    """
+    의뢰인기준 완료한 티켓 그룹관리.
+    그룹목목 보기 (GET), 그룹 생성 (POST)
+    """
     if request.method == "GET":
         since = None
         if 'since' in request.args.keys():
@@ -2550,6 +2580,9 @@ def client_complete_groups():
 #@exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
+    """
+    그룹명수정 (PUT), 그룹 지우기 (DELETE)
+    """
     if request.method == "PUT":
         parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "PUT", url_group_id=str_group_id)
@@ -2573,6 +2606,9 @@ def modify_client_completed_groups(str_group_id):
 #@exception_detector
 @login_required
 def client_completed_items_in_group(group_id):
+    """
+    해당 그룹에 속한 티켓 보기 (GET), 해당 그룹으로 티켓 옮기기 (POST)
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
@@ -2608,6 +2644,9 @@ def client_completed_items_in_group(group_id):
 #@exception_detector
 @login_required
 def client_incompleted_items():
+    """
+    자신이 의뢰한 티켓 중 미완료 리스트 ( status_id in (-1, 0, 1) ) <- 마감시간초과, 의뢰했으나 번역가 미 매칭, 작업진행중
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query = None
@@ -2632,6 +2671,15 @@ def client_incompleted_items():
 #@exception_detector
 @login_required
 def client_incompleted_item_control(request_id):
+    """
+    자신이 의뢰한 티켓 처리
+    조회 (GET),
+    번역하다가 마감시간 초과시 번역가 변경 없이 마감시간 및 금액 수정(PUT),
+    번역하다가 마감시간 초과시 번역가 변경하고 스토아로 보낸 후 마감시간 및 금액 수정 (POST),
+    마감시간 경과한 티켓 삭제 (DELETE)
+
+    결제가 필요하면 결제로 이어지는 API 주소 제공, is_paid = false로 마킹
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
@@ -2817,6 +2865,13 @@ def client_incompleted_item_control(request_id):
 #@exception_detector
 @login_required
 def check_promotionCode(request_id):
+    """
+    프로모션 코드 유효성 체크
+    적용은 결제 API에서 이루어짐
+
+    promoCode = common -> 누구나 적용하는 캠페인
+    promoCode = indiv -> 개인한테만 제공
+    """
     user_id = get_user_id(g.db, session['useremail'])
     parameters = parse_request(request)
 
@@ -2846,6 +2901,18 @@ def check_promotionCode(request_id):
 #@exception_detector
 @login_required
 def pay_for_request(request_id):
+    """
+    결제 API
+    /api/requests에서 의뢰한 후 이곳으로 연결해야 is_paid = true로 바꿀 수 있음
+
+    pay_by := [web, mobile] 플랫폼을 의미
+    pay_via := [alipay, paypal, iamport] 결제 플랫폼
+    promo_type := [common, indiv] 프로모션 코드 있으면 전 회원 캠페인인지, 개인인지 구분
+    promo_code => 프로모션 코드
+    use_point => 적립금이 있다면, 사용함. 적립금이 있는지 검사하는 로직 수반함
+    is_additional := ['true', 'false'] 티켓 등록하면서 일어난 결제인지 (false) 티켓 등록 후 네고, 혹은 티켓 재등록 때문에 생기는 결제인지 (true) 구별
+    payload => (iamport 결제에서만 사용) 카드정보, 유효기간 등 입력
+    """
     parameters = parse_request(request)
 
     pay_by = parameters.get('pay_by')
@@ -2906,6 +2973,11 @@ def pay_for_request(request_id):
 @app.route('/api/user/requests/<int:request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
 def pay_for_request_process(request_id):
+    """
+    결제 후처리 API. Callback API
+    우리가 직접 부를 일 없음. Alipay, Paypal 등에 결제 후, 성공하면 그 쪽에서 부르는 API
+    결제정보 DB에 입력하고 is_paid = true로, 혹은 is_addional_point_paid = true로 바꿔주는 일을 한다.
+    """
     cursor = g.db.cursor()
     user = request.args['user_id']
     user_id = get_user_id(g.db, user)
@@ -2937,6 +3009,10 @@ def pay_for_request_process(request_id):
 #@exception_detector
 @translator_checker
 def getOneTicketOfHero(request_id):
+    """
+    request_id만 입력받으면 알아서 status_id 감지하여 상황에 맞게 API를 포워딩해주고 상황에 맞는 데이터를 제공해주는 API
+    번역가 전용
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -2965,6 +3041,10 @@ def getOneTicketOfHero(request_id):
 @app.route('/api/user/requests/<int:request_id>', methods=["GET"])
 #@exception_detector
 def getOneTicketOfClient(request_id):
+    """
+    request_id만 입력받으면 알아서 status_id 감지하여 상황에 맞게 API를 포워딩해주고 상황에 맞는 데이터를 제공해주는 API
+    의뢰인 전용
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -2994,6 +3074,9 @@ def getOneTicketOfClient(request_id):
 #@exception_detector
 @login_required
 def i18n_getData_ongoing(request_id):
+    """
+    번역 진행중인 i18n 의뢰 열람
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
@@ -3029,6 +3112,9 @@ def i18n_getData_ongoing(request_id):
 #@exception_detector
 @login_required
 def i18n_getData_complete(request_id):
+    """
+    번역 완료한 i18n 의뢰 열람
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
@@ -3064,6 +3150,9 @@ def i18n_getData_complete(request_id):
 #@exception_detector
 @login_required
 def i18n_download(request_id):
+    """
+    번역 완료된 i18n 의뢰 포멧별로 다운로드
+    """
     user_id = get_user_id(g.db, session['useremail'])
     is_user_request = clientAuthChecker(g.db, user_id, request_id, 2)
     if is_user_request == False:
@@ -3091,6 +3180,9 @@ def i18n_download(request_id):
 #@exception_detector
 @login_required
 def register_or_update_register_id():
+    """
+    푸시 알림을 위한 기기등록
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -3117,6 +3209,11 @@ def register_or_update_register_id():
 @app.route('/api/access_file/profile_pic/<user_id>/<fake_filename>')
 @login_required
 def access_profile_pic(user_id, fake_filename):
+    """
+    프로파일 사진 access를 위한 API.
+    파라미터 중 하나 이름이 fake_filename인 이유는, 이거 별로 중요하지 않아서
+    아무렇게나 입력해도 파일은 받아진다. 근데 확장자 잘못 넣으면 파일 안 열릴수도.
+    """
     cursor = g.db.cursor()
     query_getPic = "SELECT bin FROM CICERON.F_USER_PROFILE_PIC WHERE user_id = %s"
     cursor.execute(query_getPic, (user_id, ))
@@ -3129,6 +3226,10 @@ def access_profile_pic(user_id, fake_filename):
 @app.route('/api/access_file/request_pic/<photo_id>/<fake_filename>')
 @login_required
 def access_request_pic(photo_id, fake_filename):
+    """
+    사진 의뢰 access를 위한 API
+    file을 직접 access하는 것이 아닌, DB에 저장된 Bianry를 파일로 만들어서 준다.
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
@@ -3151,6 +3252,9 @@ def access_request_pic(photo_id, fake_filename):
 @app.route('/api/access_file/request_sounds/<sound_id>/<fake_filename>')
 @login_required
 def access_request_sound(sound_id, fake_filename):
+    """
+    음성 의뢰 파일 access를 위한 API
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
@@ -3173,6 +3277,9 @@ def access_request_sound(sound_id, fake_filename):
 @app.route('/api/access_file/request_doc/<doc_id>/<fake_filename>')
 @login_required
 def access_request_file(doc_id, fake_filename):
+    """
+    문서 의뢰 파일 access를 위한 API
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
@@ -3194,12 +3301,19 @@ def access_request_file(doc_id, fake_filename):
 
 @app.route('/api/access_file/img/<filename>')
 def mail_img(filename):
+    """
+    img 폴더의 이미지들을 access하기 위한 API
+    """
     return send_from_directory('img', filename)
 
 @app.route('/api/action_record', methods = ["POST"])
 @login_required
 #@exception_detector
 def record_user_location():
+    """
+    사용안함. 지워도 됨.
+    API call logging에 사용. 지금은 아예 내장시킴
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
     
@@ -3219,6 +3333,9 @@ def record_user_location():
 @login_required
 #@exception_detector
 def get_notification():
+    """
+    알림 내역 조회
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
@@ -3288,6 +3405,9 @@ def get_notification():
 @login_required
 #@exception_detector
 def read_notification():
+    """
+    조회한 노티 읽음으로 처리
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail']) 
     if 'noti_id' in request.args.keys():
@@ -3308,6 +3428,9 @@ def read_notification():
 @login_required
 #@exception_detector
 def register_payback():
+    """
+    적립금 환불신청 넣는 API
+    """
     if request.method == "GET":
         # GET payback list
         cursor = g.db.cursor()
@@ -3365,6 +3488,9 @@ def register_payback():
 @login_required
 #@exception_detector
 def point_detail():
+    """
+    적립금 / 포인트 사용 및 적립내역 보여줌
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
@@ -3402,7 +3528,12 @@ def point_detail():
 @app.route('/api/user/payback_email', methods = ["GET"])
 @login_required
 #@exception_detector
-def register_paybacki_email():
+def register_payback_email():
+    """
+    페이백 신청 보내는 이메일.
+    /api/user/payback과 기능이 겹치는데 왜 구닥닥리 API를 만드느냐?
+      -> 위의건 혹시 개발이 어려울 수 있어서...
+    """
     cursor = g.db.cursor()
     mail_to = session['useremail']
     user_id = get_user_id(g.db, mail_to)
@@ -3445,6 +3576,9 @@ def register_paybacki_email():
 @login_required
 #@exception_detector
 def revise_payback(str_id, order_no):
+    """
+    환급 신청 수정 (PUT), 삭제 (DELETE)
+    """
     if request.method == "PUT":
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
@@ -3487,6 +3621,9 @@ def revise_payback(str_id, order_no):
 @login_required
 #@exception_detector
 def be_hero():
+    """
+    번역가 권한 신청
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
     email = parameters['email']
@@ -3551,6 +3688,9 @@ def be_hero():
 #@exception_detector
 @admin_required
 def language_assigner():
+    """
+    해당 유저에게 해당 언어 번역가 권한 부여
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -3571,6 +3711,9 @@ def language_assigner():
 #@exception_detector
 @admin_required
 def language_rejector():
+    """
+    해당 유저 번역가 권한 빼앗기
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -3585,6 +3728,9 @@ def language_rejector():
 #@exception_detector
 @admin_required
 def return_money():
+    """
+    환급해줘야 할 내역 조회 (GET), 환급으로 마킹 (POST)
+    """
     if request.method == "POST":
         # We've not prepared for card payback.
 
