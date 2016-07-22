@@ -8,6 +8,12 @@ from iamport import Iamport
 from requestwarehouse import Warehousing
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
+"""
+매우 자주 사용하게 될 라이브러리 함수
+get_user_id() -> 이메일 주소를 넣으면 user_id를 받을 수 있음.
+get_new_id() -> 해당 테이블에서 사용하는 sequence
+"""
+
 def get_hashed_password(password, salt=None):
     hash_maker = hashlib.sha256()
 
