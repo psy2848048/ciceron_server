@@ -10,11 +10,26 @@ super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
 """
 매우 자주 사용하게 될 라이브러리 함수
-get_user_id() -> 이메일 주소를 넣으면 user_id를 받을 수 있음.
-get_new_id() -> 해당 테이블에서 사용하는 sequence
+get_user_id(): 이메일 주소를 넣으면 user_id를 받을 수 있음.
+get_new_id(): 해당 테이블에서 사용하는 sequence
+parameter_to_bool(): parameter가 boolean 타입이면 True/False로 parsing해줌
+
+@login_required: 세션을 먼저 감지하여 로그인이 되어 있는지 살펴본다.
+strict_translator_checker: 해당 티켓에 로그인한 번역가가 번역 가능한지 언어 체크
+translationAuthChecker: 로그인한 번역가가 해당 티켓의 번역가인지 알아봄
+clientAuthChecker: 로그인한 의뢰인이 해당 티켓의 의뢰인인지 알려줌
+
+json_from_V_REQUESTS: 쿼리한 결과를 python dict로 만들어줌.
+update_user_record: 유저 통계 업데이트
+parse_request: request를 parsing하여 dictionary로 만들어줌. www-urlencode이든, form-data이튼, application/json이든 모두 감별함
+
+string2Data: 문자열 날짜/시간 데이터를 Datetime object로 만들어줌
 """
 
 def get_hashed_password(password, salt=None):
+    """
+    비밀번호 hashing 라이브러리. Salt 넣으면 그것도 반영하여 만들어줌
+    """
     hash_maker = hashlib.sha256()
 
     if salt is None:
@@ -25,6 +40,9 @@ def get_hashed_password(password, salt=None):
     return hash_maker.hexdigest()
 
 def random_string_gen(size=6, chars=string.letters + string.digits):
+    """
+    무작위 string 만들어줌. 길이 조절도 가능함
+    """
     gened_string = ''.join(random.choice(chars) for _ in range(size))
     gened_string = gened_string.encode('utf-8')
     return gened_string
@@ -40,6 +58,9 @@ def random_string_gen(size=6, chars=string.letters + string.digits):
 #        conn.execute("UPDATE RegKey_android SET reg_key = ? WHERE id = ?", [buffer(registration_id), buffer(user_id)])
 
 def get_id_from_text(conn, text, table):
+    """
+    text와 테이블 이름을 넣으면 입력한 text의 ID를 찾아줌
+    """
     query = "SELECT id from CICERON.%s WHERE text = " % table
     query += "%s"
     cursor = conn.cursor()
@@ -50,6 +71,10 @@ def get_id_from_text(conn, text, table):
     return result
 
 def get_user_id(conn, text_id):
+    """
+    이메이을 넣으면 해당 사용자의 ID를 찾아줌
+    email은 indexing 해놨기때문에 성능상의 큰 문제는 없을것임
+    """
     cursor = conn.cursor()
     cursor.execute("SELECT id from CICERON.D_USERS WHERE email = %s", (text_id, ))
     rs = cursor.fetchall()
@@ -67,6 +92,9 @@ def get_facebook_user_id(conn, text_id):
     return result
 
 def get_user_email(conn, num_id):
+    """
+    User ID를 넣으면 email을 찾아주는 함수인데 얼마나 사용할진 모르겠음
+    """
     cursor = conn.cursor()
     cursor.execute("SELECT email from CICERON.D_USERS WHERE id = %s",
             [num_id])
@@ -76,6 +104,9 @@ def get_user_email(conn, num_id):
     return result
 
 def get_user_name(conn, num_id):
+    """
+    User ID를 넣으면 유저 이름을 찾아줌. 주로 이메일 날릴때 Dear xxx를 채우기 위하여 새용
+    """
     cursor = conn.cursor()
     cursor.execute("SELECT name from CICERON.D_USERS WHERE id = %s",
             [num_id])
@@ -85,6 +116,9 @@ def get_user_name(conn, num_id):
     return result
 
 def get_text_from_id(conn, id_num, table):
+    """
+    ID를 넣으면 해당 테이블의 text를 찾아줌
+    """
     query = "SELECT text from CICERON.%s WHERE id = " % table
     query += "%s"
     cursor = conn.cursor()
@@ -95,6 +129,10 @@ def get_text_from_id(conn, id_num, table):
     return result
 
 def get_new_id(conn, table):
+    """
+    테이블에서 사용하는 sequece에서 새 ID를 따줌.
+    이 기능을 사용하려면 seqeunce 이름을 SEQ_<table_name>으로 해야 함 (ex CICERON.SEQ_F_REQUESTS)
+    """
     cursor = conn.cursor()
     cursor.execute("SELECT nextval('CICERON.SEQ_%s') " % table)
     current_id_list = cursor.fetchone()
@@ -133,6 +171,10 @@ def parameter_to_bool(value):
         return False
 
 def get_total_amount(conn, request_id, user_id, is_additional='false'):
+    """
+    네고 기능때문에 points 자체로는 총액이 되지 않기 때문에 nego_price와 더해줘야 한다.
+    이 때, 총합을 계산하는 라이브러리
+    """
     cursor = conn.cursor()
 
     total_amount = 0
@@ -157,6 +199,12 @@ def get_total_amount(conn, request_id, user_id, is_additional='false'):
     return total_amount
 
 def ddosCheckAndWriteLog(conn):
+    """
+    API 실행 전, 해당 IP에서 1초에 100번 이상 실행되면 30분동안 접속 차단한다.
+    그리고 차단하지 않은 IP는 임시 테이블에 로그를 남겨 나중에 분석 자료로 이용한다.
+
+    그리고 현재 로그를 쌓는 곳은 임시테이블이고, 30분에 한 번씩 Agent가 돌아 로그를 영구보관소로 옮긴다.
+    """
     cursor = conn.cursor()
 
     if session.get('useremail') != None:
@@ -225,6 +273,10 @@ def ddosCheckAndWriteLog(conn):
     return is_OK
 
 def login_required(f):
+    """
+    DDOS 공격 검출기로 해당 IP가 블랙 리스트에 올라갔는지, 그리고 블랙 리스트에 올려야 하는지 살펴본다.
+    아무 이상이 없다면 로그인이 되어 있는지 세션 설정값을 본다.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         is_ddos_free = ddosCheckAndWriteLog(g.db)
@@ -244,6 +296,9 @@ def login_required(f):
     return decorated_function
 
 def admin_required(f):
+    """
+    Admin으로 로그인되어 있는지 체크한다.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('useremail') in super_user:
@@ -268,6 +323,9 @@ def exception_detector(f):
     return decorated_function
 
 def translator_checker(f):
+    """
+    번역가 권한이 있는 유저인지 체크한다.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         cursor = g.db.cursor()
@@ -285,6 +343,9 @@ def translator_checker(f):
     return decorated_function
 
 def translator_checker_plain(conn, email):
+    """
+    위와 같은 일을 하나, 이건 decorator가 아니다.
+    """
     cursor = g.db.cursor()
     cursor.execute("SELECT is_translator FROM CICERON.D_USERS WHERE email = %s", (email, ) )
     rs = cursor.fetchone()
@@ -295,6 +356,11 @@ def translator_checker_plain(conn, email):
         return rs[0]
 
 def strict_translator_checker(conn, user_id, request_id):
+    """
+    번역가가 해당 의뢰를 번역할 수 있는지 체크
+        1. 해당 의뢰의 언어쌍 조사
+        2. 모국어와 구사가능언어를 수집하여 두 언어 모두 구사가능 언어인지 살펴봄.
+    """
     cursor = conn.cursor()
     cursor.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM CICERON.D_USERS WHERE id = %s ", (user_id, ))
     rs = cursor.fetchall()
@@ -330,6 +396,9 @@ def strict_translator_checker(conn, user_id, request_id):
         #           ), 401)
 
 def translationAuthChecker(conn, user_id, request_id, status_id):
+    """
+    실제 해당 번역가 유저가 번역하고 있는 의뢰인지 살펴봄
+    """
     cursor = conn.cursor()
     query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = %s AND request_id = %s AND ongoing_worker_id = %s """
     cursor.execute(query, (status_id, request_id, user_id, ))
@@ -340,6 +409,9 @@ def translationAuthChecker(conn, user_id, request_id, status_id):
         return True
 
 def clientAuthChecker(conn, user_id, request_id, status_id):
+    """
+    실제 자신이 의뢰한 티켓인지 살펴봄
+    """
     cursor = g.db.cursor()
 
     query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = %s AND request_id = %s AND client_user_id = %s """
@@ -363,6 +435,10 @@ def crossdomain(f, origin='*', methods=None, headers=None,
     return decorator
 
 def orderNoGenerator(conn):
+    """
+    Iamport 방식으로 결제할 때에는 주문번호를 만들어 주지 않기 때문에 우리가 직접 만들어야 한다.
+    주문번호 형식은 YYYYMMDDxxxx (ex 20160716abcd) 방식으로 한다.
+    """
     cursor = conn.cursor()
     order_no = None
 
@@ -379,6 +455,12 @@ def orderNoGenerator(conn):
     return order_no
 
 def getProfile(conn, user_id, rate=1, price=None):
+    """
+    프로파일 조회
+    D_USERS와 그 밖에 필요한 정보들을 JSON 형태로 보여줌
+
+    옛날 기획에 뱃지도 보여주자 했는데 현재는 중단된 상태.
+    """
     cursor = conn.cursor()
     query_userinfo = """
         SELECT  
@@ -431,6 +513,15 @@ def getProfile(conn, user_id, rate=1, price=None):
     return result
 
 def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
+    """
+    의뢰에 관련된 모든 정보를 JSON 형태로 보여줌. 권한이랑 포인트 등등 때문에 적잖이 로직이 복잡하다.
+
+        1. return_rate: 기본 0.7. 번역가는 개별적으로 환급 비율을 따로 설정할 수 있다. 
+          의뢰인이 가격을 10이라고 설정했어도, 번역가에게는 받아갈 돈 7로 표시하기 위하여 쿼리질을 한다.
+        2. CICERON.V_QUEUE_LISTS 에서 해당 티켓에 네고를 건 사용자 프로필들을 조회해온다.
+        3. 글자수 및 단어수 계산
+        4. 그 밖에.. 번역가와 의뢰인, 단문 번역과 일반 번역, 그리고 번역 status에 따라 보여주고 가려야 할 내용 통제를 로직으로 수행한다.
+    """
     result = []
     cursor = g.db.cursor()
 
@@ -579,6 +670,10 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
     return result
 
 def complete_groups(conn, parameters, table, method, url_group_id=None, since=None, page=None):
+    """
+    그룹 조회, 생성, 그룹명 수정, 및 삭제 라이브러리
+    기능은 똑같지만 번역가와 의뢰인계정이 쓰는 테이블 이름이 다르기에 라이브러리화 시키고 테이블 이름을 받아 동일한 로직을 사용할 수 있도록 구성하였다.
+    """
     if method == "GET":
         cursor = conn.cursor()
 
@@ -659,6 +754,9 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         return group_id
 
 def save_request(conn, parameters, str_request_id):
+    """
+    번역을 완료하면서 마지막 코멘트, 글의 톤 등을 저장하는 데 쓰이는 라이브러리이다.
+    """
     cursor = conn.cursor()
 
     request_id = int(str_request_id)
@@ -712,6 +810,10 @@ def update_user_record(conn, client_id=None, translator_id=None):
     conn.commit()
 
 def parse_request(req):
+    """
+    application/json, application/x-wwwurlencode, multipart/form-data 같은 다양한 형식에서도
+    POST request를 python dict 형태로 나타낼 수 있게 만들어주는 라이브러리이다.
+    """
     if len(req.form) == 0 and len(req.files) == 0:
         parameter_list = req.get_json()
         if parameter_list != None:
@@ -744,6 +846,10 @@ def send_push(conn, gcm_obj,
               time_to_live=None,
               restricted_package_name=None,
               dry_run=None):
+
+    """
+    푸시 알람 날려주는 API이다. 근데 잘 안먹힌다. 이유는 모르겠다. 경험자가 필요하다.
+    """
     
     registration_keys = []
     cursor = conn.cursor()
@@ -774,6 +880,9 @@ def send_push(conn, gcm_obj,
     return response
 
 def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
+    """
+    주어진 mesasge를 메일로 날려주는 라이브러리이다.
+    """
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -793,6 +902,9 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     a.quit()
 
 def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
+    """
+    노테를 테이블에 쌓아준다.
+    """
     cursor = conn.cursor()
     new_noti_id = get_new_id(conn, "F_NOTIFICATION")
     # The query below is original
@@ -803,6 +915,9 @@ def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     conn.commit()
 
 def pick_random_translator(conn, number, from_lang, to_lang):
+    """
+    해당 언어쌍을 번역할 수 있는 번역가를 랜덤으로 number명만큼 추출하여 준다.
+    """
     cursor = conn.cursor()
 
     query = """WITH translators AS (
@@ -826,6 +941,14 @@ def string2Date(string):
         return datetime.strptime(string, "%Y-%m-%d")
 
 def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
+    """
+    노티에서 링크를 제공할 때, request의 상태를 파악하여 좀 더 똑똑하게 링크를 주기 위함이다.
+
+    테스트 시스템인지, 프로덕션 시스템인지..
+    티켓이 기간 만료인지, 삭제인지, 그 밖인지
+    유저가 번역가인지 아닌지
+    등등을 고려하여 라우팅 주소를 만든다.
+    """
     cursor = conn.cursor()
     requesterNoti = [7, 8, 9, 10, 11, 12, 13]
     translatorNotiType = [1, 2, 3, 4, 5, 6]
@@ -895,6 +1018,9 @@ def getRoutingAddressAndAlertType(conn, user_id, request_id, noti_type):
     return (isAlert, alertType, link)
 
 def get_noti_data(conn, noti_type, user_id, request_id, optional_info=None):
+    """
+    노티 데이터를 제공한다.
+    """
     HOST = ""
     if os.environ.get('PURPOSE') == 'PROD':
         HOST = 'http://ciceron.me'
@@ -992,6 +1118,11 @@ def get_noti_data(conn, noti_type, user_id, request_id, optional_info=None):
     return message
 
 def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, request_id, optional_info=None):
+    """
+    파라미터를 받아와
+    노티 테이블에 넣고
+    어떤 메시지를 줄 지 가져온다음 푸시 알람 및 메일까지 날려주는 종합 노티 라이브러리 함수이다.
+    """
     store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id)
     message_dict = get_noti_data(conn, noti_type_id, user_id, request_id, optional_info=optional_info)
     regKeys_oneuser = get_device_id(conn, user_id)
@@ -1000,11 +1131,18 @@ def send_noti_suite(gcm_server, conn, user_id, noti_type_id, target_user_id, req
         gcm_noti = gcm_server.send(regKeys_oneuser, "Ciceron push", notification=message_dict)
 
 def send_noti_lite(conn, user_id, noti_type_id, target_user_id, request_id, optional_info=None):
+    """
+    노티 전송 라이트 버전이다. 미완성으로 보인다.
+    """
     store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id)
     message_dict = get_noti_data(conn, noti_type_id, user_id, request_id, optional_info=optional_info)
     regKeys_oneuser = get_device_id(conn, user_id)
 
 def signUpQuick(conn, email, hashed_password, name, mother_language_id, nationality_id=None, residence_id=None, external_service_provider=[]):
+    """
+    회원 가입 함수이다.
+    회원 테이블에 정보 밀어넣고, 그 밖에 비밀번호, 적립금 및 포인트를 넣는다.
+    """
     # Duplicate check
     cursor = conn.cursor()
     cursor.execute("select id from CICERON.D_USERS where email = %s", (email, ))
@@ -1064,6 +1202,10 @@ def commonPromotionCodeChecker(conn, user_id, code):
     #          val1: is valid code? (codeType)
     #          val2: How much?
     #          message: Message
+    """
+    공용 프로모션 코드 validator이다.
+    코드는 유효한지, 유효한 코드지만 이미 사용한 코드인지 등등을 체크한다.
+    """
     cursor = conn.cursor()
     query_commonPromotionCode= """
         SELECT id, benefitPoint, expireTime FROM CICERON.PROMOTIONCODES_COMMON WHERE text = %s """
@@ -1093,6 +1235,9 @@ def commonPromotionCodeChecker(conn, user_id, code):
         return (0, benefitPoint, "You may use this code.")
 
 def commonPromotionCodeExecutor(conn, user_id, code):
+    """
+    프로모션 코드를 적용한다.
+    """
     cursor = conn.cursor()
     query_searchPromoCodeId = """
         SELECT id FROM CICERON.PROMOTIONCODES_COMMON WHERE text = %s """
@@ -1107,6 +1252,10 @@ def individualPromotionCodeChecker(conn, user_id, code):
     # return: (val1, val2)
     #          val1: is valid code?
     #          val2: How much?
+    """
+    개인 프로모션 코드 validator이다.
+    그 밖의 기능은 위와 같다.
+    """
     cursor = conn.cursor()
     query_individualPromotionCode= """
         SELECT benefitPoint, expireTime, is_used FROM CICERON.PROMOTIONCODES_USER WHERE user_id = %s AND text = %s """
@@ -1130,6 +1279,9 @@ def individualPromotionCodeChecker(conn, user_id, code):
         return (0, benefitPoint, "You may use this code.")
 
 def individualPromotionCodeExecutor(conn, user_id, code):
+    """
+    개인용 프로모션 코드 적용기이다.
+    """
     cursor = conn.cursor()
     query_commonPromotionCodeExeutor = """
         UPDATE CICERON.PROMOTIONCODES_USER SET is_used = true WHERE user_id = %s AND text = %s """
@@ -1138,10 +1290,16 @@ def individualPromotionCodeExecutor(conn, user_id, code):
 
 def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host_ip,
         use_point=0, promo_type='null', promo_code='null', is_additional='false', payload=None):
+    """
+    결제 함수이다. 자세한 설명은 아래에 계속...
+    """
 
     cursor = conn.cursor()
 
     # Point deduction
+    """
+    use_point: 포인트를 사용한다면, 먼저 가지고 있는 포인트보다 사용한다고 넣은 포인트가 큰지 아닌지부터 판단해야 한다.
+    """
     if use_point > 0:
         # Check whether use_point exceeds or not
         cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
@@ -1155,6 +1313,9 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         amount = total_amount
 
     # Promo code deduction
+    """
+    프로모션 코드를 적용한다면, 먼저 validate 해 보고 유효하면 적용한 후, 총액에서 할인해준다.
+    """
     if promo_type != 'null':
         isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, promo_code)
         isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, promo_code)
@@ -1163,7 +1324,15 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         elif isIndivCode == 0:
             amount = amount - indivPoint
 
+    """
+    Paypal, Alipay, Iamport 등등에 따라서 잘 처리해준다.
+    """
+
     if pay_via == 'paypal' and amount > 0:
+        """
+        페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
+        결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.
+        """
         # SANDBOX
         if os.environ.get("PURPOSE") != "PROD":
             paypalrestsdk.configure(
@@ -1211,12 +1380,15 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
             return 'paypal_error', None, None
 
     elif pay_via == 'alipay' and amount > 0:
+        """
+        알리페이도 페이팔과 흐름은 비슷하다. 알리페이 결제 링크 생성 후, 알리페이로 이동하여 결제가 완료되면 다시 콜백으로 씨세론으로 들어와 접수가 완료됨을 알 수 있는 시스템이다.
+        """
         from alipay import Alipay
         order_no = orderNoGenerator(conn)
 
         alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
         params = {
-            'subject': '是写论翻译'.decode('utf-8'),
+            'subject': '诗谐论翻译'.decode('utf-8'),
             'out_trade_no': order_no,
             #'subject': 'TEST',
             'total_fee': '%.2f' % amount,
@@ -1237,6 +1409,12 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
         return 'alipay_success', provided_link, None
 
     elif pay_via == 'iamport' and amount > 0:
+        """
+        아임포트 No-ActiveX 결제 시스템이다.
+
+        직접 카드번호 및 유효기간 등의 정보를 물러와서 결제를 바로 한다.
+        그리고 이 자리에서 바로 결제를 하기 때문에 postprocessing 과정을 거쳐서 할 작업을 여기서 다 한다.
+        """
         # Should check USD->KRW currency
         # Hard coded: 1200
         new_payload = payload
@@ -1272,6 +1450,9 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
             return 'iamport_success', None, None
 
     elif pay_via == "point_only" or amount < 0.001:
+        """
+        이도 저도 아니고 포인트로 결제한다면 iamport와 마찬가지로 postprocessing 없이 진행할 수 있다.
+        """
         cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
         current_point = float(cursor.fetchall()[0][0])
 
@@ -1299,6 +1480,12 @@ def payment_start(conn, pay_by, pay_via, request_id, total_amount, user_id, host
 
 def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, amount,
         use_point=0, promo_type='null', promo_code='null', is_additional='false'):
+    """
+    로직
+        1. 지불로 처리힌다.
+        2. 지불 정보 한 줄 INSERT한다.
+        3. 프로모션 코드 사용처리한다.
+    """
 
     cursor = conn.cursor()
 
