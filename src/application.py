@@ -889,67 +889,44 @@ def requests():
                 ), 417)
 
         # Upload binaries into file and update each dimension table
-        if (request.files.get('request_photo') != None):
-            binary = request.files['request_photo']
-            filename = ""
-            path = ""
-            new_photo_id = get_new_id(g.db, "D_REQUEST_PHOTOS")
-            if pic_allowed_file(binary.filename):
-                extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-                path = os.path.join("request_pic", str(new_photo_id), filename)
+        #if (request.files.get('request_photo') != None):
+        #    binary = request.files['request_photo']
+        #    filename = ""
+        #    path = ""
+        #    new_photo_id = get_new_id(g.db, "D_REQUEST_PHOTOS")
+        #    if pic_allowed_file(binary.filename):
+        #        extension = binary.filename.split('.')[-1]
+        #        filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+        #        path = os.path.join("request_pic", str(new_photo_id), filename)
 
-            photo_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_PHOTOS (id, path, bin) VALUES (%s,%s,%s)", (new_photo_id, path, bytearray(photo_bin) ) )
+        #    photo_bin = binary.read()
+        #    cursor.execute("INSERT INTO CICERON.D_REQUEST_PHOTOS (id, path, bin) VALUES (%s,%s,%s)", (new_photo_id, path, bytearray(photo_bin) ) )
 
-        if (request.files.get('request_sound') != None):
-            binary = request.files['request_sound']
-            filename = ""
-            path = ""
-            new_sound_id = get_new_id(g.db, "D_REQUEST_SOUNDS")
-            if sound_allowed_file(binary.filename):
-                extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-                path = os.path.join("request_sounds", str(new_sound_id), filename)
+        #if (request.files.get('request_sound') != None):
+        #    binary = request.files['request_sound']
+        #    filename = ""
+        #    path = ""
+        #    new_sound_id = get_new_id(g.db, "D_REQUEST_SOUNDS")
+        #    if sound_allowed_file(binary.filename):
+        #        extension = binary.filename.split('.')[-1]
+        #        filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+        #        path = os.path.join("request_sounds", str(new_sound_id), filename)
 
-            sound_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
+        #    sound_bin = binary.read()
+        #    cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
         
         if (request.files.get('request_file') != None):
             binary = request.files['request_file']
-            filename = ""
-            path = ""
-            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
-            if doc_allowed_file(binary.filename):
-                extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-                path = os.path.join("request_doc", str(new_file_id), filename)
+            new_request_file_id = get_new_id(g.db, "D_REQUEST_FILES")
+            new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
+            extension = binary.filename.split('.')[-1]
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+            request_path = os.path.join("request_doc", str(new_request_file_id), filename)
+            translate_path = os.path.join("translated_doc", str(new_translated_file_id), filename)
 
             file_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_file_id, path, bytearray(file_bin) ) )
-
-            ############ Documentfile 2 TEXT ##################
-
-            if (binary.filename).endswith('.docx'):
-                from docx import Document
-                try:
-                    doc = Document(file_bin)
-                    text_string = ('\n').join([ paragraph.text for paragraph in doc.paragraphs ])
-                    print "DOCX file is converted into text."
-                except Exception as e:
-                    print "DOCX Error. Skip."
-                    pass
-
-            elif (binary.filename).endswith('.pdf'):
-                import slate
-                try:
-                    doc = slate.PDF(file_bin)
-                    text_string = ('\n\n').join(doc)
-                except Exception as e:
-                    print "PDF Error. Skip"
-                    pass
-
-            ##################################################
+            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_request_file_id, request_path, bytearray(file_bin) ) )
+            cursor.execute("INSERT INTO CICERON.D_TRANSLATED_FILES (id, request_id, path, bin) VALUES (%s,%s,%s,null)", (new_translated_file_id, request_id, translate_path, ))
 
         if is_i18n == True:
             i18nObj = I18nHandler(g.db)
