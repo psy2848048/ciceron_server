@@ -255,7 +255,8 @@ CREATE SEQUENCE CICERON.SEQ_D_TRANSLATED_FILES;
 CREATE TABLE CICERON.D_UNORGANIZED_TRANSLATED_RESULT(
     id INT,
     request_id INT,
-    requested_binary BYTEA,
+    file_id INT,
+    file_name VARCHAR(200),
     translated_text TEXT,
     translated_file BYTEA,
 

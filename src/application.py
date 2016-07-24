@@ -917,11 +917,11 @@ def requests():
         
         if (request.files.get('request_file') != None):
             binary = request.files['request_file']
-            new_request_file_id = get_new_id(g.db, "D_REQUEST_FILES")
+            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
             new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
             extension = binary.filename.split('.')[-1]
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-            request_path = os.path.join("request_doc", str(new_request_file_id), filename)
+            request_path = os.path.join("request_doc", str(new_file_id), filename)
             translate_path = os.path.join("translated_doc", str(new_translated_file_id), filename)
 
             file_bin = binary.read()
@@ -1624,6 +1624,109 @@ def i18n_updateComment(request_id, variable_id):
                 request_id=request_id,
                 variable_id=variable_id
             ), 200)
+
+@app.route('/api/user/translations/ongoing/<int:request_id>/file', methods=["GET", "PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def getOrUpdateFile(request_id):
+    """
+    다중파일의뢰 파일 가져오기(GET) / 업데이트(PUT)
+    """
+    cursor = self.conn.cursor()
+
+    user_id = get_user_id(g.db, session['useremail'])
+    does_have_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+    if does_have_auth == False:
+        return make_response(json.jsonify(
+            message="You are not translator of the request"), 406)
+
+    if request.method == "GET":
+        query_getFile = "SELECT bin FROM CICERON.D_TRANSLATED_FILES WHERE request_id = %s"
+        cursor.execute(query_getFile, (request_id, ))
+        request_file = cursor.fetchone()
+        if request_file is None:
+            return make_response(json.jsonify(message="No request file"), 404)
+        else:
+            return send_file(io.BytesIO(request_file[0]), attachment_filename="result.zip")
+
+    elif request.method == "PUT":
+        query_updateFile = "UPDATE CICERON.D_TRANSLATED_FILES SET bin = %s WHERE request_id = %s"
+        binary = request.files['translated_file']
+        file_bin = binary.read()
+        cursor.execute(query_updateFile, (file_bin, request_id, ))
+        self.conn.commit()
+
+        return make_response(json.jsonify(
+            message="Update success"), 200)
+
+@app.route('/api/user/translations/complete/<int:request_id>/insertPair', methods=["POST"])
+#@exception_detector
+@translator_checker
+@login_required
+def savePair(request_id):
+    """
+    다중 파일 Request를 완료하면서 결과물 텍스트 혹은 바이너리 입력
+    바이너리인지 아닌지는 decode시 에러가 나는지 아닌지로 판단
+    """
+    if request.method == "POST":
+        parameters = parse_request(request)
+        translated_filename = eval(parameters['translated_filenames'])
+        translated_pair = eval(parameters['translated_text'])
+
+        new_text_id = get_new_id(g.db, "D_UNORGANIZED_TRANSLATED_RESULT")
+        query_findFileId = """
+            SELECT file_id FROM CICERON.F_REQUESTS
+            WHERE (client_user_id = %s OR ongoing_worker_id = %s) AND id = %s AND is_file = true
+            """
+        cursor.execute(query_findFileId, (user_id, user_id, request_id, ))
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return make_response(json.jsonify(
+                message="Invalid file request"), 406)
+
+        file_id = res[0]
+        query_insert = """
+            INSERT INTO CICERON.D_UNORGANIZED_TRANSLATED_RESULT
+              (id, request_id, file_id, translated_text, translated_file)
+            VALUES
+              (%s, %s, %s, %s, %s)
+        """
+        for filename, text_or_bin in zip(translated_filename, translated_pair):
+            try:
+                text_or_bin.decode('utf-8')
+                cursor.execute(query_insert, (new_text_id, request_id, file_id, filename, text_or_bin, None, ))
+            except:
+                cursor.execute(query_insert, (new_text_id, request_id, file_id, filename, None, text_or_bin, ))
+
+        self.conn.commit()
+        return make_response(json.jsonify(
+            message="Insert success"), 200)
+
+@app.route('/api/user/requests/complete/<int:request_id>/file', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def getFileForClient(request_id):
+    """
+    다중파일의뢰 파일 가져오기(GET) / 업데이트(PUT)
+    """
+    cursor = self.conn.cursor()
+
+    user_id = get_user_id(g.db, session['useremail'])
+    does_have_auth = clientAuthChecker(g.db, user_id, request_id, 1)
+    if does_have_auth == False:
+        return make_response(json.jsonify(
+            message="You are not client of the request"), 406)
+
+    if request.method == "GET":
+        query_getFile = "SELECT bin FROM CICERON.D_TRANSLATED_FILES WHERE request_id = %s"
+        cursor.execute(query_getFile, (request_id, ))
+        request_file = cursor.fetchone()
+        if request_file is None:
+            return make_response(json.jsonify(message="No request file"), 404)
+        else:
+            return send_file(io.BytesIO(request_file[0]), attachment_filename="result.zip")
 
 @app.route('/api/user/translations/ongoing/<int:request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
@@ -3260,7 +3363,7 @@ def access_request_file(doc_id, fake_filename):
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
-        SELECT photo_id FROM CICERON.F_REQUESTS
+        SELECT file_id FROM CICERON.F_REQUESTS
         WHERE (client_user_id = %s OR ongoing_worker_id = %s) AND file_id = %s
         """
     cursor.execute(query_checkAuth, (user_id, user_id, doc_id))
@@ -3268,7 +3371,7 @@ def access_request_file(doc_id, fake_filename):
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)
 
-    query_getFile = "SELECT bin FROM CICERON.D_REQUEST_FILES  WHERE id = %s"
+    query_getFile = "SELECT bin FROM CICERON.D_REQUEST_FILES WHERE id = %s"
     cursor.execute(query_getFile, (doc_id, ))
     request_file = cursor.fetchone()
     if request_file is None:
