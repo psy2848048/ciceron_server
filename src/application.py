@@ -876,6 +876,8 @@ def requests():
         new_sound_id = None
         new_file_id = None
         new_text_id = None
+        new_translation_id = None
+        new_context_id = get_new_id(g.db, "D_CONTEXTS")
         is_paid = True if isSos == True else False
 
         if isSos == False and (original_lang_id == 500 or target_lang_id == 500):
@@ -888,6 +890,14 @@ def requests():
                 message="Too long text for sos request",
                 length=len(text_string)
                 ), 417)
+
+        if if_file == True:
+            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
+            new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
+
+        if text_string and is_i18n == False and is_movie == False:
+            new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
+            new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
 
         # Upload binaries into file and update each dimension table
         #if (request.files.get('request_photo') != None):
@@ -916,18 +926,14 @@ def requests():
         #    sound_bin = binary.read()
         #    cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
         
-        new_translation_id = None
         if text_string and is_i18n == False and is_movie == False:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
-            new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
-            new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
             path = os.path.join("request_text", str(new_text_id), filename)
             #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
             warehousing = Warehousing(g.db)
             warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
 
         # Input context text into dimension table
-        new_context_id = get_new_id(g.db, "D_CONTEXTS")
         cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
         cursor.execute("""INSERT INTO CICERON.F_REQUESTS
@@ -978,10 +984,8 @@ def requests():
              )
         )
 
-        if (request.files.get('request_file') != None):
+        if if_file == True:
             binary = request.files['request_file']
-            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
-            new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
             extension = binary.filename.split('.')[-1]
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
             request_path = os.path.join("request_doc", str(new_file_id), filename)
