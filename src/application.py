@@ -988,7 +988,7 @@ def requests():
             translate_path = os.path.join("translated_doc", str(new_translated_file_id), filename)
 
             file_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_request_file_id, request_path, bytearray(file_bin) ) )
+            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_file_id, request_path, bytearray(file_bin) ) )
             cursor.execute("INSERT INTO CICERON.D_TRANSLATED_FILES (id, request_id, path, bin) VALUES (%s,%s,%s,null)", (new_translated_file_id, request_id, translate_path, ))
 
         if is_i18n == True:
