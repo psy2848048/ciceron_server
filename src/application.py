@@ -915,41 +915,6 @@ def requests():
         #    sound_bin = binary.read()
         #    cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
         
-        if (request.files.get('request_file') != None):
-            binary = request.files['request_file']
-            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
-            new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
-            extension = binary.filename.split('.')[-1]
-            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-            request_path = os.path.join("request_doc", str(new_file_id), filename)
-            translate_path = os.path.join("translated_doc", str(new_translated_file_id), filename)
-
-            file_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_request_file_id, request_path, bytearray(file_bin) ) )
-            cursor.execute("INSERT INTO CICERON.D_TRANSLATED_FILES (id, request_id, path, bin) VALUES (%s,%s,%s,null)", (new_translated_file_id, request_id, translate_path, ))
-
-        if is_i18n == True:
-            i18nObj = I18nHandler(g.db)
-            i18n_file_format = parameters.get('request_i18nFileFormat')
-            i18n_binary = request.files['request_i18nFileBinary']
-
-            try:
-                if i18n_file_format == 'android':
-                    i18nObj.androidToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
-                elif i18n_file_format == 'json':
-                    i18nObj.jsonToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
-                elif i18n_file_format == 'iOS':
-                    i18nObj.iosToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
-                elif i18n_file_format == 'xamarin':
-                    i18nObj.xamarinToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
-                elif i18n_file_format == 'unity':
-                    i18nObj.unityToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
-
-            except Exception:
-                g.db.rollback()
-                return make_response(json.jsonify(
-                    message="Something wrong in your file"), 413)
-
         new_translation_id = None
         if text_string and is_i18n == False and is_movie == False:
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
@@ -1011,6 +976,41 @@ def requests():
                     is_docx,
              )
         )
+
+        if (request.files.get('request_file') != None):
+            binary = request.files['request_file']
+            new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
+            new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
+            extension = binary.filename.split('.')[-1]
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+            request_path = os.path.join("request_doc", str(new_file_id), filename)
+            translate_path = os.path.join("translated_doc", str(new_translated_file_id), filename)
+
+            file_bin = binary.read()
+            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_request_file_id, request_path, bytearray(file_bin) ) )
+            cursor.execute("INSERT INTO CICERON.D_TRANSLATED_FILES (id, request_id, path, bin) VALUES (%s,%s,%s,null)", (new_translated_file_id, request_id, translate_path, ))
+
+        if is_i18n == True:
+            i18nObj = I18nHandler(g.db)
+            i18n_file_format = parameters.get('request_i18nFileFormat')
+            i18n_binary = request.files['request_i18nFileBinary']
+
+            try:
+                if i18n_file_format == 'android':
+                    i18nObj.androidToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'json':
+                    i18nObj.jsonToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'iOS':
+                    i18nObj.iosToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'xamarin':
+                    i18nObj.xamarinToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'unity':
+                    i18nObj.unityToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+
+            except Exception:
+                g.db.rollback()
+                return make_response(json.jsonify(
+                    message="Something wrong in your file"), 413)
 
         g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
