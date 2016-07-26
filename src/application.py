@@ -859,6 +859,7 @@ def requests():
         is_photo = parameter_to_bool(parameters.get('request_isPhoto', False))
         is_sound = parameter_to_bool(parameters.get('request_isSound', False))
         is_file = parameter_to_bool(parameters.get('request_isFile', False))
+        is_docx = parameter_to_bool(parameters.get('request_isDocx', False))
         is_i18n = parameter_to_bool(parameters.get('request_isI18n', False))
         is_movie = parameter_to_bool(parameters.get('request_isMovie', False))
         is_splitTrans = parameter_to_bool(parameters.get('request_isSplitTrans', False))
