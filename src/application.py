@@ -926,16 +926,6 @@ def requests():
         #    sound_bin = binary.read()
         #    cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
         
-        if text_string and is_i18n == False and is_movie == False:
-            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
-            path = os.path.join("request_text", str(new_text_id), filename)
-            #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
-            warehousing = Warehousing(g.db)
-            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
-
-        # Input context text into dimension table
-        cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
-
         cursor.execute("""INSERT INTO CICERON.F_REQUESTS
             (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid, is_need_additional_points, is_i18n, is_movie, is_splitTrans, is_docx)
                 VALUES
@@ -984,6 +974,13 @@ def requests():
              )
         )
 
+        if text_string and is_i18n == False and is_movie == False:
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
+            path = os.path.join("request_text", str(new_text_id), filename)
+            #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            warehousing = Warehousing(g.db)
+            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
+
         if is_file == True:
             binary = request.files['request_file']
             extension = binary.filename.split('.')[-1]
@@ -1016,6 +1013,9 @@ def requests():
                 g.db.rollback()
                 return make_response(json.jsonify(
                     message="Something wrong in your file"), 413)
+
+        # Input context text into dimension table
+        cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
         g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
