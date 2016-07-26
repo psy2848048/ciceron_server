@@ -1634,7 +1634,7 @@ def getOrUpdateFile(request_id):
     """
     다중파일의뢰 파일 가져오기(GET) / 업데이트(PUT)
     """
-    cursor = self.conn.cursor()
+    cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
     does_have_auth = translationAuthChecker(g.db, user_id, request_id, 1)
@@ -1656,7 +1656,7 @@ def getOrUpdateFile(request_id):
         binary = request.files['translated_file']
         file_bin = binary.read()
         cursor.execute(query_updateFile, (file_bin, request_id, ))
-        self.conn.commit()
+        g.db.commit()
 
         return make_response(json.jsonify(
             message="Update success"), 200)
@@ -1670,6 +1670,8 @@ def savePair(request_id):
     다중 파일 Request를 완료하면서 결과물 텍스트 혹은 바이너리 입력
     바이너리인지 아닌지는 decode시 에러가 나는지 아닌지로 판단
     """
+    cursor = g.db.cursor()
+
     if request.method == "POST":
         parameters = parse_request(request)
         translated_filename = eval(parameters['translated_filenames'])
@@ -1700,7 +1702,7 @@ def savePair(request_id):
             except:
                 cursor.execute(query_insert, (new_text_id, request_id, file_id, filename, None, text_or_bin, ))
 
-        self.conn.commit()
+        g.db.commit()
         return make_response(json.jsonify(
             message="Insert success"), 200)
 
@@ -1712,7 +1714,7 @@ def getFileForClient(request_id):
     """
     다중파일의뢰 파일 가져오기(GET) / 업데이트(PUT)
     """
-    cursor = self.conn.cursor()
+    cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
     does_have_auth = clientAuthChecker(g.db, user_id, request_id, 1)
