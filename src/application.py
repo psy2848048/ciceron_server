@@ -984,7 +984,7 @@ def requests():
              )
         )
 
-        if if_file == True:
+        if is_file == True:
             binary = request.files['request_file']
             extension = binary.filename.split('.')[-1]
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
