@@ -891,7 +891,7 @@ def requests():
                 length=len(text_string)
                 ), 417)
 
-        if if_file == True:
+        if is_file == True:
             new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
             new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
 
