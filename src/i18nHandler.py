@@ -65,7 +65,7 @@ class I18nHandler(object):
         res = cursor.fetchone()
 
         if res is None or len(res) == 0:
-            return -1
+            return (-1, None)
         else:
             return (res[0], res[1])
 
@@ -345,8 +345,9 @@ class I18nHandler(object):
 
         return True
 
-    def _writeOneRecordToDB(self, cursor, request_id, variable_id, paragraph_seq, sentence_seq, partial_text):
-        source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
+    def _writeOneRecordToDB(self, cursor, request_id, variable_id, paragraph_seq, sentence_seq, partial_text, source_lang_id=None, target_lang_id=None):
+        if source_lang_id is None or target_lang_id is None:
+            source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         # 원문은 똑같은 텍스트 있나 살펴보는 정도
         is_exist_source, source_text_id = self.__getTextId(cursor, partial_text)
         # 원문 텍스트 이용하여 기존 번역 있는지 검색
@@ -379,7 +380,7 @@ class I18nHandler(object):
         else:
             return False, None
 
-    def _dictToDb(self, request_id, dictData):
+    def _dictToDb(self, request_id, source_lang_id, target_lang_id, dictData):
         cursor = self.conn.cursor()
 
         for key, whole_text in sorted(dictData.iteritems()):
@@ -395,7 +396,7 @@ class I18nHandler(object):
                 parsed_sentences = self.sentence_detector.tokenize(paragraph.strip())
 
                 for sentence_seq, sentence in enumerate(parsed_sentences):
-                    is_sentence_inserted, value_id = self._writeOneRecordToDB(cursor, request_id, variable_id, paragraph_seq, sentence_seq, sentence)
+                    is_sentence_inserted, value_id = self._writeOneRecordToDB(cursor, request_id, variable_id, paragraph_seq, sentence_seq, sentence, source_lang_id=source_lang_id, target_lang_id=target_lang_id)
 
                     if is_sentence_inserted == False:
                         self.conn.rollback()
@@ -685,27 +686,27 @@ class I18nHandler(object):
         result = self._dbToJsonResponse(request_id, is_restricted)
         return result
 
-    def androidToDb(self, request_id, xml_text):
+    def androidToDb(self, request_id, source_lang_id, target_lang_id, xml_text):
         dict_data = self._androidToDict(xml_text)
-        self._dictToDb(request_id, dict_data)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def jsonToDb(self, request_id, source_lang_id, json_text):
+    def jsonToDb(self, request_id, source_lang_id, target_lang_id, json_text):
         source_lang = self.__getCountryCodeById(source_lang_id)
         dict_data = self._jsonToDict(json_text, source_lang)
-        self._dictToDb(request_id, dict_data)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def iosToDb(self, request_id, ios_text):
+    def iosToDb(self, request_id, source_lang_id, target_lang_id, ios_text):
         dict_data = self._iosToDict(ios_text)
-        self._dictToDb(request_id, dict_data)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def xamarinToDb(self, request_id, xamText):
+    def xamarinToDb(self, request_id, source_lang_id, target_lang_id, xamText):
         dict_data = self._xamarinToDict(xamTet)
-        self._dictToDb(request_id, dict_data)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def unityToDb(self, request_id, source_lang_id, unityText):
+    def unityToDb(self, request_id, source_lang_id, target_lang_id, unityText):
         source_lang = self.__getCountryCodeById(source_lang_id)
         dict_data = self._unityToDict(request_id, unityText, source_lang)
-        self._dictToDb(request_id, dict_data)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def updateVariableName(self, request_id, variable_id, text):
         cursor = self.conn.cursor()

@@ -935,15 +935,15 @@ def requests():
 
             try:
                 if i18n_file_format == 'android':
-                    i18nObj.androidToDb(request_id, i18n_binary)
+                    i18nObj.androidToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'json':
-                    i18nObj.jsonToDb(request_id, original_lang_id, i18n_binary)
+                    i18nObj.jsonToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'iOS':
-                    i18nObj.iosToDb(request_id, i18n_binary)
+                    i18nObj.iosToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'xamarin':
-                    i18nObj.xamarinToDb(request_id, i18n_binary)
+                    i18nObj.xamarinToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'unity':
-                    i18nObj.unityToDb(request_id, original_lang_id, i18n_binary)
+                    i18nObj.unityToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
 
             except Exception:
                 g.db.rollback()
