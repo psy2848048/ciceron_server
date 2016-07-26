@@ -351,7 +351,7 @@ class I18nHandler(object):
         # 원문은 똑같은 텍스트 있나 살펴보는 정도
         is_exist_source, source_text_id = self.__getTextId(cursor, partial_text)
         # 원문 텍스트 이용하여 기존 번역 있는지 검색
-        is_exist_target, source_text_id, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
+        is_exist_target, _, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
 
         if is_exist_source == False:
             # 원문 부분은 기존 데이터 없을 시 원문 문장 삽입
