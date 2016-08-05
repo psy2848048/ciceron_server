@@ -863,6 +863,7 @@ def requests():
         is_i18n = parameter_to_bool(parameters.get('request_isI18n', False))
         is_movie = parameter_to_bool(parameters.get('request_isMovie', False))
         is_splitTrans = parameter_to_bool(parameters.get('request_isSplitTrans', False))
+        is_public = parameter_to_bool(parameters.get('request_isPublic', False))
 
         if isSos == False:
             delta_from_due = int(parameters['request_deltaFromDue'])
@@ -899,6 +900,14 @@ def requests():
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
             new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
 
+        if is_splitTrans == True:
+            # 번역 공동구매 정보 입력
+            # Execute own SQL in another module
+            resell_price = parameters.get('request_resellPrice')
+            number_of_members_in_group = parameters.get('request_numberOfMembersInGroup')
+            # Module is userd in here
+            pass
+
         # Upload binaries into file and update each dimension table
         #if (request.files.get('request_photo') != None):
         #    binary = request.files['request_photo']
@@ -927,7 +936,15 @@ def requests():
         #    cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
         
         cursor.execute("""INSERT INTO CICERON.F_REQUESTS
-            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid, is_need_additional_points, is_i18n, is_movie, is_splitTrans, is_docx)
+            (id, client_user_id, original_lang_id, target_lang_id, isSOS,
+            status_id, format_id, subject_id, queue_id, ongoing_worker_id,
+            is_text, text_id, is_photo, photo_id, is_file,
+            file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id,
+            client_title_id, translator_title_id, registered_time, due_time, points,
+            context_id, comment_id, tone_id, translatedText_id, is_paid,
+            is_need_additional_points, is_i18n, is_movie, is_splitTrans, is_docx,
+            is_public
+            )
                 VALUES
                 (%s,%s,%s,%s,%s,
                  %s,%s,%s,%s,%s,
@@ -935,7 +952,7 @@ def requests():
                  %s,%s,%s,%s,%s,
                  %s,%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '%s seconds', %s,
                  %s,%s,%s,%s,%s,
-                 %s,%s,%s,%s,%s)""", 
+                 %s)""", 
             (
                     request_id,                       # id
                     client_user_id,                   # client_user_id
@@ -971,6 +988,7 @@ def requests():
                     is_movie,
                     is_splitTrans,
                     is_docx,
+                    is_public,
              )
         )
 
