@@ -197,6 +197,10 @@ CREATE TABLE CICERON.F_REQUESTS (
     is_movie BOOLEAN,
     is_splitTrans BOOLEAN,
     is_docx BOOLEAN,
+    is_public BOOLEAN,
+    resell_price REAL,
+    is_copyright_checked BOOLEAN,
+    number_of_member_in_group INT,
     
     PRIMARY KEY(id)
 );
@@ -537,7 +541,13 @@ CREATE VIEW CICERON.V_REQUESTS as
 
     fact.is_i18n is_i18n, -- 59
     fact.is_movie is_movie, -- 60
-    fact.is_splitTrans is_splitTrans --61
+    fact.is_splitTrans is_splitTrans, --61
+
+    fact.is_docx is_docx, -- 62
+    fact.is_public is_public, --63
+    fact.resell_price, --64
+    fact.is_copyright_checked is_copyright_checked, --65
+    fact.number_of_member_in_group number_of_member_in_group --66
 
   FROM
     CICERON.F_REQUESTS fact
@@ -880,3 +890,22 @@ CREATE TABLE CICERON.F_I18N_VALUES (
 );
 CREATE SEQUENCE CICERON.SEQ_F_I18N_VALUES;
 
+CREATE TABLE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK (
+    id INT,
+    request_id INT,
+    is_confirmed BOOLEAN,
+    file_bin BYTEA,
+
+    PRIMARY KEY (id, request_id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_COPYRIGHT_CHECK;
+
+CREATE TABLE CICERON.F_GROUP_REQUESTS_USERS (
+    id INT,
+    request_id INT,
+    user_id INT,
+    is_paid BOOLEAN,
+    payment_platform VARCHAR(30),
+    transaction_id VARCHAR(100)
+);
+CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_USERS;
