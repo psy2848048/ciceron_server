@@ -195,9 +195,10 @@ CREATE TABLE CICERON.F_REQUESTS (
 
     is_i18n BOOLEAN,
     is_movie BOOLEAN,
-    is_splitTrans BOOLEAN,
     is_docx BOOLEAN,
     is_public BOOLEAN,
+
+    is_splitTrans BOOLEAN,
     resell_price REAL,
     is_copyright_checked BOOLEAN,
     number_of_member_in_group INT,
@@ -547,7 +548,10 @@ CREATE VIEW CICERON.V_REQUESTS as
     fact.is_public is_public, --63
     fact.resell_price, --64
     fact.is_copyright_checked is_copyright_checked, --65
-    fact.number_of_member_in_group number_of_member_in_group --66
+    fact.number_of_member_in_group number_of_member_in_group, --66
+
+    group_request.members requested_member,  -- 67
+    copyright.is_confirmed is_confirmed      -- 68
 
   FROM
     CICERON.F_REQUESTS fact
@@ -570,6 +574,14 @@ CREATE VIEW CICERON.V_REQUESTS as
              ON fact.translator_title_id = translator_title.id
   LEFT OUTER JOIN CICERON.D_TRANSLATED_TEXT result
              ON fact.translatedText_id = result.id
+  LEFT OUTER JOIN 
+                (SELECT request_id, count(*) members
+                FROM CICERON.F_GROUP_REQUESTS_USERS
+                WHERE is_paid = true
+                GROUP BY request_id) group_request
+             ON fact.request_id = group_request.request_id
+  LEFT OUTER JOIN CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK copyright
+             ON fact.request_id = copyright.request_id
             ;
 
 CREATE VIEW CICERON.V_TRANSLATABLE_LANGUAGES as

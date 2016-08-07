@@ -57,6 +57,7 @@ Ciceron server code
       # DO NOT FORGET DOT!!! DOT MEANS current folder in GNU/UNIX
   - Execute shell 'pip install Flask'
   - After then, you don't have to execute 'pip install Flask' every time when you execute 'git fetch; git rebase'.
+  - Execute " export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' "
   - In virtual env, execute 'python application.py' and you may use server as localhost:5000
 
 * Database configuration
