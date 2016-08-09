@@ -108,7 +108,6 @@ class GroupRequest(object):
         """
         try:
             cursor.execute(query, (seq, request_id, user_id, ))
-            self.conn.commit()
             return True
 
         except Exception:
@@ -128,7 +127,6 @@ class GroupRequest(object):
         """
         try:
             cursor.execute(query, (payment_platform, transaction_id, request_id, user_id, ))
-            self.conn.commit()
             return True
 
         except Exception:
@@ -145,7 +143,6 @@ class GroupRequest(object):
         """
         try:
             cursor.execute(query, (request_id, user_id, ))
-            self.conn.commit()
             return True
 
         except Exception:
@@ -154,11 +151,39 @@ class GroupRequest(object):
             return False
 
     def confirmCopyright(self, request_id):
-        pass
+        cursor = self.conn.cursor()
+
+        query = """
+            UPDATE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK
+            SET is_confirmed = true
+            WHERE request_id = %s
+        """
+        try:
+            cursor.execute(query, (request_id, ))
+            return True
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
 
     def rejectCopyright(self, request_id):
-        pass
+        cursor = self.conn.cursor()
+
+        query = """
+            UPDATE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK
+            SET is_confirmed = false
+            WHERE request_id = %s
+        """
+        try:
+            cursor.execute(query, (request_id, ))
+            return True
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
 
     def cancelGroupRequest(self, request_id):
+        # Use normal DELETE request
         pass
-
