@@ -925,6 +925,7 @@ CREATE TABLE ciceron.d_subtitle_videos(
 WITH (
   OIDS=FALSE
 );
+CREATE SEQUENCE ciceron.seq_d_subtitle_videos;
 
 CREATE TABLE ciceron.d_subtitles_rows(
     id integer NOT NULL,
@@ -943,4 +944,5 @@ CREATE TABLE ciceron.d_subtitles_rows(
 WITH (
   OIDS=FALSE
 );
+CREATE SEQUENCE ciceron.seq_d_subtitles_rows;
 
