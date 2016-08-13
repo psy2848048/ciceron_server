@@ -909,3 +909,38 @@ CREATE TABLE CICERON.F_GROUP_REQUESTS_USERS (
     transaction_id VARCHAR(100)
 );
 CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_USERS;
+
+CREATE TABLE ciceron.d_subtitle_videos(
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    video_id character varying(200) NOT NULL,
+    video_title character varying(200) NOT NULL,
+    video_type character varying(50) NOT NULL,
+    insert_date timestamp with time zone NOT NULL,
+    update_date timestamp with time zone,
+    
+    CONSTRAINT d_subtitle_videos_pkey PRIMARY KEY (id),
+    CONSTRAINT d_subtitle_videos_user_id_fkey FOREIGN KEY (user_id) REFERENCES ciceron.d_users (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION  
+)
+WITH (
+  OIDS=FALSE
+);
+
+CREATE TABLE ciceron.d_subtitles_rows(
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    subtitles_videos_id integer NOT NULL,
+    start_time character varying(50) NOT NULL,
+    end_time character varying(50) NOT NULL,
+    subtitles_string character varying(500) NOT NULL,
+    insert_date timestamp with time zone NOT NULL,
+    update_date timestamp with time zone,
+    
+    CONSTRAINT d_subtitles_rows_pkey PRIMARY KEY (id),  
+    CONSTRAINT d_subtitles_rows_user_id_fkey FOREIGN KEY (user_id) REFERENCES ciceron.d_users (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT d_subtitles_rows_videos_id_fkey FOREIGN KEY (subtitles_videos_id) REFERENCES ciceron.d_subtitle_videos (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+WITH (
+  OIDS=FALSE
+);
+
