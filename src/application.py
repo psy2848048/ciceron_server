@@ -1647,7 +1647,7 @@ def getOrUpdateFile(request_id):
             message="You are not translator of the request"), 406)
 
     if request.method == "GET":
-        query_getFile = "SELECT bin FROM CICERON.D_TRANSLATED_FILES WHERE request_id = %s"
+        query_getFile = "SELECT bin FROM CICERON.D_TRANSLATED_FILES WHERE request_id = %s and bin is not null"
         cursor.execute(query_getFile, (request_id, ))
         request_file = cursor.fetchone()
         if request_file is None:
