@@ -272,6 +272,16 @@ def ddosCheckAndWriteLog(conn):
 
     return is_OK
 
+def apiURLOrganizer(api_base, **kwargs):
+    basic = api_base + '?'
+    param = []
+    for key, value in kwargs.iteritems():
+        param.append('%s=%s' % (key, value))
+
+    query = '&'.join(param)
+
+    return basic + query
+
 def login_required(f):
     """
     DDOS 공격 검출기로 해당 IP가 블랙 리스트에 올라갔는지, 그리고 블랙 리스트에 올려야 하는지 살펴본다.

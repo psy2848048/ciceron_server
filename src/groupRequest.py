@@ -75,7 +75,7 @@ class GroupRequest(object):
 
         return res[0]
 
-    def getGroupRequestList(self):
+    def getGroupRequestList(self, page=1):
         cursor = self.conn.cursor()
 
         query = """
@@ -83,8 +83,24 @@ class GroupRequest(object):
             WHERE is_splitTrans = true AND is_paid = true
               AND number_of_member_in_group > requested_member
             ORDER BY registered_time
+            LIMIT 20 OFFSET %d
         """
+        query = query % (( int(page)-1 ) * 20)
         cursor.execute(query)
+        ret = cursor.fetchall()
+        return ret
+
+    def getOneGroupRequest(self, request_id):
+        cursor = self.conn.cursor()
+
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE request_id = %s
+              AND is_splitTrans = true AND is_paid = true
+              AND number_of_member_in_group > requested_member
+            ORDER BY registered_time
+        """
+        cursor.execute(query, (request_id, ))
         ret = cursor.fetchall()
         return ret
 

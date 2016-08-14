@@ -21,6 +21,8 @@ from decimal import Decimal
 from i18nHandler import I18nHandler
 from ciceron_lib import *
 from requestwarehouse import Warehousing
+from groupRequest import GroupRequest
+
 from flask.ext.cors import CORS
 from flask.ext.session import Session
 from multiprocessing import Process
@@ -862,7 +864,7 @@ def requests():
         is_docx = parameter_to_bool(parameters.get('request_isDocx', False))
         is_i18n = parameter_to_bool(parameters.get('request_isI18n', False))
         is_movie = parameter_to_bool(parameters.get('request_isMovie', False))
-        is_splitTrans = parameter_to_bool(parameters.get('request_isSplitTrans', False))
+        is_groupTrans = parameter_to_bool(parameters.get('request_isGroupTrans', False))
         is_public = parameter_to_bool(parameters.get('request_isPublic', False))
 
         if isSos == False:
@@ -899,14 +901,6 @@ def requests():
         if text_string and is_i18n == False and is_movie == False:
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
             new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
-
-        if is_splitTrans == True:
-            # 번역 공동구매 정보 입력
-            # Execute own SQL in another module
-            resell_price = parameters.get('request_resellPrice')
-            number_of_members_in_group = parameters.get('request_numberOfMembersInGroup')
-            # Module is userd in here
-            pass
 
         # Upload binaries into file and update each dimension table
         #if (request.files.get('request_photo') != None):
@@ -986,7 +980,7 @@ def requests():
                     False,                # is_need_additional_points
                     is_i18n,
                     is_movie,
-                    is_splitTrans,
+                    is_groupTrans,
                     is_docx,
                     is_public,
              )
@@ -1031,6 +1025,14 @@ def requests():
                 g.db.rollback()
                 return make_response(json.jsonify(
                     message="Something wrong in your file"), 413)
+
+        if is_groupTrans == True:
+            # 번역 공동구매 정보 입력
+            # Execute own SQL in another module
+            resell_price = parameters.get('request_resellPrice')
+            number_of_members_in_group = parameters.get('request_numberOfMembersInGroup')
+            groupRequestObj = GroupRequest(g.db)
+            groupRequestObj.addUserToGroup(request_id, client_user_id)
 
         # Input context text into dimension table
         cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
@@ -2417,6 +2419,132 @@ def delete_item_client(request_id):
         g.db.commit()
         return make_response(json.jsonify(
             message="Request #%d is deleted. USD %.2f is returned as requester's points" % (request_id, float(points)), request_id=request_id), 200)
+
+@app.route('/api/user/requests/pending/group_request', methods=["GET"])
+#@exception_detector
+@login_required
+def get_groupRequest_list():
+    if request.method == "GET":
+        groupRequestObj = GroupRequest(g.db)
+
+        page = 1
+        if 'page' in request.args.keys():
+            page = request.args.get('page', 1)
+
+        result = groupRequestObj.getGroupRequestList(page=page)
+        return make_response(json.jsonify(
+            data = ciceron_lib.json_form_V_REQUESTS(result)
+            ), 200)
+
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["GET"])
+#@exception_detector
+@login_required
+def get_oneGroupRequest(request_id):
+    if request.method == "GET":
+        groupRequestObj = GroupRequest(g.db)
+        result = groupRequestObj.getOneGroupRequest(request_id)
+        return make_response(json.jsonify(
+            data=json_form_V_REQUESTS(result)
+            ), 200)
+
+@app.route('/api/user/requests/pending/group_request/<int:request_id>/add_user_and_payment_start', methods=["POST"])
+#@exception_detector
+@login_required
+def addUser_groupRequest(request_id):
+    if request.method == "POST":
+        groupRequestObj = GroupRequest(g.db)
+        paymentObj = Payment(g.db)
+
+        # Get and set parameters
+        parameters = parse_request(request)
+        client_email = parameters['payment_clientEmail']
+        payment_platform = parameters['payment_platform']
+        amount = float(parameters['payment_amount'])
+        promo_type = parameters.get('promo_type', 'null')
+        promo_code = parameters.get('promo_code', 'null')
+        point_for_use = float(parameters.get('point_for_use', 0))
+
+        client_userId = get_user_id(g.db, client_email)
+        groupRequestObj.addUserToGroup(request_id, client_userId)
+
+        payload = None
+        if payment_platform == 'iamport':
+            payload = {}
+
+            payload['card_number'] = parameters['card_number']
+            payload['expiry'] = parameters['expiry']
+            payload['birth'] = parameters['birth']
+            payload['pwd_2digit'] = parameters['pwd_2digit']
+
+        is_prod = False
+        if os.environ.get('PURPOSE') == 'PROD':
+            is_prod = True
+
+        # Point test
+        cur_amount = amount
+        if point_for_use > 0.00001:
+            is_point_usable, cur_amount = paymentObj.checkPoint(client_userId, point_for_use)
+            if current_point - use_point < -0.00001:
+                return make_response(json.jsonify(
+                    message="Fail"), 400)
+
+        # Promo code test
+        if promo_type != 'null':
+            isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(user_id, promo_code)
+            isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(user_id, promo_code)
+            if isCommonCode == 0:
+                cur_amount = cur_amount - commonPoint
+            elif isIndivCode == 0:
+                cur_amount = cur_amount - indivPoint
+            else:
+                return make_response(json.jsonify(
+                    message="Fail"), 400)
+
+        # Send payment request
+        is_payment_ok, link = False, ""
+        if payment_platform == 'alipay' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.alipayPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    )
+
+        elif payment_platform == 'paypal' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.paypalPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    )
+
+        elif payment_platform == 'iamport' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.iamportPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    , **payload
+                    )
+
+        else:
+            is_payment_ok, link = paymentObj.pointPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    )
+
+        # Return
+        if is_payment_ok:
+            g.db.commit()
+            return make_response(json.jsonify(
+                link=link), 200)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Fail"), 400)
 
 @app.route('/api/user/requests/ongoing', methods=["GET"])
 #@exception_detector
