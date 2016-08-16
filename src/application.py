@@ -3774,11 +3774,13 @@ def initial_translate():
     connector = Connector()
     parameter = parse_request(request)
 
-    user_id = parameter['user_id']
-    request_id = parameter['request_id']
+    user_email = parameter['user_email']
+    request_id = int(parameter['request_id'])
     sentence = parameter['sentence']
-    source_lang_id = parameter['source_lang_id']
-    target_lang_id = parameter['target_lang_id']
+    source_lang_id = int(parameter['source_lang_id'])
+    target_lang_id = int(parameter['target_lang_id'])
+
+    user_id = get_user_id(g.db, user_email)
 
     result = connector.getTranslatedDataInternal(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
 
