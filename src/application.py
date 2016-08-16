@@ -6,18 +6,13 @@ URL rule과 Response가 정의되어 있음.
 TODO: 이 파일에서는 Function call만 하고, Query 날리는 것은 모두 라이브러리화 시켜 서버 갈아타기 쉽게 하기
 """
 
-from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory, url_for, send_file
-from contextlib import closing
+from flask import Flask, session, request, g, make_response, send_from_directory, url_for, send_file
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time, requests, sys, logging, io, argparse
-#os.environ['DYLD_LIBRARY_PATH'] = '/usr/local/opt/openssl/lib'
-""" Execute following first!!"""
-""" export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
+import os
+import requests
+import io
 
 import psycopg2
-from functools import wraps
-from werkzeug import secure_filename
-from decimal import Decimal
 from i18nHandler import I18nHandler
 from ciceron_lib import *
 from requestwarehouse import Warehousing
@@ -25,15 +20,18 @@ from groupRequest import GroupRequest
 
 from flask.ext.cors import CORS
 from flask.ext.session import Session
-from multiprocessing import Process
 from flask.ext.cache import Cache
 from flask_oauth import OAuth
 
-#DATABASE = '../db/ciceron.db'
+# DATABASE = '../db/ciceron.db'
 DATABASE = None
-#parser = argparse.ArgumentParser(description='Translation agent')
-#parser.add_argument('--dbpass', dest='dbpass', help='DB password')
-#args = parser.parse_args()
+# parser = argparse.ArgumentParser(description='Translation agent')
+# parser.add_argument('--dbpass', dest='dbpass', help='DB password')
+# args = parser.parse_args()
+
+# os.environ['DYLD_LIBRARY_PATH'] = '/usr/local/opt/openssl/lib'
+""" Execute following first!!"""
+""" export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
 
 if os.environ.get('PURPOSE') == 'PROD':
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
@@ -55,9 +53,9 @@ PERMANENT_SESSION_LIFETIME = timedelta(days=15)
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
-VERSION= "2015.11.15"
+VERSION = "2015.11.15"
 
-#CELERY_BROKER_URL = 'redis://localhost'
+# CELERY_BROKER_URL = 'redis://localhost'
 
 HOST = ""
 if os.environ.get('PURPOSE') == 'PROD':
@@ -81,23 +79,23 @@ Session(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # Celery
-#celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-#celery.conf.update(app.config)
+# celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+# celery.conf.update(app.config)
 
 # Flask-OAuth for facebook
 oauth = OAuth()
 facebook = oauth.remote_app('facebook',
-    base_url='https://graph.facebook.com/',
-    request_token_url=None,
-    access_token_url='/oauth/access_token',
-    authorize_url='https://www.facebook.com/dialog/oauth',
-    consumer_key=FACEBOOK_APP_ID,
-    consumer_secret=FACEBOOK_APP_SECRET,
-    request_token_params={'scope': 'email'}
-)
-
+                            base_url='https://graph.facebook.com/',
+                            request_token_url=None,
+                            access_token_url='/oauth/access_token',
+                            authorize_url='https://www.facebook.com/dialog/oauth',
+                            consumer_key=FACEBOOK_APP_ID,
+                            consumer_secret=FACEBOOK_APP_SECRET,
+                            request_token_params={'scope': 'email'}
+                            )
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
+
 
 def pic_allowed_file(filename):
     """
@@ -106,6 +104,7 @@ def pic_allowed_file(filename):
     """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
 
+
 def doc_allowed_file(filename):
     """
     확장자를 보고 문서인지 아닌지 판별
@@ -113,12 +112,14 @@ def doc_allowed_file(filename):
     """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
+
 def sound_allowed_file(filename):
     """
     확장자를 보고 음성인지 아닌지 판별
     :param string filename: 파일 이름
     """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_WAV']
+
 
 def connect_db():
     """
