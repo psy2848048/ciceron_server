@@ -363,12 +363,12 @@ def strict_translator_checker(conn, user_id, request_id):
     """
     cursor = conn.cursor()
     cursor.execute("SELECT is_translator, mother_language_id, other_language_list_id FROM CICERON.D_USERS WHERE id = %s ", (user_id, ))
-    rs = cursor.fetchall()
-    if len(rs) == 0 or rs[0][0] == 0 or rs[0][0] == 'False' or rs[0][0] == 'false':
+    rs = cursor.fetchone()
+    if rs is None or len(rs) == 0 or rs[0] == 0 or rs[0] == 'False' or rs[0] == 'false':
         return False
 
     # Get language list
-    mother_language_id = rs[0][1]
+    mother_language_id = rs[1]
 
     cursor.execute("SELECT language_id FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s ", (user_id, ))
     language_list = [ item[0] for item in cursor.fetchall() ]
@@ -381,7 +381,7 @@ def strict_translator_checker(conn, user_id, request_id):
     else:
         query = "SELECT original_lang_id, target_lang_id FROM CICERON.F_REQUESTS WHERE id = %s AND is_paid = true "
     cursor.execute(query, (request_id, ) )
-    rs = cursor.fetchall()[0]
+    rs = cursor.fetchone()
     original_lang_id = rs[0]
     target_lang_id = rs[1]
 

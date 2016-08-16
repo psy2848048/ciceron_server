@@ -19,6 +19,7 @@ from functools import wraps
 from werkzeug import secure_filename
 from decimal import Decimal
 from i18nHandler import I18nHandler
+from detourserverConnector import Connector
 from ciceron_lib import *
 from requestwarehouse import Warehousing
 from flask.ext.cors import CORS
@@ -3766,6 +3767,22 @@ def be_hero():
 
     return make_response(json.jsonify(
         message="Application mail has just sent to %s!" % email), 200)
+
+@app.route('/api/initial_translate', methods=['POST'])
+#@exception_detector
+def initial_translate():
+    connector = Connector()
+    parameter = parse_request(request)
+
+    user_id = parameter['user_id']
+    request_id = parameter['request_id']
+    sentence = parameter['request_id']
+    source_lang_id = parameter['source_lang_id']
+    target_lang_id = parameter['target_lang_id']
+
+    result = connector.getTranslatedDataInternal(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
+
+    return make_response(json.jsonify(**result), 200)
 
 ################################################################################
 #########                        ADMIN TOOL                            #########
