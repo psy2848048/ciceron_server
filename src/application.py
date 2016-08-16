@@ -3782,7 +3782,12 @@ def initial_translate():
 
     user_id = get_user_id(g.db, user_email)
 
-    result = connector.getTranslatedDataInternal(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
+    init_result = connector.getTranslatedDataInternal(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
+    result = {
+            "cand1": init_result['google'],
+            "cand2": init_result['bing'],
+            "cand3": init_result['yandex']
+            }
 
     return make_response(json.jsonify(**result), 200)
 
