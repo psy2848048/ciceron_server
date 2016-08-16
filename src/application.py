@@ -3776,7 +3776,7 @@ def initial_translate():
 
     user_id = parameter['user_id']
     request_id = parameter['request_id']
-    sentence = parameter['request_id']
+    sentence = parameter['sentence']
     source_lang_id = parameter['source_lang_id']
     target_lang_id = parameter['target_lang_id']
 
