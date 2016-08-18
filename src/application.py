@@ -2455,7 +2455,7 @@ def get_groupRequest_list():
             data = ciceron_lib.json_form_V_REQUESTS(result)
             ), 200)
 
-@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["GET"])
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["GET", "POST", "DELETE"])
 #@exception_detector
 @login_required
 def get_oneGroupRequest(request_id):
@@ -2469,7 +2469,7 @@ def get_oneGroupRequest(request_id):
             data=json_form_V_REQUESTS(result)
             ), 200)
 
-@app.route('/api/user/requests/pending/group_request/<int:request_id>/add_user_and_payment_start', methods=["POST"])
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["POST"])
 #@exception_detector
 @login_required
 def addUser_groupRequest(request_id):
@@ -2570,6 +2570,26 @@ def addUser_groupRequest(request_id):
             g.db.rollback()
             return make_response(json.jsonify(
                 message="Fail"), 400)
+
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["DELETE"])
+#@exception_detector
+@login_required
+def deleteUser_groupRequest(request_id):
+    user_id = get_user_id(session'useremail'])
+    groupRequestObj = GroupRequest(g.db)
+    paymentObj = Payment(g.db)
+
+    is_delete_succeeded = groupRequestObj.deleteUserFromGroup(request_id, user_id)
+    is_refund_succeeded = paymentObj.refundByPoint(order_no)
+    if is_delete_succeeded == True and is_refund_succeeded == True:
+        g.db.commit()
+        return make_response(json.jsonify(
+            message="Complete"), 200)
+
+    else:
+        g.db.rollback()
+        return make_response(json.jsonify(
+            message="Failed"), 400)
 
 @app.route('/api/user/requests/ongoing', methods=["GET"])
 #@exception_detector

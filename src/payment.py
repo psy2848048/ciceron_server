@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import traceback, random
+import traceback
+import random
 from datetime import datetime
 
 import paypalrestsdk
@@ -480,14 +481,18 @@ class Payment(object):
         # Insert payment info
         self._insertPaymentInfo(payment_id, kwargs['request_id'], kwargs['user_id'], kwargs['pay_via'], kwargs['amount'])
 
-    def _paypalCancel(self, order_no):
-        pass
+    def refundByPoint(self, user_id, points):
+        cursor = self.conn.cursor()
 
-    def _alipayCancel(self, order_no):
-        pass
+        try:
+            cursor.execute("""
+                    UPDATE CICERON.REVENUE 
+                    SET amount = amount + %s 
+                    WHERE id = %s
+                """, (points, user_id, ))
 
-    def _iamportCancel(self, order_no):
-        pass
+            return True
 
-    def _pointCancel(self, order_no):
-        pass
+        except Exception:
+            traceback.print_exc()
+            return False
