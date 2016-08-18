@@ -480,3 +480,14 @@ class Payment(object):
         # Insert payment info
         self._insertPaymentInfo(payment_id, kwargs['request_id'], kwargs['user_id'], kwargs['pay_via'], kwargs['amount'])
 
+    def _paypalCancel(self, order_no):
+        pass
+
+    def _alipayCancel(self, order_no):
+        pass
+
+    def _iamportCancel(self, order_no):
+        pass
+
+    def _pointCancel(self, order_no):
+        pass
