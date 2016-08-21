@@ -118,7 +118,7 @@ class RequestResell(object):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_PUBLIC_REQUESTS_USERS
+            UPDATE CICERON.F_READ_PUBLIC_REQUESTS_USERS
             SET complete_client_group_id = %s
             WHERE request_id = %s
               AND user_id = %s
@@ -129,7 +129,7 @@ class RequestResell(object):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_PUBLIC_REQUESTS_USERS
+            UPDATE CICERON.F_READ_PUBLIC_REQUESTS_USERS
             SET complete_client_title_id = %s
             WHERE request_id = %s
               AND user_id = %s
