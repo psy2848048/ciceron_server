@@ -579,9 +579,9 @@ CREATE VIEW CICERON.V_REQUESTS as
                 FROM CICERON.F_GROUP_REQUESTS_USERS
                 WHERE is_paid = true
                 GROUP BY request_id) group_request
-             ON fact.request_id = group_request.request_id
-  LEFT OUTER JOIN CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK copyright
-             ON fact.request_id = copyright.request_id
+             ON fact.id = group_request.request_id
+  LEFT OUTER JOIN CICERON.F_PUBLIC_REQUESTS_COPYRIGHT_CHECK copyright
+             ON fact.id = copyright.request_id
             ;
 
 CREATE VIEW CICERON.V_TRANSLATABLE_LANGUAGES as

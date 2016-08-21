@@ -28,6 +28,7 @@ setup(
       , author_email='junhang.lee@ciceeron.me'
       , packages=find_packages()
       , install_requires=[
+                        "pytest"
                       , "Flask"
                       , "requests"
                       , "paypalrestsdk"

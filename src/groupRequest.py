@@ -31,7 +31,7 @@ class GroupRequest(object):
             FROM CICERON.F_GROUP_REQUESTS_USERS
             WHERE request_id = %s AND is_paid = true
         """
-        cusor.exeucte(query, (request_id, ))
+        cursor.execute(query, (request_id, ))
         res = cursor.fetchall()
         return res
 
@@ -43,7 +43,7 @@ class GroupRequest(object):
             FROM CICERON.F_GROUP_REQUESTS_USERS
             WHERE request_id = %s AND is_paid = false
         """
-        cusor.exeucte(query, (request_id, ))
+        cursor.execute(query, (request_id, ))
         res = cursor.fetchall()
         return res
 
@@ -70,7 +70,7 @@ class GroupRequest(object):
         """
         cursor.execute(query, (request_id, ))
         res = cursor.fetchone()
-        if res is None or len(rs) == 0:
+        if res is None or len(res) == 0:
             return 0
 
         return res[0]
