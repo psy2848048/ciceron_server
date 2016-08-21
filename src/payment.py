@@ -220,7 +220,8 @@ class Payment(object):
             , promo_type=''
             , promo_code=''
             , is_additional=False
-            , is_groupRequest=False):
+            , is_groupRequest=False
+            , is_public=False):
 
         host_name = ""
         if is_prod_server == False:
@@ -244,6 +245,7 @@ class Payment(object):
               , 'ciceron_order_no': order_no
               , 'is_additional': 'false' if is_additional == False else 'true'
               , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
+              , 'is_public': 'false' if is_public == False else 'true'
                 }
         reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
 
@@ -273,7 +275,8 @@ class Payment(object):
             , point_for_use=point_for_use
             , promo_type=promo_type
             , promo_code=promo_code
-            , is_groupRequest=True
+            , is_groupRequest=False
+            , is_public=False
             , **payload):
         """
         아임포트 No-ActiveX 결제 시스템이다.
@@ -319,6 +322,7 @@ class Payment(object):
               , 'promo_code': promo_code
               , 'is_additional': 'false' if is_additional == False else 'true'
               , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
+              , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
         reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
@@ -334,7 +338,8 @@ class Payment(object):
             , promo_type=''
             , promo_code=''
             , is_additional=False
-            , is_groupRequest=False):
+            , is_groupRequest=False
+            , is_public=False):
         """
         페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
         결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.
@@ -374,6 +379,7 @@ class Payment(object):
               , 'promo_code': promo_code
               , 'is_additional': 'false' if is_additional == False else 'true'
               , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
+              , 'is_public': 'false' if is_public == False else 'true'
                 }
         reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
 
@@ -412,7 +418,8 @@ class Payment(object):
             , promo_type=''
             , promo_code=''
             , is_additional=False
-            , is_groupRequest=False):
+            , is_groupRequest=False
+            , is_public=False):
         """
         페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
         결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.
@@ -437,49 +444,75 @@ class Payment(object):
               , 'promo_code': promo_code
               , 'is_additional': 'false' if is_additional == False else 'true'
               , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
+              , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
         reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
 
         return True, reutrn_url
 
-    def postProcess(self, **kwargs):
+    def postProcess(self
+            , user_id=None
+            , request_id=None
+            , pay_via=None
+            , pay_by=None
+            , is_succeeded=None
+            , amount=0
+            , use_point=0
+            , promo_type=None
+            , promo_code=None
+            , is_additional=None
+            , is_groupRequest=None
+            , is_public=None
+            , paymentId=None
+            , PayerID=None
+            , ciceron_order_id=None):
+
+        if is_succeeded == False:
+            return False
+
         # Point deduction
-        if kwargs['use_point'] > 0:
-            self._pointDeduction(kwargs['user_id'], kwargs['use_point'])
+        if use_point > 0:
+            self._pointDeduction(user_id, use_point)
 
         # Use promo code
-        if kwargs['promo_type'] == 'common':
-            self.commonPromotionCodeExecutor(kwargs['user_id'], kwargs['promo_code'])
-        elif kwargs['promo_type'] == 'indiv':
-            self.individualPromotionCodeExecutor(kwargs['user_id'], kwargs['promo_code'])
+        if promo_type == 'common':
+            self.commonPromotionCodeExecutor(user_id, promo_code)
+        elif promo_type == 'indiv':
+            self.individualPromotionCodeExecutor(user_id, promo_code)
 
         # Check payment in each payment platform
         payment_id = ""
-        if kwargs['pay_via'] == 'paypal' and kwargs['status'] == 'success':
-            payment_id = kwargs['paymentId']
-            payer_id = kwargs['PayerID']
+        if pay_via == 'paypal' and status == 'success':
+            payment_id = paymentId
+            payer_id = PayerID
             self._paypalPaymentCheck(payment_id, payer_id)
 
-        elif kwargs['pay_via'] == 'alipay' and kwargs['statud'] == 'success':
-            payment_id = kwargs['ciceron_order_id']
+        elif pay_via == 'alipay' and statud == 'success':
+            payment_id = ciceron_order_id
 
-        elif kwargs['pay_via'] == 'iamport' and kwargs['statud'] == 'success':
-            payment_id = kwargs['ciceron_order_id']
+        elif pay_via == 'iamport' and statud == 'success':
+            payment_id = ciceron_order_id
 
-        elif kwargs['pay_via'] == 'point' and kwargs['statud'] == 'success':
-            payment_id = kwargs['ciceron_order_id']
+        elif pay_via == 'point' and statud == 'success':
+            payment_id = ciceron_order_id
 
         # Set to 'paid'
-        self._markAsPaid(kwargs['request_id'], kwargs['is_additional'])
+        self._markAsPaid(request_id, is_additional)
 
         # Group request processing
-        if kwargs['is_groupRequest'] == 'true':
+        if is_groupRequest == 'true':
             groupRequestObj = GroupRequest(self.conn)
-            groupRequestObj.updatePaymentInfo(kwargs['request_id'], ciceron_lib.get_user_id(self.conn, kwargs['user_id']), kwargs['pay_via'], payment_id)
+            groupRequestObj.updatePaymentInfo(request_id, ciceron_lib.get_user_id(self.conn, user_id), pay_via, payment_id)
+
+        if is_public == 'true':
+            requestResellObj = RequestResell(self.conn)
+            requestResellObj.setToPaid(request_id, ciceron_lib.get_user_id(self.conn, user_id), pay_via, payment_id)
 
         # Insert payment info
-        self._insertPaymentInfo(payment_id, kwargs['request_id'], kwargs['user_id'], kwargs['pay_via'], kwargs['amount'])
+        self._insertPaymentInfo(payment_id, request_id, user_id, pay_via, amount)
+
+        return True
 
     def refundByPoint(self, user_id, points):
         cursor = self.conn.cursor()

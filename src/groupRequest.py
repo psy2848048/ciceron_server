@@ -166,40 +166,25 @@ class GroupRequest(object):
             self.conn.rollback()
             return False
 
-    def confirmCopyright(self, request_id):
+    def assignToGroup(self, request_id, user_id, group_id):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK
-            SET is_confirmed = true
+            UPDATE CICERON.F_GROUP_REQUESTS_USERS
+            SET complete_client_group_id = %s
             WHERE request_id = %s
+              AND user_id = %s
         """
-        try:
-            cursor.execute(query, (request_id, ))
-            return True
+        cursor.execute(query, (group_id, request_id, user_id, ))
 
-        except Exception:
-            traceback.print_exc()
-            self.conn.rollback()
-            return False
-
-    def rejectCopyright(self, request_id):
+    def insertTitle(self, request_id, user_id, title_id):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK
-            SET is_confirmed = false
+            UPDATE CICERON.F_GROUP_REQUESTS_USERS
+            SET complete_client_title_id = %s
             WHERE request_id = %s
+              AND user_id = %s
         """
-        try:
-            cursor.execute(query, (request_id, ))
-            return True
+        cursor.execute(query, (title_id, request_id, user_id, ))
 
-        except Exception:
-            traceback.print_exc()
-            self.conn.rollback()
-            return False
-
-    def cancelGroupRequest(self, request_id):
-        # Use normal DELETE request
-        pass

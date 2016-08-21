@@ -902,23 +902,19 @@ CREATE TABLE CICERON.F_I18N_VALUES (
 );
 CREATE SEQUENCE CICERON.SEQ_F_I18N_VALUES;
 
-CREATE TABLE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK (
-    id INT,
-    request_id INT,
-    is_confirmed BOOLEAN,
-    file_bin BYTEA,
-
-    PRIMARY KEY (id, request_id)
-);
-CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_COPYRIGHT_CHECK;
-
 CREATE TABLE CICERON.F_GROUP_REQUESTS_USERS (
     id INT,
     request_id INT,
     user_id INT,
     is_paid BOOLEAN,
     payment_platform VARCHAR(30),
-    transaction_id VARCHAR(100)
+    transaction_id VARCHAR(100),
+    complete_client_group_id INT,
+    complete_client_title_id INT,
+
+    PRIMARY KEY (id, request_id, user_id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
 );
 CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_USERS;
 
@@ -928,6 +924,23 @@ CREATE TABLE CICERON.F_READ_PUBLIC_REQUESTS_USERS (
     user_id INT,
     is_paid BOOLEAN,
     payment_platform VARCHAR(30),
-    transaction_id VARCHAR(100)
+    transaction_id VARCHAR(100),
+    complete_client_group_id INT,
+    complete_client_title_id INT,
+
+    PRIMARY KEY (id, request_id, user_id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
 );
 CREATE SEQUENCE CICERON.SEQ_F_READ_PUBLIC_REQUESTS_USERS;
+
+CREATE TABLE CICERON.F_PUBLIC_REQUESTS_COPYRIGHT_CHECK (
+    id INT,
+    request_id INT,
+    is_confirmed BOOLEAN,
+    file_bin BYTEA,
+
+    PRIMARY KEY (id, request_id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_COPYRIGHT_CHECK;
+
