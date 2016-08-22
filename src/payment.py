@@ -3,6 +3,7 @@
 import traceback
 import random
 from datetime import datetime
+import string
 
 import paypalrestsdk
 from iamport import Iamport
@@ -142,7 +143,7 @@ class Payment(object):
         cursor.execute(query_searchPromoCodeId, (code, ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
-            raise Exception("Promo code '%s' exist!" % code)
+            raise Exception("Promo code '%s' doesn't exist!" % code)
 
         code_id = ret[0]
         query_commonPromotionCodeExeutor = """
@@ -236,7 +237,7 @@ class Payment(object):
         param_dict = {
                 'pay_via': 'alipay'
               , 'status': 'success'
-              . 'user_id': user_email
+              , 'user_id': user_email
               , 'pay_amt': amount
               , 'pay_by': pay_by
               , 'use_point': point_for_use
@@ -272,9 +273,9 @@ class Payment(object):
         return True, provided_link
 
     def iamportPayment(self, is_prod_server, request_id, user_email, amount
-            , point_for_use=point_for_use
-            , promo_type=promo_type
-            , promo_code=promo_code
+            , point_for_use=0
+            , promo_type=None
+            , promo_code=None
             , is_groupRequest=False
             , is_public=False
             , **payload):
@@ -314,7 +315,7 @@ class Payment(object):
         param_dict = {
                 'pay_via': 'iamport'
               , 'status': 'success'
-              . 'user_id': user_email
+              , 'user_id': user_email
               , 'pay_amt': amount
               , 'pay_by': pay_by
               , 'use_point': point_for_use
@@ -371,7 +372,7 @@ class Payment(object):
         param_dict = {
                 'pay_via': 'paypal'
               , 'status': 'success'
-              . 'user_id': user_email
+              , 'user_id': user_email
               , 'pay_amt': amount
               , 'pay_by': pay_by
               , 'use_point': point_for_use
@@ -436,7 +437,7 @@ class Payment(object):
         param_dict = {
                 'pay_via': 'point'
               , 'status': 'success'
-              . 'user_id': user_email
+              , 'user_id': user_email
               , 'pay_amt': amount
               , 'pay_by': pay_by
               , 'use_point': point_for_use
