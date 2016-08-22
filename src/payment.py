@@ -11,6 +11,7 @@ from alipay import Alipay
 
 import ciceron_lib
 from groupRequest import GroupRequest
+from requestResell import RequestResell
 
 class Payment(object):
     """
@@ -19,7 +20,7 @@ class Payment(object):
     def __init__(self, conn):
         self.conn = conn
 
-    def __random_string_gen(size=6, chars=string.letters + string.digits):
+    def __random_string_gen(self, size=6, chars=string.letters + string.digits):
         """
         무작위 string 만들어줌. 길이 조절도 가능함
         """
@@ -73,10 +74,10 @@ class Payment(object):
         payment = paypalrestsdk.Payment.find(payment_id)
         payment.execute({"payer_id": payer_id})
 
-    def _insertPaymentInfo(self, payment_info_id, request_id, user_email, payment_platform, amount):
+    def _insertPaymentInfo(self, request_id, user_id, payment_platform, payment_id, amount):
         # Payment information update
         cursor = self.conn.cursor()
-        user_id = ciceron_lib.get_user_id(self.conn, user_email)
+        payment_info_id = ciceron_lib.get_new_id(self.conn, "PAYMENT_INFO")
         query = """
             INSERT INTO CICERON.PAYMENT_INFO
                 (id, request_id, client_id, payed_via, order_no, pay_amount, payed_time)
@@ -206,7 +207,7 @@ class Payment(object):
         try:
             cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s", (user_id, ))
             current_point = float(cursor.fetchall()[0][0])
-            if current_point - use_point < -0.00001:
+            if current_point - point_for_use < -0.00001:
                 return False, current_point
     
             else:
@@ -248,7 +249,7 @@ class Payment(object):
               , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
               , 'is_public': 'false' if is_public == False else 'true'
                 }
-        reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
         alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
         params = {
@@ -326,13 +327,13 @@ class Payment(object):
               , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
-        reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
         if double_check == False:
             print "    Iamport checkout abnormaly works!"
             return False, None
         else:
-            return True, reutrn_url
+            return True, reuturn_url
 
     def paypalPayment(self, is_prod_server, request_id, user_email, amount
             , point_for_use=0
@@ -448,12 +449,12 @@ class Payment(object):
               , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
-        reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
+        reutrn_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
         return True, reutrn_url
 
     def postProcess(self
-            , user_id=None
+            , user_email=None
             , request_id=None
             , pay_via=None
             , pay_by=None
@@ -469,6 +470,8 @@ class Payment(object):
             , PayerID=None
             , ciceron_order_id=None):
 
+        user_id = ciceron_lib.get_user_id(self.conn, user_email)
+
         if is_succeeded == False:
             return False
 
@@ -478,24 +481,24 @@ class Payment(object):
 
         # Use promo code
         if promo_type == 'common':
-            self.commonPromotionCodeExecutor(user_id, promo_code)
+            self.commonPromotionCodeExecutor(user_email, promo_code)
         elif promo_type == 'indiv':
-            self.individualPromotionCodeExecutor(user_id, promo_code)
+            self.individualPromotionCodeExecutor(user_email, promo_code)
 
         # Check payment in each payment platform
         payment_id = ""
-        if pay_via == 'paypal' and status == 'success':
+        if pay_via == 'paypal' and is_succeeded == True:
             payment_id = paymentId
             payer_id = PayerID
             self._paypalPaymentCheck(payment_id, payer_id)
 
-        elif pay_via == 'alipay' and statud == 'success':
+        elif pay_via == 'alipay' and is_succeeded == True:
             payment_id = ciceron_order_id
 
-        elif pay_via == 'iamport' and statud == 'success':
+        elif pay_via == 'iamport' and is_succeeded == True:
             payment_id = ciceron_order_id
 
-        elif pay_via == 'point' and statud == 'success':
+        elif pay_via == 'point' and is_succeeded == True:
             payment_id = ciceron_order_id
 
         # Set to 'paid'
@@ -504,14 +507,14 @@ class Payment(object):
         # Group request processing
         if is_groupRequest == 'true':
             groupRequestObj = GroupRequest(self.conn)
-            groupRequestObj.updatePaymentInfo(request_id, ciceron_lib.get_user_id(self.conn, user_id), pay_via, payment_id)
+            groupRequestObj.updatePaymentInfo(request_id, user_id, pay_via, payment_id)
 
         if is_public == 'true':
             requestResellObj = RequestResell(self.conn)
-            requestResellObj.setToPaid(request_id, ciceron_lib.get_user_id(self.conn, user_id), pay_via, payment_id)
+            requestResellObj.setToPaid(request_id, user_id, pay_via, payment_id)
 
         # Insert payment info
-        self._insertPaymentInfo(payment_id, request_id, user_id, pay_via, amount)
+        self._insertPaymentInfo(request_id, user_id, pay_via, payment_id, amount)
 
         return True
 

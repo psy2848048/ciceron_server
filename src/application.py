@@ -3495,7 +3495,7 @@ def pay_for_request_process(request_id):
     paymentObj = Payment(g.db)
 
     payload = {
-          'user_id': get_user_id(g.db, request.args['user_id'])
+          'user_email': request.args['user_id']
         , 'request_id': request_id
         , 'pay_via': request.args['pay_via']
         , 'pay_by': request.args['pay_by']
