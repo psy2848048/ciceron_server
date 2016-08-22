@@ -1,7 +1,9 @@
 *.pyc
+*.swp
 profile_pic/
 request_doc/
 request_pic/
 request_sounds/
 request_text/
 translate_result/
+.coverage

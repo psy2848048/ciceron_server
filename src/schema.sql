@@ -195,9 +195,10 @@ CREATE TABLE CICERON.F_REQUESTS (
 
     is_i18n BOOLEAN,
     is_movie BOOLEAN,
-    is_splitTrans BOOLEAN,
     is_docx BOOLEAN,
     is_public BOOLEAN,
+
+    is_splitTrans BOOLEAN,
     resell_price REAL,
     is_copyright_checked BOOLEAN,
     number_of_member_in_group INT,
@@ -547,7 +548,10 @@ CREATE VIEW CICERON.V_REQUESTS as
     fact.is_public is_public, --63
     fact.resell_price, --64
     fact.is_copyright_checked is_copyright_checked, --65
-    fact.number_of_member_in_group number_of_member_in_group --66
+    fact.number_of_member_in_group number_of_member_in_group, --66
+
+    group_request.members requested_member,  -- 67
+    copyright.is_confirmed is_confirmed      -- 68
 
   FROM
     CICERON.F_REQUESTS fact
@@ -570,6 +574,14 @@ CREATE VIEW CICERON.V_REQUESTS as
              ON fact.translator_title_id = translator_title.id
   LEFT OUTER JOIN CICERON.D_TRANSLATED_TEXT result
              ON fact.translatedText_id = result.id
+  LEFT OUTER JOIN 
+                (SELECT request_id, count(*) members
+                FROM CICERON.F_GROUP_REQUESTS_USERS
+                WHERE is_paid = true
+                GROUP BY request_id) group_request
+             ON fact.id = group_request.request_id
+  LEFT OUTER JOIN CICERON.F_PUBLIC_REQUESTS_COPYRIGHT_CHECK copyright
+             ON fact.id = copyright.request_id
             ;
 
 CREATE VIEW CICERON.V_TRANSLATABLE_LANGUAGES as
@@ -890,7 +902,39 @@ CREATE TABLE CICERON.F_I18N_VALUES (
 );
 CREATE SEQUENCE CICERON.SEQ_F_I18N_VALUES;
 
-CREATE TABLE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK (
+CREATE TABLE CICERON.F_GROUP_REQUESTS_USERS (
+    id INT,
+    request_id INT,
+    user_id INT,
+    is_paid BOOLEAN,
+    payment_platform VARCHAR(30),
+    transaction_id VARCHAR(100),
+    complete_client_group_id INT,
+    complete_client_title_id INT,
+
+    PRIMARY KEY (id, request_id, user_id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_USERS;
+
+CREATE TABLE CICERON.F_READ_PUBLIC_REQUESTS_USERS (
+    id INT,
+    request_id INT,
+    user_id INT,
+    is_paid BOOLEAN,
+    payment_platform VARCHAR(30),
+    transaction_id VARCHAR(100),
+    complete_client_group_id INT,
+    complete_client_title_id INT,
+
+    PRIMARY KEY (id, request_id, user_id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_READ_PUBLIC_REQUESTS_USERS;
+
+CREATE TABLE CICERON.F_PUBLIC_REQUESTS_COPYRIGHT_CHECK (
     id INT,
     request_id INT,
     is_confirmed BOOLEAN,
@@ -898,51 +942,5 @@ CREATE TABLE CICERON.F_GROUP_REQUESTS_COPYRIGHT_CHECK (
 
     PRIMARY KEY (id, request_id)
 );
-CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_COPYRIGHT_CHECK;
-
-CREATE TABLE CICERON.F_GROUP_REQUESTS_USERS (
-    id INT,
-    request_id INT,
-    user_id INT,
-    is_paid BOOLEAN,
-    payment_platform VARCHAR(30),
-    transaction_id VARCHAR(100)
-);
-CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_USERS;
-
-CREATE TABLE ciceron.d_subtitle_videos(
-    id integer NOT NULL,
-    user_id integer NOT NULL,
-    video_id character varying(200) NOT NULL,
-    video_title character varying(200) NOT NULL,
-    video_type character varying(50) NOT NULL,
-    insert_date timestamp with time zone NOT NULL,
-    update_date timestamp with time zone,
-    
-    CONSTRAINT d_subtitle_videos_pkey PRIMARY KEY (id),
-    CONSTRAINT d_subtitle_videos_user_id_fkey FOREIGN KEY (user_id) REFERENCES ciceron.d_users (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION  
-)
-WITH (
-  OIDS=FALSE
-);
-CREATE SEQUENCE ciceron.seq_d_subtitle_videos;
-
-CREATE TABLE ciceron.d_subtitles_rows(
-    id integer NOT NULL,
-    user_id integer NOT NULL,
-    subtitles_videos_id integer NOT NULL,
-    start_time character varying(50) NOT NULL,
-    end_time character varying(50) NOT NULL,
-    subtitles_string character varying(500) NOT NULL,
-    insert_date timestamp with time zone NOT NULL,
-    update_date timestamp with time zone,
-    
-    CONSTRAINT d_subtitles_rows_pkey PRIMARY KEY (id),  
-    CONSTRAINT d_subtitles_rows_user_id_fkey FOREIGN KEY (user_id) REFERENCES ciceron.d_users (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-    CONSTRAINT d_subtitles_rows_videos_id_fkey FOREIGN KEY (subtitles_videos_id) REFERENCES ciceron.d_subtitle_videos (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
-)
-WITH (
-  OIDS=FALSE
-);
-CREATE SEQUENCE ciceron.seq_d_subtitles_rows;
+CREATE SEQUENCE CICERON.SEQ_F_PUBLIC_REQUESTS_COPYRIGHT_CHECK;
 
