@@ -3911,12 +3911,15 @@ def access_request_pic(photo_id, fake_filename):
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
         SELECT photo_id FROM CICERON.F_REQUESTS
-        WHERE (client_user_id = %s 
+        WHERE (
+               client_user_id = %s 
             OR ongoing_worker_id = %s 
-            OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+            OR id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+            OR id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+            )
           AND photo_id = %s
         """
-    cursor.execute(query_checkAuth, (user_id, user_id, user_id, photo_id, ))
+    cursor.execute(query_checkAuth, (user_id, user_id, user_id, user_id, photo_id, ))
     checkAuth = cursor.fetchone()
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)
@@ -3939,12 +3942,15 @@ def access_request_sound(sound_id, fake_filename):
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
         SELECT sound_id FROM CICERON.F_REQUESTS
-        WHERE (client_user_id = %s 
+        WHERE (
+               client_user_id = %s 
             OR ongoing_worker_id = %s 
-            OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+            OR id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+            OR id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+            )
           AND sound_id = %s
         """
-    cursor.execute(query_checkAuth, (user_id, user_id, user_id, sound_id, ))
+    cursor.execute(query_checkAuth, (user_id, user_id, user_id, user_id, sound_id, ))
     checkAuth = cursor.fetchone()
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)
@@ -3967,12 +3973,15 @@ def access_request_file(doc_id, fake_filename):
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
         SELECT file_id FROM CICERON.F_REQUESTS
-        WHERE (client_user_id = %s 
+        WHERE (
+               client_user_id = %s 
             OR ongoing_worker_id = %s 
-            OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+            OR id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+            OR id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+            )
           AND file_id = %s
         """
-    cursor.execute(query_checkAuth, (user_id, user_id, user_id, doc_id, ))
+    cursor.execute(query_checkAuth, (user_id, user_id, user_id, user_id, doc_id, ))
     checkAuth = cursor.fetchone()
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)

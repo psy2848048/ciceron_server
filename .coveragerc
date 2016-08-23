@@ -1,3 +1,6 @@
 [run]
-source = template_korean
-omit = */test*
+source = src
+omit = 
+    */test*
+    src/locustfile.py
+    src/warning_application.py
