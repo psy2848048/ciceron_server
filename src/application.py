@@ -6,7 +6,7 @@ URL rule과 Response가 정의되어 있음.
 TODO: 이 파일에서는 Function call만 하고, Query 날리는 것은 모두 라이브러리화 시켜 서버 갈아타기 쉽게 하기
 """
 
-from flask import Flask, session, request, g, make_response, send_from_directory, url_for, send_file
+from flask import Flask, session, request, g, make_response, send_from_directory, url_for, send_file, redirect
 from datetime import datetime, timedelta
 import os
 import requests
