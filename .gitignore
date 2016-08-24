@@ -7,3 +7,8 @@ request_sounds/
 request_text/
 translate_result/
 .coverage
+.cache/
+.tox/
+coverage*
+requirement.txt
+src/warning_application.py

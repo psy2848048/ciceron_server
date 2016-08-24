@@ -705,7 +705,7 @@ class I18nHandler(object):
 
     def unityToDb(self, request_id, source_lang_id, target_lang_id, unityText):
         source_lang = self.__getCountryCodeById(source_lang_id)
-        dict_data = self._unityToDict(request_id, unityText, source_lang)
+        dict_data = self._unityToDict(unityText, source_lang)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def updateVariableName(self, request_id, variable_id, text):
@@ -805,10 +805,21 @@ if __name__ == "__main__":
     i18nObj = I18nHandler(conn)
 
     # 불러오고 각 포멧으로 Export하는 테스트
-    #dictData = {}
-    #f = open('testdata/string.xml', 'r')
-    #i18nObj.androidToDb(678, f.read())
-    #result = i18nObj.jsonResponse(678)
+    dictData = {}
+    f = open('../test/testdata/xmlReady.csv', 'r')
+    csvReader = csv.reader(f)
+    for key, value in csvReader:
+        dictData[key] = value
+    f.close()
+
+    filename, binary = i18nObj._dictToAndroid(dictData)
+    #i18nObj.unityToDb(679, 1, 2, f.read())
+    #filename, binary = i18nObj.exportAndroid(679)
+    #f.close()
+
+    f = open('../test/testdata/string.xml', 'w')
+    f.write(binary.encode('utf-8'))
+    f.close()
 
     #filename_json, json_binary = i18nObj.exportJson(678)
     #filename_unity, unity_binary = i18nObj.exportUnity(678)
