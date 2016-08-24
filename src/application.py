@@ -2467,7 +2467,7 @@ def get_groupRequest_list():
             data = ciceron_lib.json_form_V_REQUESTS(result)
             ), 200)
 
-@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["GET", "POST", "DELETE"])
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["GET"])
 #@exception_detector
 @login_required
 def get_oneGroupRequest(request_id):
@@ -4385,7 +4385,7 @@ def be_hero():
     return make_response(json.jsonify(
         message="Application mail has just sent to %s!" % email), 200)
 
-@app.route('/api/initial_translate', methods=['POST'])
+@app.route('/api/tool/initial_translate', methods=['POST'])
 #@exception_detector
 def initial_translate():
     connector = Connector()
@@ -4407,6 +4407,17 @@ def initial_translate():
             }
 
     return make_response(json.jsonify(**result), 200)
+
+@app.route('/api/tool/sentence_tokenize', methods=['POST'])
+#@exception_detector
+def sentence_tokenize():
+    warehouseObj = Warehousing(g.db)
+    parameters = parse_request(request)
+
+    sentences = parameters['sentences']
+    result = warehouseObj.parseSentence(sentences)
+    return make_response(json.jsonify(
+        sentences=result), 200)
 
 ################################################################################
 #########                        ADMIN TOOL                            #########
