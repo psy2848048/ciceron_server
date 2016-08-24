@@ -198,7 +198,7 @@ CREATE TABLE CICERON.F_REQUESTS (
     is_docx BOOLEAN,
     is_public BOOLEAN,
 
-    is_splitTrans BOOLEAN,
+    is_groupRequest BOOLEAN,
     resell_price REAL,
     is_copyright_checked BOOLEAN,
     number_of_member_in_group INT,
@@ -542,7 +542,7 @@ CREATE VIEW CICERON.V_REQUESTS as
 
     fact.is_i18n is_i18n, -- 59
     fact.is_movie is_movie, -- 60
-    fact.is_splitTrans is_splitTrans, --61
+    fact.is_groupRequest is_groupRequest, --61
 
     fact.is_docx is_docx, -- 62
     fact.is_public is_public, --63

@@ -609,7 +609,14 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
                 request_title=None, # For marking
                 request_isI18n=row[59],
                 request_isMovie=row[60],
-                request_isSplitTrans=row[61]
+                request_isGroupRequest=row[61],
+                request_isDocx=row[62],
+                request_isPublic=row[63],
+                request_resellPrice=row[64],
+                request_isCopyrightChecked=row[65],
+                request_numberOfMemberInGroup=row[66],
+                request_currentNumberOfMember=row[67],
+                request_isCopyrightConfirmed=row[68]
             )
 
         item['request_isAdditionalPointNeeded'] = row[56]

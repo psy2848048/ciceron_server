@@ -867,7 +867,7 @@ def requests():
         is_docx = parameter_to_bool(parameters.get('request_isDocx', False))
         is_i18n = parameter_to_bool(parameters.get('request_isI18n', False))
         is_movie = parameter_to_bool(parameters.get('request_isMovie', False))
-        is_groupTrans = parameter_to_bool(parameters.get('request_isGroupTrans', False))
+        is_groupRequest = parameter_to_bool(parameters.get('request_isGroupRequest', False))
         is_public = parameter_to_bool(parameters.get('request_isPublic', False))
 
         if isSos == False:
@@ -885,6 +885,14 @@ def requests():
         new_translation_id = None
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
         is_paid = True if isSos == True else False
+        resell_price = 0
+        number_of_member_in_group = 0
+
+        if is_public == True:
+            resell_price = parameters.get('request_resellPrice', 0)
+
+        if is_groupRequest == True:
+            number_of_member_in_group = parameters.get('request_numberOfMemberInGroup', 0)
 
         if isSos == False and (original_lang_id == 500 or target_lang_id == 500):
             return make_response(json.jsonify(
@@ -939,8 +947,8 @@ def requests():
             file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id,
             client_title_id, translator_title_id, registered_time, due_time, points,
             context_id, comment_id, tone_id, translatedText_id, is_paid,
-            is_need_additional_points, is_i18n, is_movie, is_splitTrans, is_docx,
-            is_public
+            is_need_additional_points, is_i18n, is_movie, is_groupRequest, is_docx,
+            is_public, resell_price, number_of_member_in_group
             )
                 VALUES
                 (%s,%s,%s,%s,%s,
@@ -949,7 +957,7 @@ def requests():
                  %s,%s,%s,%s,%s,
                  %s,%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '%s seconds', %s,
                  %s,%s,%s,%s,%s,
-                 %s)""", 
+                 %s,%s,%s)""", 
             (
                     request_id,                       # id
                     client_user_id,                   # client_user_id
@@ -986,6 +994,8 @@ def requests():
                     is_groupTrans,
                     is_docx,
                     is_public,
+                    resell_price,
+                    number_of_member_in_group,
              )
         )
 
