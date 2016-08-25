@@ -885,14 +885,14 @@ def requests():
         new_translation_id = None
         new_context_id = get_new_id(g.db, "D_CONTEXTS")
         is_paid = True if isSos == True else False
-        resell_price = 0
+        resell_price = 0.0
         number_of_member_in_group = 0
 
         if is_public == True:
-            resell_price = parameters.get('request_resellPrice', 0)
+            resell_price = float(parameters.get('request_resellPrice', 0))
 
         if is_groupRequest == True:
-            number_of_member_in_group = parameters.get('request_numberOfMemberInGroup', 0)
+            number_of_member_in_group = int(parameters.get('request_numberOfMemberInGroup', 0))
 
         if isSos == False and (original_lang_id == 500 or target_lang_id == 500):
             return make_response(json.jsonify(
