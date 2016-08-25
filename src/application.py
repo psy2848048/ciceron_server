@@ -991,7 +991,7 @@ def requests():
                     False,                # is_need_additional_points
                     is_i18n,
                     is_movie,
-                    is_groupTrans,
+                    is_groupRequest,
                     is_docx,
                     is_public,
                     resell_price,
