@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import os
 import requests
 import io
+import urllib
 
 import psycopg2
 from i18nHandler import I18nHandler
