@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 import os
 import requests
 import io
-import urllib
 
 import psycopg2
 from i18nHandler import I18nHandler
@@ -1013,7 +1012,7 @@ def requests():
             path = os.path.join("request_text", str(new_text_id), filename)
             #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
             warehousing = Warehousing(g.db)
-            warehousing.store(new_text_id, path, urllib.quote_plus(text_string), new_translation_id, original_lang_id, target_lang_id)
+            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
 
         if is_file == True:
             binary = request.files['request_file']
