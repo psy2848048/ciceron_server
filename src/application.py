@@ -957,6 +957,7 @@ def requests():
                  %s,%s,%s,%s,%s,
                  %s,%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '%s seconds', %s,
                  %s,%s,%s,%s,%s,
+                 %s,%s,%s,%s,%s,
                  %s,%s,%s)""", 
             (
                     request_id,                       # id
@@ -964,35 +965,42 @@ def requests():
                     original_lang_id,                 # original_lang_id
                     target_lang_id,                   # target_lang_id
                     isSos,                            # isSOS
+
                     0,                    # status_id
                     format_id,            # format_id
                     subject_id,           # subject_id
                     None,                 # queue_id
                     None,                 # ongoing_worker_id
+
                     is_text,     # is_text
                     new_text_id,          # text_id
                     is_photo,             # is_photo
                     new_photo_id,         # photo_id
                     is_file,              # is_file
+
                     new_file_id,          # file_id
                     is_sound,             # is_sound
                     new_sound_id,         # sound_id
                     None,                 # client_completed_group_id
                     None,                 # translator_completed_group_id
+
                     None,                 # client_title_id
                     None,                 # translator_title_id
                     delta_from_due,       # due_time
                     point,                # points
+
                     new_context_id,       # context_id
                     None,                 # comment_id
                     None,                 # tone_id
                     new_translation_id,                 # translatedText_id
                     is_paid,              # is_paid
+
                     False,                # is_need_additional_points
                     is_i18n,
                     is_movie,
                     is_groupRequest,
                     is_docx,
+
                     is_public,
                     resell_price,
                     number_of_member_in_group,
