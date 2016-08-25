@@ -1050,8 +1050,6 @@ def requests():
         if is_groupRequest == True:
             # 번역 공동구매 정보 입력
             # Execute own SQL in another module
-            resell_price = parameters.get('request_resellPrice')
-            number_of_members_in_group = parameters.get('request_numberOfMembersInGroup')
             groupRequestObj = GroupRequest(g.db)
             groupRequestObj.addUserToGroup(request_id, client_user_id)
 
