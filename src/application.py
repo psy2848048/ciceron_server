@@ -1047,7 +1047,7 @@ def requests():
                 return make_response(json.jsonify(
                     message="Something wrong in your file"), 413)
 
-        if is_groupTrans == True:
+        if is_groupRequest == True:
             # 번역 공동구매 정보 입력
             # Execute own SQL in another module
             resell_price = parameters.get('request_resellPrice')
