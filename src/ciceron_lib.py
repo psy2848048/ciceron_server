@@ -136,7 +136,7 @@ def get_new_id(conn, table):
     cursor = conn.cursor()
     cursor.execute("SELECT nextval('CICERON.SEQ_%s') " % table)
     current_id_list = cursor.fetchone()
-    return int(current_id_list[0])
+    return current_id_list[0]
 
 def get_path_from_id(conn, id_num, table):
     query = "SELECT path from CICERON.%s WHERE id = " % table

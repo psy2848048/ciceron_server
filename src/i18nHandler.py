@@ -169,7 +169,7 @@ class I18nHandler(object):
         text_id = ciceron_lib.get_new_id(self.conn, "D_I18N_TEXTS")
         md5_text = self.__getMD5(text)
 
-        is_double, text_id = self.__getTextId(cursor, text)
+        is_duplicated, duplicated_text_id = self.__getTextId(cursor, text)
         query_newText = """
             INSERT INTO CICERON.D_I18N_TEXTS
                 (id, text, md5_checksum, hit_count)
@@ -177,7 +177,7 @@ class I18nHandler(object):
                 (%s, %s, %s, 0)
         """
         try:
-            if is_double == False:
+            if is_duplicated == False:
                 cursor.execute(query_newText, (text_id, text, md5_text, ))
 
         except Exception:
@@ -185,7 +185,10 @@ class I18nHandler(object):
             traceback.print_exc()
             return False, None
 
-        return True, text_id
+        if is_duplicated == False:
+            return True, text_id
+        else:
+            return True, duplicated_text_id
 
     def __updateUnitText(self, cursor, text_id, text):
         md5_text = self.__getMD5(text)
@@ -573,7 +576,14 @@ class I18nHandler(object):
         result = {}
 
         for row in sorted(parsedData['resources']['string']):
-            result[ row['@value'] ] = row['#text']
+            try:
+                result[ row['@value'] ] = row['#text']
+
+            except KeyError:
+                if '@value' not in row:
+                    continue
+                elif '#text' not in row:
+                    result[ row['@value'] ] = ""
 
         return result
 
