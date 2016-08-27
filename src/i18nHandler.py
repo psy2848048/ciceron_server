@@ -7,6 +7,8 @@ import hashlib
 import codecs
 import traceback
 import os
+import tempfile
+from collections import OrderedDict
 
 from nslocalized import StringTable
 import ciceron_lib
@@ -576,7 +578,6 @@ class I18nHandler(object):
             return obj
 
     def _iosToDict(self, iosText):
-        import tempfile
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(iosText)
         f.close()
@@ -592,7 +593,7 @@ class I18nHandler(object):
 
     def _androidToDict(self, andrText):
         parsedData = xmltodict.parse(andrText)
-        result = {}
+        result = OrderedDict()
 
         for row in sorted(parsedData['resources']['string']):
             try:
@@ -606,26 +607,26 @@ class I18nHandler(object):
 
         return result
 
-    def _unityToDict(self, unityText, language):
-        result = {}
-        items = csv.reader(unityText)
+    def _unityToDict(self, unityText, source_lang_id):
+        f = tempfile.NamedTemporaryFile(delete=False)
+        f.write(unityText)
+        f.close()
 
-        marker = None
+        f2 = open(f.name)
+        items = csv.reader(f2)
+
+        result = OrderedDict()
         for idx, row in enumerate(items):
-            if idx == 0:
-                for idx2, item in enumerate(row):
-                    if item == language:
-                        marker = idx2
-                        break
+            if idx != 0:
+                result[ row[0] ] = row[1].decode('utf-8')
 
-            else:
-                result[ row[0] ] = row[marker]
-
+        f2.close()
+        os.unlink(f.name)
         return result
 
     def _xamarinToDict(self, xamText):
         parsedData = xmltodict.parse(xamText)
-        result = {}
+        result = OrderedDict()
 
         for item in parsedData['root']['data']:
             try:
@@ -646,8 +647,8 @@ class I18nHandler(object):
         return ('Localizable.strings', output.getvalue())
 
     def _dictToAndroid(self, andrDict):
-        wrappeddict = {}
-        wrappeddict['resources'] = {}
+        wrappeddict = OrderedDict()
+        wrappeddict['resources'] = OrderedDict()
         wrappeddict['resources']['string'] = []
 
         for key, text in sorted(andrDict.iteritems()):
@@ -676,8 +677,8 @@ class I18nHandler(object):
         return ('Localization.csv', unityResult)
 
     def _dictToXamarin(self, lang_code, xamDict):
-        wrappeddict = {}
-        wrappeddict['root'] = {}
+        wrappeddict = OrderedDict()
+        wrappeddict['root'] = OrderedDict()
         wrappeddict['root']['resheader'] = [
                   {'@name': 'resmimetype', 'value': 'text/microsoft-resx'}
                 , {'@name': 'version', 'value': '2.0'}
@@ -699,7 +700,7 @@ class I18nHandler(object):
         return ('AppResources.%s.resx' % lang_code, xamResult)
 
     def _dictToJson(self, lang_code, jsonDict):
-        result = {}
+        result = OrderedDict()
         result[lang_code] = jsonDict
         return ('i18n.json', json.dumps(result, indent=4, encoding='utf-8', sort_keys=True))
 

@@ -57,3 +57,25 @@ class I18nHanlderTestCase(TestCase):
         f.close()
 
         self.i18nHandlerObj.xamarinToDb(360, 1, 2, xamarinText)
+
+    def test_unityToDb(self):
+        f = open('test/testdata/Localization.csv')
+        unityText = f.read()
+        f.close()
+
+        self.i18nHandlerObj.unityToDb(360, 1, 2, unityText)
+
+    def test_updateVariableName(self):
+        self.i18nHandlerObj.updateVariableName(360, 1, 'blahblah1')
+
+    def test_insertVariable(self):
+        self.i18nHandlerObj.insertVariable(360, 'blahblah2')
+
+    def test_deleteVariable(self):
+        self.i18nHandlerObj.deleteVariable(360, 1)
+
+    def test_updateTranslation(self):
+        self.i18nHandlerObj.updateTranslation(360, 1, 1, 1, 'changedText')
+
+    def test_updateComment(self):
+        self.i18nHandlerObj.updateComment(360, 1, u'잘해주세요')
