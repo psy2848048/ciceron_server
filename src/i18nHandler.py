@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-import xmltodict, json, csv, io, hashlib, codecs, traceback
+import xmltodict
+import json
+import csv
+import io
+import hashlib
+import codecs
+import traceback
+import os
+
 from nslocalized import StringTable
 import ciceron_lib
 import nltk.data
@@ -568,8 +576,19 @@ class I18nHandler(object):
             return obj
 
     def _iosToDict(self, iosText):
-        st = StringTable.read(iosText)
-        return st
+        import tempfile
+        f = tempfile.NamedTemporaryFile(delete=False)
+        f.write(iosText)
+        f.close()
+        st = StringTable.read(f.name)
+        os.unlink(f.name)
+
+        result = {}
+        for key, value in st.strings.iteritems():
+            print str(value)
+            result[key] = str(value)
+
+        return result
 
     def _androidToDict(self, andrText):
         parsedData = xmltodict.parse(andrText)
@@ -609,14 +628,20 @@ class I18nHandler(object):
         result = {}
 
         for item in parsedData['root']['data']:
-            result[ item['@value'] ] = item['#text']
+            try:
+                result[ item['@name'] ] = item['value'] if item['value'] != None else ""
+            except KeyError:
+                if '@name' not in item:
+                    continue
+                elif 'value' not in item or item['value'] == None:
+                    result[ item['@name'] ] = ""
 
         return result
 
     def _dictToIOs(self, iosDict):
         output = io.BytesIO()
         for key, text in sorted(iosDict.iteritems()):
-            output.write(("\"%s\" = \"%s\";\n" % (key, text)).decode('utf-8').encode('utf-16'))
+            output.write(("\"%s\" = \"%s\";\n" % (key, text)))
 
         return ('Localizable.strings', output.getvalue())
 
@@ -710,7 +735,7 @@ class I18nHandler(object):
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def xamarinToDb(self, request_id, source_lang_id, target_lang_id, xamText):
-        dict_data = self._xamarinToDict(xamTet)
+        dict_data = self._xamarinToDict(xamText)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def unityToDb(self, request_id, source_lang_id, target_lang_id, unityText):

@@ -43,4 +43,17 @@ class I18nHanlderTestCase(TestCase):
         f.close()
 
         self.i18nHandlerObj.jsonToDb(360, 1, 2, jsonText)
-        
+    
+    def test_iosToDb(self):
+        f = open('test/testdata/Localizable.strings')
+        iosText = f.read()
+        f.close()
+
+        self.i18nHandlerObj.iosToDb(360, 1, 2, iosText)
+
+    def test_xamarinToDb(self):
+        f = open('test/testdata/AppResources.ko.resx')
+        xamarinText = f.read()
+        f.close()
+
+        self.i18nHandlerObj.xamarinToDb(360, 1, 2, xamarinText)
