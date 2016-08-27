@@ -166,18 +166,18 @@ class I18nHandler(object):
         return True, source_text_id, curated_text_id
 
     def __insertUnitText(self, cursor, text):
-        text_id = ciceron_lib.get_new_id(self.conn, "D_I18N_TEXTS")
         md5_text = self.__getMD5(text)
-
         is_duplicated, duplicated_text_id = self.__getTextId(cursor, text)
-        query_newText = """
-            INSERT INTO CICERON.D_I18N_TEXTS
-                (id, text, md5_checksum, hit_count)
-            VALUES
-                (%s, %s, %s, 0)
-        """
+
         try:
             if is_duplicated == False:
+                query_newText = """
+                    INSERT INTO CICERON.D_I18N_TEXTS
+                        (id, text, md5_checksum, hit_count)
+                    VALUES
+                        (%s, %s, %s, 0)
+                """
+                text_id = ciceron_lib.get_new_id(self.conn, "D_I18N_TEXTS")
                 cursor.execute(query_newText, (text_id, text, md5_text, ))
 
         except Exception:
@@ -616,7 +616,7 @@ class I18nHandler(object):
     def _dictToIOs(self, iosDict):
         output = io.BytesIO()
         for key, text in sorted(iosDict.iteritems()):
-            output.write(("\"%s\": \"%s\";\n" % (key, text)).encode('utf-16'))
+            output.write(("\"%s\" = \"%s\";\n" % (key, text)).decode('utf-8').encode('utf-16'))
 
         return ('Localizable.strings', output.getvalue())
 
@@ -664,13 +664,13 @@ class I18nHandler(object):
 
         for key, text in sorted(xamDict.iteritems()):
             row = {}
+            row['@name'] = key.decode('utf-8')
             row['@xml:space'] = 'preserve'
-            row['@name'] = key
-            row['value'] = text
+            row['value'] = text.decode('utf-8')
 
             wrappeddict['root']['data'].append(row)
 
-        xamResult = xmltodict.unparse(wrappeddict, pretty=True)
+        xamResult = xmltodict.unparse(wrappeddict, pretty=True, encoding='utf-8').encode('utf-8')
         return ('AppResources.%s.resx' % lang_code, xamResult)
 
     def _dictToJson(self, lang_code, jsonDict):
@@ -822,13 +822,29 @@ if __name__ == "__main__":
         dictData[key] = value
     f.close()
 
-    filename, binary = i18nObj._dictToAndroid(dictData)
-    #i18nObj.unityToDb(679, 1, 2, f.read())
-    #filename, binary = i18nObj.exportAndroid(679)
+    #filename, binary = i18nObj._dictToAndroid(dictData)
+    #f = open('../test/testdata/string.xml', 'w')
+    #f.write(binary.encode('utf-8'))
     #f.close()
 
-    f = open('../test/testdata/string.xml', 'w')
-    f.write(binary.encode('utf-8'))
+    filename, binary = i18nObj._dictToJson('ko', dictData)
+    f = open('../test/testdata/%s' % filename, 'w')
+    f.write(binary)
+    f.close()
+
+    filename, binary = i18nObj._dictToUnity('Korean', dictData)
+    f = open('../test/testdata/%s' % filename, 'w')
+    f.write(binary)
+    f.close()
+
+    filename, binary = i18nObj._dictToIOs(dictData)
+    f = open('../test/testdata/%s' % filename, 'w')
+    f.write(binary)
+    f.close()
+
+    filename, binary = i18nObj._dictToXamarin('ko', dictData)
+    f = open('../test/testdata/%s' % filename, 'w')
+    f.write(binary)
     f.close()
 
     #filename_json, json_binary = i18nObj.exportJson(678)

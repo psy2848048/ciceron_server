@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<data xml:space="preserve" name="cred001">
+		<value>Credits</value>
+	</data>
+	<data xml:space="preserve" name="cred002">
+		<value>Creation &amp; Design</value>
+	</data>
+	<data xml:space="preserve" name="cred003">
+		<value>Production</value>
+	</data>
+	<data xml:space="preserve" name="cred004">
+		<value>Artists</value>
+	</data>
+	<data xml:space="preserve" name="cred005">
+		<value>Musicians</value>
+	</data>
+	<data xml:space="preserve" name="cred006">
+		<value>Thanks to</value>
+	</data>
+	<data xml:space="preserve" name="cred007">
+		<value></value>
+	</data>
+	<data xml:space="preserve" name="cred008">
+		<value></value>
+	</data>
+	<data xml:space="preserve" name="cred009">
+		<value>일러스트레이션 : (xxxx). 개발 : (xxx). 편곡 : (xxx). 음향제작 : (xxx). 녹음 및 믹싱 : (xxx)</value>
+	</data>
+	<data xml:space="preserve" name="cred010">
+		<value>음향감독 : (xxx). 목소리 : (xxx). 바이올린 : (xxx). 비올라 : (xxx). 첼로 (xxx). 기타, 밴조 : (xxx). 플룻, 피콜로 : (xxx). 오보에, 잉글리시 호른 : (xxx). 호른: (xxx). 퍼커션 : (xxx). 트럼펫 : (xxx). 바리톤 색소폰 및 클라리넷 : (xxx). 콘트라베이스 : (xxx). 바순 : (xxx). 원곡 : (xxx). the Villa Sainte-CÃ©cile of the CÃ´te Saint-AndrÃ©.에서 녹음 : (xxx)</value>
+	</data>
+	<data xml:space="preserve" name="cred011">
+		<value></value>
+	</data>
+	<data xml:space="preserve" name="cred012">
+		<value>&lt;Sonic Solveig&gt;에서 곧 출시될 앱들</value>
+	</data>
+	<data xml:space="preserve" name="ctxt0001">
+		<value>페르 귄트는 누굴까요?</value>
+	</data>
+	<data xml:space="preserve" name="ctxt0002">
+		<value>헨릭 입센은 어떤 사람일까요?</value>
+	</data>
+	<data xml:space="preserve" name="ctxt0003">
+		<value>에드바르 그리그는 어떤 사람이었을까요?</value>
+	</data>
+	<data xml:space="preserve" name="ctxt0004">
+		<value>이 어플리케이션에서 사용한 악기들</value>
+	</data>
+	<data xml:space="preserve" name="ctxt0005">
+		<value>스칸디나비아의 민간전승</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1000">
+		<value>페르 귄트</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1001">
+		<value>페르 귄트는 누구일까요?</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1002">
+		<value>페르 귄트는 거짓말쟁이예요...</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1003">
+		<value>페르 귄트는 헨릭 입센이 만든 시극의 주인공이예요. 1876년 이 시는 연극으로 다시 쓰여져 노르웨이 오슬로에서 처음 막을 올렸어요. 거기에 에드바르 그리그가 곡을 붙여 유명한 뮤지컬 페르 귄트가 탄생하게 되었어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1003_1">
+		<value>20살 페르 귄트는 매사에 불만이 가득 차 있는 소년이었어요. 그는 매사에 모든 것을 뽐내며, 그러면서도 겁쟁이고, 거짓말쟁이며, 악동이었어요. 늙은 어머니 아세와 살고 있던 그는 야망에 가득차있었어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1004">
+		<value>페르 귄트의 사랑...</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1005 ">
+		<value>어느 날, 사랑스런 솔베이지는 페르와 사랑에 빠져 그와 결혼하고 싶어했어요. 하지만 페르는 솔베이지를 버리고 부유한 농부와 약혼한 아름다운 소녀 잉그리드를 납치하는 일을 저질렀어요. 하지만 이것은 앞으로 이어질 나쁜 행동과 기이한 모험의 시작에 불과해요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1006">
+		<value>페르 귄트의 유혹...</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1007">
+		<value>페르는 숲에서 녹색 옷을 입은 여인을 만나자마자 잉그리드를 버리고 떠나가 버렸어요. 녹색 옷의 여인은 페르와 사랑에 빠졌고, 그를 자신의 아버지인 트롤의 왕에게 소개하기에 이르렀어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1008">
+		<value>트롤에게서 도망치는 페르 귄트...</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1009">
+		<value>어리석은 페르는 부자가 되고 싶은 욕심에 녹색 옷의 소녀와의 결혼 지참금으로 왕의 자리를 달라고 했어요. 하지만 잔인하고 비열한 트롤의 왕은 제안을 수락하는 대신 페르의 엉덩이에 돼지꼬리를 달고, 그의 눈 한 쪽을 멀게 하여 트롤의 모습으로 바꿔버렸어요. 자신의 모습에 놀란 페르 귄트는 도망을 쳤고, 트롤은 그를 쫓기 시작했어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1010">
+		<value>다시 떠나는 페르 귄트</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1011">
+		<value>그 후 페르는 솔베이지를 다시 만났어요. 하지만 페르 귄트는 몸이 많이 편찮아진 어머니 아세를 돌보기 위해 솔베이지 곁을 잠시 떠나야 했어요. 다시 만난 어머니에게 페르는 그들이 상상의 썰매를 타고 소리아-모리아 성으로 날라가는 이야기를 들려주었어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1012">
+		<value>페르 귄트의 모험</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1013">
+		<value>페르는 모든 것을 내려 놓고 멀리 떨어진 아프리카 대륙으로 향해요. 그 곳에서 페르는 노예 상인이 되어 부를 얻고 예언자로서 사랑을 받게 돼요. 하지만 여전히 페르는 그의 삶에 만족할 줄을 몰라요. 항상 무엇을 더 원할수록 마지막엔 모든 것을 잃게 돼요. 끝내는 모로코에서 아름다운 아니트라와 방탕한 생활에 빠져 전 재산을 탕진하게 되었답니다.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1014">
+		<value>가라앉은 페르 귄트의 배..</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1015">
+		<value>모든 것을 다 잃어 더 이상 잃을 것이 없어진 페르는 집으로 돌아가는 배에 몸을 실었어요. 향수에 잠겨 페르는 그의 사랑스런 솔베이지를 생각해요. 그런데 페르는 바다 한 가운데에서 끔찍한 폭풍을 맞아 침몰하게 되었어요. 먼저 탈출한 페르는 도움을 기다리는 선원들의 손을 뿌리치고 한 명도 도와주지 않아요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1016">
+		<value>페르 귄트, 여기 잠들다</value>
+	</data>
+	<data xml:space="preserve" name="ctxt1017">
+		<value>페르 귄트는 정말 누구일까요? 그는 겁쟁이일까요? 탐험가일까요? 그는 자국민에게서는 비난을 받았지만, 여행하는 동안만큼은 다른 사람에게 존경의 대상이었어요. 솔베이지는 첫사랑 페르 귄트를 수십년 동안 기다려왔다가 결국은 둘이 만나게 되었어요. 솔베이지는 페르가 죽기 직전 자장가를 불러줍니다. 페르는 죽기 직전, 삶의 의미를 깨닫습니다. “나는 이보다 더 행복할 수 없다. 나는 지금까지 내 운명의 수수께끼를 풀어왔다. 내가 자신을 느낀 이후 모든 것은 용서받았다. 존재로서의 나, 페르 귄트라는 나, 삶의 황제라 자신했던 나.”</value>
+	</data>
+	<data xml:space="preserve" name="ctxt2000">
+		<value>헨릭 입센(1828-1906)</value>
+	</data>
+	<data xml:space="preserve" name="ctxt2001">
+		<value>반 세기에 걸쳐, 헨릭 입센은 그의 삶과 에너지를 연극에 헌신했어요. 그는 당대의 훌륭한 작가였답니다. 1864년 그는 보조금을 받게 되어 조국 노르웨이를 떠나 로마와 파리에 머무르게 되었는데, 그것은 그의 나이 27세 때 였어요. 그는 유럽 전역에 이름을 떨쳤어요. 그가 세상을 떠난 뒤에도, 그의 연극들은 독일 전역에서 공연되었어요. 그는 노르웨이적인 것들이 다른 나라에서도 통한다는 사실을 알았어요. 그리고 그의 나이 50에는 그리그에게 (당시 30대) 새 연극, 페르 귄트의 음악을 써 달라고 부탁했어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt2002">
+		<value>연극은 공전의 히트를 쳤지만, 둘은 결코 만족하지 않았어요. 입센은 그리그의 음악이 너무 비어있다고 생각했고, 그리그는 “나는 이 연극을 그 안의 정신과 독설 때문에 존경하지만 결코 좋아할 수는 없을 것이다. 그러나 입센이 쓴 작품 중 최고라 생각한다.”라는 말로 비난 아닌 비난을 했어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt3000">
+		<value>에드바르 그리그 (1843-1907)</value>
+	</data>
+	<data xml:space="preserve" name="ctxt3001">
+		<value>그리그는 노르웨이의 작곡가이자 낭만주의 시대의 지휘자였어요. 그의 어머니는 피아니스트였고, 그의 아버지는 외교관이었으며, 그의 할아버지는 베르겐 오케스트라의 단원이었어요. 그리그는 5 남매 4째로 태어났어요. 그리그가 10대였을 때, 그는 바그너와 슈만의 음악에 심취해있었고, 현악 4중주 곡도 쓰기 시작했어요. 자신의 연주회 때에는 베토벤과 슈만의 곡도 연주할 정도로 뛰어난 피아니스트기도 했고요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt3002">
+		<value>그의 아내, 니나 하게룹은 성악가였어요. 그녀는 뛰어난 목소리를 가지진 않았지만, 훌륭한 감수성으로 남편의 곡을 노래했어요. 1874년 입센은 그리그에게 새 연극 페르 귄트의 음악을 써달라고 부탁했어요. 두 사람의 협업은 덴마크의 식민지시절 노르웨이 예술의 정체성과 창조성을 대표 사례로 꼽힌답니다. 그리그는 페르 귄트를 작곡하는데 꼬박 2년이 걸렸어요. 현재 그의 음악은 전세계적으로 유명합니다. 종종 광고에 사용되죠. 프리츠 랑의 영화 &lt;M&gt;에서 주인공은 휘파람으로 “산왕의 동굴에서”를 따라부르기도 하고요. 재즈 연주자 듀크 엘링턴은 페르 귄트 조곡 1, 2번을 편곡하여 연주하기도 했어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4000">
+		<value>헨릭 입센 (1828-1906)</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4001">
+		<value>스칸디나비아의 민간전승</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4002">
+		<value>스칸디나비아의 민간전승은 광활한 숲에서부터 비롯되었답니다. 오로라도 설화에 영감을 주는 소재 중 하나죠. 숲에는 온갖 착하고 나쁜 동물들이 왕왕 살고 있어요. 여기에 페르 귄트의 바탕이 된 노르웨이 신화의 특이한 이야기가 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4003">
+		<value>숲</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4004">
+		<value>숲은 꿈과 악몽을 동시에 꿀 수 있는 곳이예요. 나무는 하늘과 지구 사이를 연결시켜주는 고리로 여겼답니다. 페르가 잉그리드를 납치한 후 숲에 몸을 숨기죠. 녹색 여인을 만난 곳도 또한 숲이었고요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4005">
+		<value>“우리는 당신이 흘려야 했던 모든 눈물입니다”라는 이슬방울의 속삭임을 들었던 곳, 또 “우리는 당신이 했어야 했던 생각들입니다”라는 털실뭉치의 나지막한 외침을 들은 곳 또한 숲 속이예요. 마지막으로 다리에 누워 달콤한 솔베이지의 목소리를 들으며 페르의 마지막을 지켰던 곳 역시 숲속입니다. 앞에서 언급한 숲은 도브레(노르웨이 중심부에 있는 산맥) 산맥 근처에 있답니다.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4006">
+		<value>트롤</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4007">
+		<value>트롤은 자연의 무시무시한 힘을 갖고 있지만, 멍청한 거인으로 종종 알고 있죠. 산을 느릿느릿 배회하며 산답니다. 하지만 노르웨이가 점차적으로 기독교를 받아들임에 따라 트롤은 점점 악한 존재로 묘사되고, 원래 의미를 잃게 되었어요. 그래도 트롤들은 요즘도 도브레의 눈 덮힌 산을 베회할거예요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4007_1">
+		<value>이야기의 끝에서 페르는 강력한 BÃƒÂ¸yg.를 만나게 되어요. 거대한 BÃƒÂ¸yg.은 사실은 스칸디나비아의 구드브란드스달과 텔레마르크(노르웨이 남부에 있는 산이 많은 주)의 설화에서 나오는 트롤이예요. 에트네달의 거대한 BÃƒÂ¸yg로도 불려요. 거인이나 날씬한 뱀으로 묘사하듯이, 여행자들의 장애물 정도의 존재예요.</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4008">
+		<value>산왕</value>
+	</data>
+	<data xml:space="preserve" name="ctxt4009">
+		<value>산왕은 페르 귄트의 모험에 나오는 중요한 등장 인물이예요. 산왕은 도브레 산맥에 있는 트롤의 왕국을 지배해요. 페르는 그의 딸과의 결혼을 노리고 전체 왕국을 지참금으로 요구했었어요. 그리고 왕은 그의 모토인 “적당히 당신 뜻대로”를 택하게 되었어요. 산왕은 페르 귄트의 엉덩이에 돼지 꼬리가 자라나게 했어요. 그는 또한 페르 귄트의 눈을 멀게하여 페르 귄트가 진짜 트롤처럼 못생긴 것으로 보는 â€œ 같아 보이도록 만들고 싶었어요. 소똥 먹기를 강요당하기도 했었어요. 결국 페르는 짐을 들고 산으로부터 도망쳤어요. 산이 다 무너져내리기 전, 트롤은 페르를 쫓아 나왔어요.</value>
+	</data>
+	<data xml:space="preserve" name="disc001">
+		<value>산왕의 동굴에서</value>
+	</data>
+	<data xml:space="preserve" name="disc002">
+		<value>산왕 공주의 춤</value>
+	</data>
+	<data xml:space="preserve" name="disc003">
+		<value>솔베이지의 사랑 (창작곡)</value>
+	</data>
+	<data xml:space="preserve" name="disc004">
+		<value>오제의 죽음</value>
+	</data>
+	<data xml:space="preserve" name="disc005">
+		<value>아니트라의 춤</value>
+	</data>
+	<data xml:space="preserve" name="disc006">
+		<value>솔베이지의 노래</value>
+	</data>
+	<data xml:space="preserve" name="disc007">
+		<value>난파선</value>
+	</data>
+	<data xml:space="preserve" name="disc008">
+		<value>솔베이그의 자장가</value>
+	</data>
+	<data xml:space="preserve" name="homescreen001">
+		<value>에드바르 그리그 작곡</value>
+	</data>
+	<data xml:space="preserve" name="homescreen002">
+		<value>페르 귄트</value>
+	</data>
+	<data xml:space="preserve" name="instru001">
+		<value>바이올린은 현악기의 일종이예요. 활은 말의 꼬리인 말총으로 만드는데, 줄을 켜는 역할을 해요. (미, 라, 레, 솔) 또한 기타처럼 손가락으로 줄을 튕길 수 있어요. 그걸 피치카토라고 부른답니다. 피치카토는 이탈리아어로 ‘뽑는’다는 의미예요.</value>
+	</data>
+	<data xml:space="preserve" name="instru002">
+		<value>비올라는 현악기예요. '도', '솔', '레', '라', 네 개의 줄로 구성되어 있는데, 비올라는 바이올린보다 울림통이 크기 때문에 바이올린보다 낮은 소리를 낼 수 있답니다. 활로 켜는 것 뿐만아니라 손으로 줄을 튕길수도 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="instru003">
+		<value>첼로는 비올라보다 더 낮은 음을 내고 소리도 더 커요. 그래서 첼로 소리는 사람 목소리와 비슷하다고 한답니다. '라', '레'. '솔'. '도' 네 개의 줄이 있고, 다른 현악기처럼 활 뿐만아니라 손가락으로 튕겨서도 연주할 수도 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="instru004">
+		<value>콘트라베이스는 매우 낮은 음을 내는 현악기예요. 콘트라베이스는 덩치가 아주 크기 때문에 연주를 하려면 일어서거나 높은 의자에 앉아야 해요. 재즈연주가는 종종 손가락으로 현을 튕겨 연주해요. '솔', '레', '라', '미' 네 개의 줄로 구성되어 있답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru005">
+		<value>색소폰은 목관 악기예요. 마우스피스를 입에 물고 바람을 불어넣으면 리드가 떨면서 소리가 난답니다. 색소폰에는 4가지 종류가 있어요. 그 중, 바리톤 색소폰은 가장 낮은 소리를 내고, Eb음까지 낼 수 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="instru006">
+		<value>바순은 목관악기인데요, 특이하게 리드를 두 장이나 써요. 낮은 소리를 내기 때문에 주로 화음의 아래를 받혀주는 역할을 해요. 하지만 독주도 하고 비르투오소(고도의 기교를 보여주는) 작품도 연주할 수도 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="instru007">
+		<value>잉글리시 호른은 이름은 호른이라 하지만 사실 오보에의 한 종류예요. 본래 오보에보다 낮은 '파' 음을 낼 수 있을 때부터 이름이 이렇게 붙었답니다. 잉글리시 호른이란 이름은 독일어 ‘천사의 뿔’이 잘못 전해져 지금까지 왔다고들 말한답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru008">
+		<value>오보에도 특이하게 바순과 같이 두 장의 리드를 가진 목관 악기예요. 오보에는 매우 오래전부터 존재했던 악기랍니다. 고대 이집트에서 “미즈마르”라고 불렸고, 고대 그리스에서는 “아울로 아-”라고 불렀어요. 풍부한 음색을 자랑하는 악기랍니다. 그리고 오케스트라는 항상 오보에의 '라' 음에 맞춰 조율한답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru009">
+		<value>클라리넷은 목관 악기예요. 다른 목관악기와 마찬가지로 마우스피스에 바람을 불어넣어 리드를 진동시켜 소리를 내요. 클라리넷은 샬류모라는 고대 악기에서 비롯되었답니다. </value>
+	</data>
+	<data xml:space="preserve" name="instru010">
+		<value>플롯은 금속으로 만들어졌음에도 불구하고, 목관 악기로 분류해요. 고대 시대에는 나무로 만들었기 때문이죠. 금속임에도 불구, 목관악기 특유의 영롱한 소리를 내요. 음역대가 높기 때문에 오케스트라 합주 때에도 또렷하게 들을 수 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="instru011">
+		<value>피콜로는 이탈리아 어로 ‘작은’이란 의미예요. 크기는 플룻의 절반 정도인데 음역이 매우 높답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru012">
+		<value>팀파니는 가죽을 넓게 펼쳐 만든 타악기로, 맬릿이라 부르는 막대로 가죽을 때려 소리를 낸답니다. 생김새와는 다르게 음높이를 조절할 수 있답니다. 페달을 조절하거나, 가장자리를 손으로 만져서 말이죠.</value>
+	</data>
+	<data xml:space="preserve" name="instru013">
+		<value>탬버린은 지중해에서 유래한 타악기 중 하나예요. 손으로 치는 가죽 부분과 짤랑이는 금속 부분으로 이루어져 있어요. 안달루시아 지방의 타르라는 악기와 닮았답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru014">
+		<value>캐스터네츠는 스페인의 플라맹고 춤에 매우 널리 쓰이는 타악기랍니다. 무용수의 춤 동작이 바뀔 때마다 캐스터네츠를 연주하죠. 캐스터네츠는 타악기 중에서도 체명악기로 분류되는데요, 체명악기란 악기 본체를 비비거나 때려 악기 자체가 소리를 만들어 내는 악기를 일컬어 말한답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru015">
+		<value>트라이앵글은 타악기 중에서도 악기 자신의 마찰이나 타격으로 소리가 나는 체명악기예요. 막대로 살짝 치기만 해도 소리가 매우 강하고 오래가기 때문에 소리를 그만 내려면 손으로 잡아줘야 해요.</value>
+	</data>
+	<data xml:space="preserve" name="instru016">
+		<value>심벌즈는 금속으로 만들어진 타악기예요. 오케스트라에서 힘있고 폭발적인 소리를 낼 때 사용한답니다.</value>
+	</data>
+	<data xml:space="preserve" name="instru017">
+		<value>밴조는 4개의 줄로 만들어진 작은 기타예요. 이 어플리케이션에서 들을 수 있는 밴조 소리는 브뤼셀의 한 벼룩시장에서 연주한 거예요. '레', '솔', '시', '레', 4개의 줄이 있어요.</value>
+	</data>
+	<data xml:space="preserve" name="instru018">
+		<value>줄을 튕겨 연주하는 기타는 '미', '라', '레', '솔', '시', '미', 6개의 줄로 이루어져있어요. 풍부한 화음을 낼 수 있기 때문에 주로 화음부를 맡지만, 리듬이나 멜로디를 맡아 연주하기도 해요.</value>
+	</data>
+	<data xml:space="preserve" name="instru019">
+		<value>호른은 트럼펫, 트롬본, 튜바과 같은 금관 악기랍니다. 먼 곳에서도 들을 수 있는 사냥 뿔에서 시작되었어요. 둥글둥글한 음색 덕분에 오케스트라에서는 다른 악기의 음을 이어주는 역할을 해요.</value>
+	</data>
+	<data xml:space="preserve" name="legal001">
+		<value>건강 경고</value>
+	</data>
+	<data xml:space="preserve" name="legal002">
+		<value>이 응용 프로그램의 공공 및 개인 사용에 대해</value>
+	</data>
+	<data xml:space="preserve" name="legal003">
+		<value>3세 이전에는 아이가 혼자 스크린을 사용하지 않는 것을 권고합니다.
+헤드셋 없이 이 어플리케이션을 사용하는 것을 추천합니다. 헤드셋으로 큰 소리를 오래 들을 시 어린이에게는 난청을 유발할 수 있습니다.</value>
+	</data>
+	<data xml:space="preserve" name="legal004">
+		<value>응용 프로그램의 개인적 사용 이외의 다른 사용은 엄격히 금지됩니다. 가족과 친구 외에는 음악의 사용과 방송을 금합니다. 예를 들어 카페, 레스토랑, 가게, 대기실, 기차역, 공항 라운지, 교통 수단, 미디어 도서관, 도서관 또는 어떤 종류의 운동 중이나, 엔터테인먼트, 교육적이거나 레크리에이션 행사, 저녁식사, 바비큐, 피크닉, 공공에게 개방된 연회에서 이 어플리케이션의 사용을 금합니다. 이 응용 프로그램을 또는 음악을 친구나 가족 이외의 사람들과 사용하고 싶다면 Sonic Solveig측의 허가를 얻어야 합니다. contact@sonicsolveig.com으로 메일을 보내 요청할 수 있습니다. 각각의 기준에 따라 구체적인 요금이 책정됩니다. (이벤트의 종류, 장소의 크기, 사용 기한 등)</value>
+	</data>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+</root>

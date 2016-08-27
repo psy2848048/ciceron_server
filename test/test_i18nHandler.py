@@ -37,3 +37,10 @@ class I18nHanlderTestCase(TestCase):
 
         self.i18nHandlerObj.androidToDb(360, 1, 2, xmlText)
 
+    def test_jsonToDb(self):
+        f = open('test/testdata/i18n.json')
+        jsonText = f.read()
+        f.close()
+
+        self.i18nHandlerObj.jsonToDb(360, 1, 2, jsonText)
+        
