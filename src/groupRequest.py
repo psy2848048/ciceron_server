@@ -80,7 +80,7 @@ class GroupRequest(object):
 
         query = """
             SELECT * FROM CICERON.V_REQUESTS
-            WHERE is_splitTrans = true AND is_paid = true
+            WHERE is_groupRequest = true AND is_paid = true
               AND number_of_member_in_group > requested_member
             ORDER BY registered_time
             LIMIT 20 OFFSET %d
@@ -96,7 +96,7 @@ class GroupRequest(object):
         query = """
             SELECT * FROM CICERON.V_REQUESTS
             WHERE request_id = %s
-              AND is_splitTrans = true AND is_paid = true
+              AND is_groupRequest = true AND is_paid = true
               AND number_of_member_in_group > requested_member
             ORDER BY registered_time
         """

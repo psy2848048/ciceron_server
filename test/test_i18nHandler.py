@@ -79,3 +79,18 @@ class I18nHanlderTestCase(TestCase):
 
     def test_updateComment(self):
         self.i18nHandlerObj.updateComment(360, 1, u'잘해주세요')
+
+    def test_exportIOs(self):
+        filename, binary = self.i18nHandlerObj.exportIOs(696)
+
+    def test_exportAndroid(self):
+        filename, binary = self.i18nHandlerObj.exportAndroid(696)
+
+    def test_exportUnity(self):
+        filename, binary = self.i18nHandlerObj.exportUnity(696)
+
+    def test_exportJson(self):
+        filename, binary = self.i18nHandlerObj.exportJson(696)
+
+    def test_exportXamarin(self):
+        filename, binary = self.i18nHandlerObj.exportXamarin(696)
