@@ -595,7 +595,7 @@ class I18nHandler(object):
         parsedData = xmltodict.parse(andrText)
         result = OrderedDict()
 
-        for row in sorted(parsedData['resources']['string']):
+        for row in parsedData['resources']['string']:
             try:
                 result[ row['@value'] ] = row['#text']
 
@@ -848,10 +848,10 @@ if __name__ == "__main__":
         dictData[key] = value
     f.close()
 
-    #filename, binary = i18nObj._dictToAndroid(dictData)
-    #f = open('../test/testdata/string.xml', 'w')
-    #f.write(binary.encode('utf-8'))
-    #f.close()
+    filename, binary = i18nObj._dictToAndroid(dictData)
+    f = open('../test/testdata/string.xml', 'w')
+    f.write(binary.encode('utf-8'))
+    f.close()
 
     filename, binary = i18nObj._dictToJson('ko', dictData)
     f = open('../test/testdata/%s' % filename, 'w')

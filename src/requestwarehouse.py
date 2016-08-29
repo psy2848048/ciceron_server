@@ -36,7 +36,12 @@ class Warehousing:
                 self._unitOriginalDataInsert(request_id, paragraph_seq, sentence_seq, path, sentence, new_translation_id, original_lang_id, target_lang_id)
 
     def parseSentence(self, strings):
-        return self.sentence_detector.tokenize(strings.strip())
+        sentences = strings.strip().replace('\r\n', '\n').split('\n')
+        result = []
+        for sentence in sentences:
+            result.extend(self.sentence_detector.tokenize(strings.strip()))
+
+        return result
 
     def _restore_string(self, request_id, source):
         cursor = self.conn.cursor()

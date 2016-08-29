@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
 	<data xml:space="preserve" name="cred001">
 		<value>Credits</value>
 	</data>
@@ -259,16 +271,4 @@
 	<data xml:space="preserve" name="legal004">
 		<value>응용 프로그램의 개인적 사용 이외의 다른 사용은 엄격히 금지됩니다. 가족과 친구 외에는 음악의 사용과 방송을 금합니다. 예를 들어 카페, 레스토랑, 가게, 대기실, 기차역, 공항 라운지, 교통 수단, 미디어 도서관, 도서관 또는 어떤 종류의 운동 중이나, 엔터테인먼트, 교육적이거나 레크리에이션 행사, 저녁식사, 바비큐, 피크닉, 공공에게 개방된 연회에서 이 어플리케이션의 사용을 금합니다. 이 응용 프로그램을 또는 음악을 친구나 가족 이외의 사람들과 사용하고 싶다면 Sonic Solveig측의 허가를 얻어야 합니다. contact@sonicsolveig.com으로 메일을 보내 요청할 수 있습니다. 각각의 기준에 따라 구체적인 요금이 책정됩니다. (이벤트의 종류, 장소의 크기, 사용 기한 등)</value>
 	</data>
-	<resheader name="resmimetype">
-		<value>text/microsoft-resx</value>
-	</resheader>
-	<resheader name="version">
-		<value>2.0</value>
-	</resheader>
-	<resheader name="reader">
-		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
-	</resheader>
-	<resheader name="writer">
-		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
-	</resheader>
 </root>
