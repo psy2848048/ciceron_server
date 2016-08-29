@@ -4399,7 +4399,7 @@ def initial_translate():
 
     user_email = parameter['user_email']
     request_id = int(parameter['request_id'])
-    sentence = parameter['sentence']
+    sentence = eval(parameter['sentence'])
     source_lang_id = int(parameter['source_lang_id'])
     target_lang_id = int(parameter['target_lang_id'])
 
