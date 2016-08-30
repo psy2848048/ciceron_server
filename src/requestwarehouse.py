@@ -39,7 +39,7 @@ class Warehousing:
         sentences = strings.strip().replace('\r\n', '\n').split('\n')
         result = []
         for sentence in sentences:
-            result.extend(self.sentence_detector.tokenize(strings.strip()))
+            result.extend(self.sentence_detector.tokenize(sentence))
 
         return result
 
