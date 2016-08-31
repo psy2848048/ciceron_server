@@ -4405,7 +4405,7 @@ def initial_translate():
 
     user_id = get_user_id(g.db, user_email)
 
-    init_result = connector.getTranslatedDataInternal(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
+    init_result = connector.getTranslatedDataParallel(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
     result = {
             "cand1": init_result['google'],
             "cand2": init_result['bing'],

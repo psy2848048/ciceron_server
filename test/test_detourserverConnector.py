@@ -43,18 +43,14 @@ class ConnectorTestCase(TestCase):
                 self.conn
               , 1
               , 360
-              , [  "나는 이제서야 조금 살 만 해서 좋다."
+              , str([  "나는 이제서야 조금 살 만 해서 좋다."
                  , "완성되어 가는 모습을 보니 마음이 안정되어 간다."
                  , "기쁜 마음으로 다음 스텝으로 나아간다."
                  , "우리는 테크크런치에서 대박이 난다."
-                ]
+                ])
               , 1
               , 2
                 )
-
-        print result['google']
-        print result['bing']
-        print result['yandex']
 
         self.assertEqual('google' in result and len(result['google']) == 4, True)
         self.assertEqual('bing' in result and len(result['bing']) == 4, True)
