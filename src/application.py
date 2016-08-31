@@ -19,6 +19,7 @@ from ciceron_lib import *
 from requestwarehouse import Warehousing
 from groupRequest import GroupRequest
 from requestResell import RequestResell
+from payment import Payment
 
 from flask.ext.cors import CORS
 from flask.ext.session import Session
