@@ -309,8 +309,13 @@ class Payment(object):
 
         pay_module = Iamport(imp_key=2311212273535904, imp_secret='jZM7opWBO5K2cZfVoMgYJhsnSw4TiSmBR8JgyGRnLCpYCFT0raZbsrylYDehvBSnKCDjivG4862KLWLd')
 
-        payment_result = pay_module.pay_onetime(**new_payload)
-        double_check = pay_module.is_paid(**payment_result)
+        try:
+            payment_result = pay_module.pay_onetime(**new_payload)
+            double_check = pay_module.is_paid(**payment_result)
+        except Iamport.ResponseError as e:
+            print e.code
+            print e.message
+            raise Exception
 
         postprocess_api = "%s/%s" % (host_name, 'api/user/requests/%d/payment/postprocess' % request_id)
         param_dict = {
