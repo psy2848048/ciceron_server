@@ -3417,7 +3417,7 @@ def pay_for_request(request_id):
     requestResellObj = RequestResell(g.db)
     parameters = parse_request(request)
 
-    client_email = parameters['payment_clientEmail']
+    client_email = session['useremail']
     payment_platform = parameters['payment_platform']
     amount = float(parameters['payment_amount'])
     promo_type = parameters.get('promo_type', 'null')
@@ -3463,21 +3463,21 @@ def pay_for_request(request_id):
     # Send payment request
     is_payment_ok, link = False, ""
     if payment_platform == 'alipay' and cur_amount > 0.0001:
-        is_payment_ok, link = paymentObj.alipayPayment(is_prod, request_id, session['useremail'], cur_amount
+        is_payment_ok, link = paymentObj.alipayPayment(is_prod, request_id, client_email, cur_amount
                 , point_for_use=point_for_use
                 , promo_type=promo_type
                 , promo_code=promo_code
                 )
 
     elif payment_platform == 'paypal' and cur_amount > 0.0001:
-        is_payment_ok, link = paymentObj.paypalPayment(is_prod, request_id, session['useremail'], cur_amount
+        is_payment_ok, link = paymentObj.paypalPayment(is_prod, request_id, client_email, cur_amount
                 , point_for_use=point_for_use
                 , promo_type=promo_type
                 , promo_code=promo_code
                 )
 
     elif payment_platform == 'iamport' and cur_amount > 0.0001:
-        is_payment_ok, link = paymentObj.iamportPayment(is_prod, request_id, session['useremail'], cur_amount
+        is_payment_ok, link = paymentObj.iamportPayment(is_prod, request_id, client_email, cur_amount
                 , point_for_use=point_for_use
                 , promo_type=promo_type
                 , promo_code=promo_code
@@ -3485,7 +3485,7 @@ def pay_for_request(request_id):
                 )
 
     else:
-        is_payment_ok, link = paymentObj.pointPayment(is_prod, request_id, session['useremail'], cur_amount
+        is_payment_ok, link = paymentObj.pointPayment(is_prod, request_id, client_email, cur_amount
                 , point_for_use=point_for_use
                 , promo_type=promo_type
                 , promo_code=promo_code
