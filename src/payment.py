@@ -4,6 +4,7 @@ import traceback
 import random
 from datetime import datetime
 import string
+import logging
 
 import paypalrestsdk
 from iamport import Iamport
@@ -388,10 +389,10 @@ class Payment(object):
               , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
               , 'is_public': 'false' if is_public == False else 'true'
                 }
-        reutrn_url = apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
         param_dict['status'] = 'fail'
-        cancel_url = apiURLOrganizer(postprocess_api, **param_dict)
+        cancel_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
         payment = paypalrestsdk.Payment({
           "intent": "sale",
@@ -454,9 +455,9 @@ class Payment(object):
               , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
-        reutrn_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
-        return True, reutrn_url
+        return True, return_url
 
     def postProcess(self
             , user_email=None

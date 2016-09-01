@@ -1030,18 +1030,19 @@ def requests():
             i18nObj = I18nHandler(g.db)
             i18n_file_format = parameters.get('request_i18nFileFormat')
             i18n_binary = request.files['request_i18nFileBinary']
+            i18n_langKey = parameters.get('request_i18nLangKey')
 
             try:
                 if i18n_file_format == 'android':
                     i18nObj.androidToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'json':
-                    i18nObj.jsonToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                    i18nObj.jsonToDb(request_id, i18n_langKey, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'iOS':
                     i18nObj.iosToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'xamarin':
                     i18nObj.xamarinToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
                 elif i18n_file_format == 'unity':
-                    i18nObj.unityToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                    i18nObj.unityToDb(request_id, i18n_langKey, target_lang_id, i18n_binary)
 
             except Exception:
                 g.db.rollback()
@@ -4426,6 +4427,29 @@ def sentence_tokenize():
     result = warehouseObj.parseSentence(sentences)
     return make_response(json.jsonify(
         sentences=result), 200)
+
+@app.route('/api/tool/i18n_test_parsing', methods=['POST'])
+#@exception_detector
+def i18n_parsing():
+    i18nHandlerObj = I18nHandler(g.db)
+    parameter = parse_request(request)
+    file_format = parameter.get('file_format', 'json')
+    file_binary = request.files['file_binary']
+    file_langKey = parameter.get('file_langKey')
+
+    result_dict = None
+    if file_format == 'json':
+        result_dict = i18nHandlerObj._jsonToDict(file_binary, file_langKey)
+    elif file_format == 'unity':
+        result_dict = i18nHandlerObj._unityToDict(file_binary, file_langKey)
+    elif file_format == 'iOS':
+        result_dict = i18nHandlerObj._iosToDict(file_binary)
+    elif file_format == 'android':
+        result_dict = i18nHandlerObj._androidToDict(file_binary)
+    elif file_format == 'xamarin':
+        result_dict = i18nHandlerObj._xamarinToDict(file_binary)
+
+    return make_response(json.jsonify(data=result_dict), 200)
 
 ################################################################################
 #########                        ADMIN TOOL                            #########

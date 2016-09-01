@@ -586,7 +586,6 @@ class I18nHandler(object):
 
         result = {}
         for key, value in st.strings.iteritems():
-            print str(value)
             result[key] = str(value)
 
         return result
@@ -726,9 +725,8 @@ class I18nHandler(object):
         dict_data = self._androidToDict(xml_text)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def jsonToDb(self, request_id, source_lang_id, target_lang_id, json_text):
-        source_lang = self.__getCountryCodeById(source_lang_id)
-        dict_data = self._jsonToDict(json_text, source_lang)
+    def jsonToDb(self, request_id, source_lang_key, target_lang_id, json_text):
+        dict_data = self._jsonToDict(json_text, source_lang_key)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def iosToDb(self, request_id, source_lang_id, target_lang_id, ios_text):
@@ -739,9 +737,8 @@ class I18nHandler(object):
         dict_data = self._xamarinToDict(xamText)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def unityToDb(self, request_id, source_lang_id, target_lang_id, unityText):
-        source_lang = self.__getCountryCodeById(source_lang_id)
-        dict_data = self._unityToDict(unityText, source_lang)
+    def unityToDb(self, request_id, source_lang_key, target_lang_id, unityText):
+        dict_data = self._unityToDict(unityText, source_lang_key)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def updateVariableName(self, request_id, variable_id, text):
