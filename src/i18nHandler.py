@@ -586,7 +586,7 @@ class I18nHandler(object):
 
         result = {}
         for key, value in st.strings.iteritems():
-            result[key] = str(value)
+            result[key] = value.target
 
         return result
 

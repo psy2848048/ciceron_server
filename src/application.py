@@ -1029,7 +1029,7 @@ def requests():
         if is_i18n == True:
             i18nObj = I18nHandler(g.db)
             i18n_file_format = parameters.get('request_i18nFileFormat')
-            i18n_binary = request.files['request_i18nFileBinary']
+            i18n_binary = request.files['request_i18nFileBinary'].read()
             i18n_langKey = parameters.get('request_i18nLangKey')
 
             try:
@@ -4434,7 +4434,7 @@ def i18n_parsing():
     i18nHandlerObj = I18nHandler(g.db)
     parameter = parse_request(request)
     file_format = parameter.get('file_format', 'json')
-    file_binary = request.files['file_binary']
+    file_binary = request.files['file_binary'].read()
     file_langKey = parameter.get('file_langKey')
 
     result_dict = None
