@@ -3415,6 +3415,7 @@ def pay_for_request(request_id):
 
     paymentObj = Payment(g.db)
     requestResellObj = RequestResell(g.db)
+    groupRequestObj = GroupRequest(g.db)
     parameters = parse_request(request)
 
     client_email = session['useremail']
