@@ -739,7 +739,7 @@ class I18nHandler(object):
 
     def unityToDb(self, request_id, source_lang_key, target_lang_id, unityText):
         dict_data = self._unityToDict(unityText, source_lang_key)
-        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
+        self._dictToDb(request_id, source_lang_key, target_lang_id, dict_data)
 
     def updateVariableName(self, request_id, variable_id, text):
         cursor = self.conn.cursor()
