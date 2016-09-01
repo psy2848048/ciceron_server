@@ -3532,7 +3532,7 @@ def pay_for_request_process(request_id):
         , 'ciceron_order_id': request.args.get('ciceron_order_id', None)
     }
 
-    is_succeeded = paymentObj.postprocess(**payload)
+    is_succeeded = paymentObj.postProcess(**payload)
 
     if is_succeeded == True:
         g.db.commit()
