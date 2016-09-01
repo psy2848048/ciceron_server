@@ -188,6 +188,15 @@ def loginCheck():
             message="No user is logged in")
             , 403)
 
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    try:
+        cursor = g.db.cursor()
+        cursor.execute("SELECT * FROM CICERON.F_REQUESTS WHERE id = 1")
+        return make_response(json.jsonify(message="OK"), 200)
+    except:
+        return make_response(json.jsonify(message="Disorder"), 500)
+
 @app.route('/api/login', methods=['POST', 'GET'])
 #@exception_detector
 def login():
