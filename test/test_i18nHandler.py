@@ -42,7 +42,7 @@ class I18nHanlderTestCase(TestCase):
         jsonText = f.read()
         f.close()
 
-        self.i18nHandlerObj.jsonToDb(360, 'ko', 2, jsonText)
+        self.i18nHandlerObj.jsonToDb(360, 'ko', 1, 2, jsonText)
     
     def test_iosToDb(self):
         f = open('test/testdata/Localizable.strings')
@@ -63,7 +63,7 @@ class I18nHanlderTestCase(TestCase):
         unityText = f.read()
         f.close()
 
-        self.i18nHandlerObj.unityToDb(360, 'Korean', 2, unityText)
+        self.i18nHandlerObj.unityToDb(360, 'Korean', 1, 2, unityText)
 
     def test_updateVariableName(self):
         self.i18nHandlerObj.updateVariableName(360, 1, 'blahblah1')

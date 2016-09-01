@@ -725,7 +725,7 @@ class I18nHandler(object):
         dict_data = self._androidToDict(xml_text)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def jsonToDb(self, request_id, source_lang_key, target_lang_id, json_text):
+    def jsonToDb(self, request_id, source_lang_key, source_lang_id, target_lang_id, json_text):
         dict_data = self._jsonToDict(json_text, source_lang_key)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
@@ -737,9 +737,9 @@ class I18nHandler(object):
         dict_data = self._xamarinToDict(xamText)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
-    def unityToDb(self, request_id, source_lang_key, target_lang_id, unityText):
+    def unityToDb(self, request_id, source_lang_key, source_lang_id, target_lang_id, unityText):
         dict_data = self._unityToDict(unityText, source_lang_key)
-        self._dictToDb(request_id, source_lang_key, target_lang_id, dict_data)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def updateVariableName(self, request_id, variable_id, text):
         cursor = self.conn.cursor()
