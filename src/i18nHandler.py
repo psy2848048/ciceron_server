@@ -839,34 +839,34 @@ if __name__ == "__main__":
 
     # 불러오고 각 포멧으로 Export하는 테스트
     dictData = {}
-    f = open('../test/testdata/xmlReady.csv', 'r')
+    f = open('../test/testdata/MSC_brain/ptg/Local.csv', 'r')
     csvReader = csv.reader(f)
     for key, value in csvReader:
         dictData[key] = value
     f.close()
 
     filename, binary = i18nObj._dictToAndroid(dictData)
-    f = open('../test/testdata/string.xml', 'w')
+    f = open('../test/testdata/MSC_brain/ptg/string.xml', 'w')
     f.write(binary.encode('utf-8'))
     f.close()
 
     filename, binary = i18nObj._dictToJson('ko', dictData)
-    f = open('../test/testdata/%s' % filename, 'w')
+    f = open('../test/testdata/MSC_brain/ptg/%s' % filename, 'w')
     f.write(binary)
     f.close()
 
     filename, binary = i18nObj._dictToUnity('Korean', dictData)
-    f = open('../test/testdata/%s' % filename, 'w')
+    f = open('../test/testdata/MSC_brain/ptg/%s' % filename, 'w')
     f.write(binary)
     f.close()
 
     filename, binary = i18nObj._dictToIOs(dictData)
-    f = open('../test/testdata/%s' % filename, 'w')
+    f = open('../test/testdata/MSC_brain/ptg/%s' % filename, 'w')
     f.write(binary)
     f.close()
 
     filename, binary = i18nObj._dictToXamarin('ko', dictData)
-    f = open('../test/testdata/%s' % filename, 'w')
+    f = open('../test/testdata/MSC_brain/ptg/%s' % filename, 'w')
     f.write(binary)
     f.close()
 

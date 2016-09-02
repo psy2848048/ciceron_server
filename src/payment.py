@@ -278,6 +278,7 @@ class Payment(object):
             , point_for_use=0
             , promo_type=None
             , promo_code=None
+            , is_additional=False
             , is_groupRequest=False
             , is_public=False
             , **payload):

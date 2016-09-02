@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<data xml:space="preserve" name="COMM_BTN_001">
+		<value>Confirm</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_002">
+		<value>Next</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_003">
+		<value>Done</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_004">
+		<value>Cancel</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_005">
+		<value>Strongly agree</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_006">
+		<value>Agree</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_007">
+		<value>Disagree</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_008">
+		<value>Strongly disagree</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_009">
+		<value>Save for later</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_010">
+		<value>Yes</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_011">
+		<value>No</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_012">
+		<value>Start matching</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_013">
+		<value>More</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_014">
+		<value>Facebook</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_015">
+		<value>KakaoTalk</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_016">
+		<value>Share the URL</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_017">
+		<value>Misc.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_018">
+		<value>Invite</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_019">
+		<value>Invite again</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_001">
+		<value>Enter a valid e-mail address.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_002">
+		<value>The e-mail is already signed up.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_003">
+		<value>Enter e-mail</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_004">
+		<value>Enter phone number</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_005">
+		<value>Authentication code error</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_006">
+		<value>The code seems to be wrong.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_007">
+		<value>Enter authentication code</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_008">
+		<value>Enter your name</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_009">
+		<value>Only characters and numbers are allowed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_010">
+		<value>Enter password</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_011">
+		<value>Only characters and numbers are allowed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_012">
+		<value>That doesn’t match any member.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_013">
+		<value>Sorry, we don’t support your device.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_014">
+		<value>Oops! You haven’t verified your e-mail!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_015">
+		<value>Your e-mail must be verified to proceed. Please check your inbox!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_016">
+		<value>The information doesn’t match.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_017">
+		<value>The nickname is already taken.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_018">
+		<value>The authentication code is incorrect.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_019">
+		<value>Sorry, we don’t support your browser.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_020">
+		<value>Something’s wrong with the network. Please check your internet connection.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_021">
+		<value>It’s not a valid QR-code image.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_022">
+		<value>The e-mail you entered\n can’t be used.\n Please enter a valid e-mail address.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_023">
+		<value>Verified!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_024">
+		<value>Your name must be two characters or longer.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_025">
+		<value>Your password must be six characters or longer.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_026">
+		<value>Please agree to our Terms of Use\nand Privacy Policy  before you sign up.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_027">
+		<value>Your nickname must be two characters or longer.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_028">
+		<value>Only characters and numbers are allowed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_029">
+		<value>Authentication failed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_030">
+		<value>Login with social media failed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_031">
+		<value>Login with Facebook failed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_032">
+		<value>Please update your Google+.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_033">
+		<value>Login with Google+ failed.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_034">
+		<value>Enter a name or nickname</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_035">
+		<value>Failed to import the contact list. Please check your privacy settings.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_036">
+		<value>Cancelled.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_037">
+		<value>We’re still working on importing via Facebook, sorry!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_038">
+		<value>Failed to import friends from Facebook.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_039">
+		<value>The name must be two characters or longer.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_040">
+		<value>The QR code seems to be wrong, or already added.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_041">
+		<value>Not enough information for QA.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_042">
+		<value>This friend is already added.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_043">
+		<value>Failed to scan the QR code.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_044">
+		<value>Access to camera denied. Please check your permission settings.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_045">
+		<value>Access to camera denied.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_046">
+		<value>Please enter your e-mail.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_047">
+		<value>There’s no matching user.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_048">
+		<value>Please check your ID and password.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_049">
+		<value>Please answer six questions at least.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_050">
+		<value>Your app is outdated.\nPlease download the latest version!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_001">
+		<value>Privacy Policy</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_002">
+		<value>Terms of Use</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_003">
+		<value>e-mail</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_004">
+		<value>Phone number</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_005">
+		<value>Enter your e-mail</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_006">
+		<value>Enter your phone number</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_007">
+		<value>Privacy Policy</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_008">
+		<value>Privacy Policy</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_009">
+		<value>Privacy Policy</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_010">
+		<value>Privacy Policy</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_011">
+		<value>Password</value>
+	</data>
+	<data xml:space="preserve" name="KEY">
+		<value>English</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_001">
+		<value>Ever wondered how you and your favorite TV show character&lt;br&gt;would like each other?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_002">
+		<value>Now with a simple test...&lt;br&gt;You can match up, find out and share the results!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_003">
+		<value>Log in with Facebook</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_004">
+		<value>Log in with Google</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_005">
+		<value>Sign up</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_006">
+		<value>Already a member?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_007">
+		<value>Log in</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_001">
+		<value>Sign up</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_002">
+		<value>e-mail</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_003">
+		<value>Send authentication code</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_004">
+		<value>Enter your e-mail</value>
+	</data>
+	<data xml:space="preserve" name="SSM_005_001">
+		<value>Enter your phone number</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_001">
+		<value>The authentication code has been sent to</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_002">
+		<value>. It may take a few minutes.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_001">
+		<value>Enter authentication code</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_002">
+		<value>(6 digits)</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_001">
+		<value>Name</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_002">
+		<value>Password</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_003">
+		<value>(6+ digits or characters)</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_004">
+		<value>Male</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_005">
+		<value>Female</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_006">
+		<value>I agree to &lt;a&gt;Terms of Use&lt;/a&gt; and</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_007">
+		<value>&lt;a&gt;Privacy Policy&lt;/a&gt;.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_001">
+		<value>Verify your e-mail and start social matching!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_002">
+		<value>Enter nickname (optional)</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_003">
+		<value>You can change your nickname anytime.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_001">
+		<value>Wow!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_002">
+		<value>Welcome to 3 o’clock for Social!&lt;br&gt;Have a wonderful time with social matching tests!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_003">
+		<value>Start</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_004">
+		<value>The verification link has been sent to</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_005">
+		<value>.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_006">
+		<value>This e-mail is for the verification of your account.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_007">
+		<value>Click the link below to complete the sign-up!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_008">
+		<value>*Verify here*</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_009">
+		<value>Successfully verified your e-mail.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_010">
+		<value>You are already verified.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_011_001">
+		<value>Forgot your password?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_001">
+		<value>Forgot your password?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_002">
+		<value>I signed up with my e-mail</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_003">
+		<value>I signed up with my phone</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_004">
+		<value>Reset password</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_001">
+		<value>Reset with e-mail</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_002">
+		<value>Send reset password link</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_003">
+		<value>This e-mail is for the modification of your password.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_004">
+		<value>Click the link below to change your password.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_005">
+		<value>Change password</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_006">
+		<value>Re-enter password</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_001">
+		<value>Password reset e-mail has been sent to </value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_002">
+		<value>.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_001">
+		<value>Reset with phone</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_002">
+		<value>Click to reset password for 3 o'clock for Social </value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_001">
+		<value>Start the test</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_002">
+		<value>Announcement</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_003">
+		<value>Push notification</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_004">
+		<value>View Service Terms of Use</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_005">
+		<value>Contact our customer center</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_006">
+		<value>Language</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_007">
+		<value>Version</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_008">
+		<value>Logout</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_001">
+		<value>Test</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_002">
+		<value>180 Question Test to Analyze My Personality</value>
+	</data>
+	<data xml:space="preserve" name="SSM_022_001">
+		<value>My results</value>
+	</data>
+	<data xml:space="preserve" name="SSM_023_001">
+		<value>My personality results</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_001">
+		<value>Edit profile</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_002">
+		<value>Current name</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_003">
+		<value>Save</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_001">
+		<value>View Terms of Use</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_002">
+		<value>Read full text</value>
+	</data>
+	<data xml:space="preserve" name="SSM_031_001">
+		<value>Are you sure you want to log out?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_001">
+		<value>Drama matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_002">
+		<value>Social matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_003">
+		<value>Hot Clips</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_004">
+		<value>Start social matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_034_001">
+		<value>6 Question Test for Matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_001">
+		<value>6 Question Test for Matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_002">
+		<value>Matching result</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_003">
+		<value>Calculating the matching result between you and</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_004">
+		<value>...</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_001">
+		<value>Match with another character</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_002">
+		<value>Start social matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_001">
+		<value>Share</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_002">
+		<value>Share the URL</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_003">
+		<value>The URL is copied to the clipboard. Paste into wherever you want!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_004">
+		<value>Go to App</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_001">
+		<value>Add a friend</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_002">
+		<value>Import a friend list</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_003">
+		<value>Can’t find a friend list!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_004">
+		<value>Add friends from your contact list or via social media!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_005">
+		<value>Add a friend</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_006">
+		<value>Add via QA code</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_001">
+		<value>Facebook friends list</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_002">
+		<value>Import contact list</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_001">
+		<value>Matchable friends</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_002">
+		<value>Invite a friend</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_003">
+		<value>Enter a name or nickname</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_004">
+		<value>Invite a friend</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_005">
+		<value>Wonder how well you can get along with a friend? Take a simple test and find out the matching ratio now!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_006">
+		<value>Go to App</value>
+	</data>
+	<data xml:space="preserve" name="SSM_049_001">
+		<value>Calculating matching ratio…</value>
+	</data>
+	<data xml:space="preserve" name="SSM_050_001">
+		<value>Match with another friend</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_001">
+		<value>QR-code matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_002">
+		<value>Scan with camera</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_003">
+		<value>Select from photo album</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_004">
+		<value>How is QR-code matching done?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_005">
+		<value>Help on QR code matching</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_006">
+		<value>With QR codes, adding and matching up with friends is way easier!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_007">
+		<value>Tap “Scan with camera” and input your friend’s QR code to match!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_008">
+		<value>Tap “Select from photo album” to read your friend’s QR code!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_001">
+		<value>Oops! You can’t match with your friend yet.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_002">
+		<value>Matching takes test results from both of you. Ask your friend to take the test now!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_003">
+		<value>Ask via social media</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_004">
+		<value>Ask via KakaoTalk</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_005">
+		<value>Ask with a URL</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_001">
+		<value>Oops! You didn’t take the test!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_002">
+		<value>Matching takes test results from both of you. Take the test and see the matching result now!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_003">
+		<value>Take the test</value>
+	</data>
+</root>

@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<data xml:space="preserve" name="COMM_BTN_001">
+		<value>Confirmar</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_002">
+		<value>Siguiente</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_003">
+		<value>Completo</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_004">
+		<value>Cancelar</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_005">
+		<value>Excelente</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_006">
+		<value>Mas o menos</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_007">
+		<value>No tanto</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_008">
+		<value>Para nada</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_009">
+		<value>Guardar temporalmente</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_010">
+		<value>Si</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_011">
+		<value>No</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_012">
+		<value>Calcular compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_013">
+		<value>Más</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_014">
+		<value>Facebook</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_015">
+		<value>KakaoTalk</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_016">
+		<value>Compartir URL</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_017">
+		<value>Etcétera</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_018">
+		<value>Invitar</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_019">
+		<value>Invitar de nuevo</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_001">
+		<value>Introduzca una dirección válida de correo electrónico.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_002">
+		<value>La información ya está suscrito</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_003">
+		<value>Introduzca su correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_004">
+		<value>Introduzca su Número de Teléfono</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_005">
+		<value>Error en el Código de Autorización</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_006">
+		<value>Número de autorización no válido.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_007">
+		<value>Introduzca su número de autorización.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_008">
+		<value>Introduzca su Nombre</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_009">
+		<value>Puede introducir solamente letras en el alfabeto y números.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_010">
+		<value>Introduzca su Contraseña</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_011">
+		<value>Puede utilizar solamente letras en el alfabeto y números para la contraseña.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_012">
+		<value>No hemos encontrado ningún usuario con tales informaciones.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_013">
+		<value>El dispositivo no es compatible.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_014">
+		<value>¡Oh, no! todavía no ha autenticado su correo electrónico!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_015">
+		<value>Sólo correos electrónicos autenticados pueden utilizar nuestros servicios. Revise la bandeja de entrada del correo electrónico introducido durante el registro!</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_016">
+		<value>La información del miembro es inexistente</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_017">
+		<value>Ese sobrenombre ya está tomado</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_018">
+		<value>El número de certificación es diferente.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_019">
+		<value>No está soportado por su navegador.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_020">
+		<value>Mala conexión Compruebe el estado de su conexión</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_021">
+		<value>No es una imagen de código QR válida.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_022">
+		<value>El correo electrónico solicitado no puede ser utilizado.Introduzca una dirección válida de correo electrónico.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_023">
+		<value>Ha sido certificado</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_024">
+		<value>El nombre debe tener al menos 2 caracteres.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_025">
+		<value>La contraseña debe tener al menos seis caracteres.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_026">
+		<value>Debe aceptar las condiciones de uso y política de privacidad para registrarse.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_027">
+		<value>El sobrenombre debe tener al menos 2 caracteres.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_028">
+		<value>Puede introducir solamente letras en el alfabeto y números.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_029">
+		<value>Error de autenticación.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_030">
+		<value>Error al iniciar sesión en la red social.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_031">
+		<value>No pudo iniciar sesión en Facebook.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_032">
+		<value>Actualice la aplicación Google Plus.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_033">
+		<value>No pudo iniciar sesión en Google Plus.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_034">
+		<value>Introduzca su nombre o sobrenombre.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_035">
+		<value>Error al traer sus Contactos. Por favor verifique el permiso de configuración.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_036">
+		<value>Cancelado.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_037">
+		<value>La opción traer de Facebook esta siendo preparado.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_038">
+		<value>No ha sido posible traer los contactos de Facebook.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_039">
+		<value>El nombre debe tener al menos dos caracteres.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_040">
+		<value>El Código QR no es válido o la información ya ha sido registrada.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_041">
+		<value>Faltan informaciones de QA.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_042">
+		<value>Ya ha sido registrado en su lista de amigos.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_043">
+		<value>Falla al escanear el código QR.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_044">
+		<value>Acceso a la cámara negado. Verifique la configuración de la aplicación.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_045">
+		<value>Acceso a la cámara negado.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_046">
+		<value>Introduzca su correo electrónico.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_047">
+		<value>La información de suscripción no existe</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_048">
+		<value>Verifique su nombre de usuario y contraseña.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_049">
+		<value>Debe responder 6 o más preguntas.</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_050">
+		<value>La versión de la aplicación es baja. Descargue la última versión</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_001">
+		<value>Condiciones de Uso de Informaciones de Privadas</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_002">
+		<value>Condiciones de Uso del Servicio</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_003">
+		<value>Correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_004">
+		<value>Número de teléfono</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_005">
+		<value>Introduzca la Dirección de Correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_006">
+		<value>Introduzca el Número de Teléfono</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_007">
+		<value>Condiciones de Uso de Informaciones de Privadas</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_008">
+		<value>Condiciones de Uso de Informaciones de Privadas</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_009">
+		<value>Condiciones de Uso de Informaciones de Privadas</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_010">
+		<value>Condiciones de Uso de Informaciones de Privadas</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_011">
+		<value>Contraseña</value>
+	</data>
+	<data xml:space="preserve" name="KEY">
+		<value>Español</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_001">
+		<value>¿Cómo será mi compatibilidad &lt;br&gt; con los personajes de la Serie de TV?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_002">
+		<value>Averíguelo, compártalo y adivínelo&lt;br&gt;a través de una sencilla prueba!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_003">
+		<value>Iniciar sesión de Facebook</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_004">
+		<value>Iniciar sesión de Google</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_005">
+		<value>Regístrese</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_006">
+		<value>¿Ya tiene una cuenta?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_007">
+		<value>Iniciar sesión</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_001">
+		<value>Regístrese</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_002">
+		<value>Correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_003">
+		<value>Enviar código de verificación</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_004">
+		<value>Introduzca la dirección de correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="SSM_005_001">
+		<value>Introduzca el número de teléfono</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_001">
+		<value>El código de verificación ha sido enviado al número de teléfono</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_002">
+		<value>(Phone number). Este proceso puede tardar unos minutos.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_001">
+		<value>Ingrese el código de verificación</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_002">
+		<value>Número de 6 dígitos</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_001">
+		<value>Nombre</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_002">
+		<value>Contraseña</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_003">
+		<value>Debe contener más de seis dígitos y letras del afabeto</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_004">
+		<value>Hombre</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_005">
+		<value>Mujer</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_006">
+		<value>Aceptar los términos y condiciones</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_007">
+		<value>del acuerdo de uso y de privacidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_001">
+		<value>Podrá utilizar nuestros servicios luego de verificar su correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_002">
+		<value>Entre su sobrenombre (Opcional)</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_003">
+		<value>El sobrenombre es opcional, puede ser modificado en cualquier momento</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_001">
+		<value>Felicitaciones.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_002">
+		<value>Se ha registrado 3 O'clock!&lt;br&gt;Venga a conocer el emocionante mundo de la Compatibilidad Social!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_003">
+		<value>Comenzar</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_004">
+		<value>El vínculo de confirmación de autenticidad del correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_005">
+		<value>ha sido enviado a (e-mail)</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_006">
+		<value>Correo electrónico de autenticación.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_007">
+		<value>La registración será finalizada al autenticar el correo electrónico a través del siguiente enlace.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_008">
+		<value>Autenticar mi correo electrónico.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_009">
+		<value>La autenticación del correo electrónico se ha realizado correctamente.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_010">
+		<value>Ya se ha autenticado.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_011_001">
+		<value>¿No se acuerda de su contraseña?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_001">
+		<value>¿Se ha olvidado su contraseña?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_002">
+		<value>Me he registrado a través de mi correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_003">
+		<value>Me he registrado a través de mi número de teléfono</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_004">
+		<value>Restablecer mi contraseña</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_001">
+		<value>Restablecer a través de mi correo electrónico</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_002">
+		<value>Enviar enlace para modificar la contraseña</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_003">
+		<value>Correo electrónico para cambiar de contraseña.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_004">
+		<value>Cambie su contraseña a través del siguiente enlace.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_005">
+		<value>Cambiar contraseña.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_006">
+		<value>Confirmar contraseña.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_001">
+		<value>El enlace de restablecimiento de contraseña</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_002">
+		<value>ha sido enviado a(e-mail)</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_001">
+		<value>Restablecer a través de mi número de teléfono</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_002">
+		<value>Enlace de restablecimiento de contraseña para 3 o'clock for Social</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_001">
+		<value>Ir a la Prueba</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_002">
+		<value>Notificaciones</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_003">
+		<value>Notificaciones Push</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_004">
+		<value>Ver las Condiciones del servicio</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_005">
+		<value>Enviar un correo al Servicio al consumidor</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_006">
+		<value>Configuración de idioma</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_007">
+		<value>Información de la versión</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_008">
+		<value>Finalizar la sesión</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_001">
+		<value>Prueba</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_002">
+		<value>180 preguntas para analizar mis inclinaciones.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_022_001">
+		<value>Mis resultados</value>
+	</data>
+	<data xml:space="preserve" name="SSM_023_001">
+		<value>Mi inclinación</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_001">
+		<value>Editar mi Perfil</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_002">
+		<value>Nombre actual</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_003">
+		<value>Guardar</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_001">
+		<value>Ver Términos y Condiciones</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_002">
+		<value>Ver el texto completo</value>
+	</data>
+	<data xml:space="preserve" name="SSM_031_001">
+		<value>¿Realmente desea finalizar la sesión?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_001">
+		<value>Series de Televisión</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_002">
+		<value>Red Social</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_003">
+		<value>Hotclip</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_004">
+		<value>Ir a ver mi compatibilidad social</value>
+	</data>
+	<data xml:space="preserve" name="SSM_034_001">
+		<value>6 preguntas para ver mi compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_001">
+		<value>6 preguntas para ver mi compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_002">
+		<value>Resultados de la compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_003">
+		<value>Calculando el resultado de la compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_004">
+		<value>entre Yo y (match_partner_name).</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_001">
+		<value>Compatibilidad con otros personajes</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_002">
+		<value>Ir a ver mi compatibilidad social</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_001">
+		<value>Compartir</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_002">
+		<value>Compartir el enlace</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_003">
+		<value>El enlace ha sido copiado. Péguelo donde lo desee.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_004">
+		<value>Ir a la aplicación</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_001">
+		<value>Añadir amigos/as</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_002">
+		<value>Traer mi lista de amigos/as</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_003">
+		<value>No se puede encontrar la lista de amigos/as!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_004">
+		<value>Añada a sus amigos/as a través de su lista de Contactos o el SNS!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_005">
+		<value>Añadir amigos/as</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_006">
+		<value>Añadir a través del código QR</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_001">
+		<value>Lista de amigos/as de Facebook</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_002">
+		<value>Traer de mis contactos</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_001">
+		<value>Amigos/as disponibles</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_002">
+		<value>Invitar a un/a amigo/a</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_003">
+		<value>Introduzca su nombre o sobrenombre</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_004">
+		<value>Invitar a un/a amigo/a</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_005">
+		<value>Desea ver su compatibilidad con sus amigos/as? Tome una prueba sencilla y averiguelo!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_006">
+		<value>Abrir con la aplicación</value>
+	</data>
+	<data xml:space="preserve" name="SSM_049_001">
+		<value>Calculando la compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_050_001">
+		<value>Calcular mi compatibilidad con otros amigos/as</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_001">
+		<value>Calcular la compatibilidad con el código QR</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_002">
+		<value>Escanear con la cámara</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_003">
+		<value>Seleccionar en el álbum</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_004">
+		<value>¿Cómo averiguar la compatibilidad con el código QR?</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_005">
+		<value>Ayuda para ver la compatibilidad con el código QR</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_006">
+		<value>Averigue la compatibilidad con sus amigos/as y añadalos fácilmente con el código QR!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_007">
+		<value>Pulse el botón "Escanear con la cámara" y escanee el código QR de sus amigos para ver la compatibilidad.</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_008">
+		<value>Pulse el botón «Seleccionar en el álbum» y escoja el código QR recibido de sus amigos!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_001">
+		<value>¡Oh, no! Todavía no es posible calcular la compatibilidad</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_002">
+		<value>Para calcular la compatibilidad son necesarios los resultados de las pruebas de ambas partes! Pídale a su amigo/a que tome la prueba!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_003">
+		<value>Pedirle a través de SMS</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_004">
+		<value>Pedirle a través de Kakaotalk</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_005">
+		<value>Pedirle a través del Enlace</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_001">
+		<value>¡Oh, no! Parece que todavía no ha tomado la prueba!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_002">
+		<value>Para calcular la compatibilidad son necesarios los resultados de las pruebas de ambas partes! Tome la prueba ahora mismo y averigue su compatibilidad!</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_003">
+		<value>Ir a tomar la prueba</value>
+	</data>
+</root>
