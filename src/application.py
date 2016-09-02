@@ -1618,7 +1618,12 @@ def i18n_checkSourceAndTranslation(request_id):
         i18nObj = I18nHandler(g.db)
         result = i18nObj.jsonResponse(request_id, is_restricted=False)
 
+        cursor = g.db.cursor()
+        cursor.execute("SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s", (request_id, ))
+        ret = cursor.fetchall()
+
         return make_response(json.jsonify(
+            data=json_from_V_REQUESTS(g.db, ret, purpose="ongoing_translator"),
             realData=result
             ), 200)
 
