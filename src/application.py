@@ -3032,7 +3032,7 @@ def client_completed_items_in_group(group_id):
                 WHERE (
                            (client_user_id = %s AND client_completed_group_id = %s ) 
                         OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND complete_client_group_id = %s AND is_paid = true)
-                        OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND is_paid = true)
+                        OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND complete_client_group_id = %s AND is_paid = true)
                       )
                   AND ( (is_paid = true AND is_need_additional_points = false) 
                       OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
@@ -3044,7 +3044,7 @@ def client_completed_items_in_group(group_id):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (my_user_id, group_id, my_user_id, group_id, ))
+        cursor.execute(query, (my_user_id, group_id, my_user_id, group_id, my_user_id, group_id,))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
