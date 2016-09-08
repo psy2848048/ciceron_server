@@ -137,43 +137,100 @@ class I18nHandler(object):
 
     def __historyChecker(self, cursor, source_lang_id, target_lang_id, text):
         # MD5를 이용하여 원문 ID 검색
-        hashed_text = self.__getMD5(text)
-        query_textSearch = "SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_checksum = %s ORDER BY hit_count LIMIT 1"
-        cursor.execute(query_textSearch, (hashed_text, ))
-        res = cursor.fetchone()
-        if res is None or len(res) == 0:
+        is_exist, source_text_id = self.__getTextId(cursor, text)
+        if is_exist is False:
             return False, None, None
-        source_text_id = res[0]
 
-        # 원문 ID와 언어를 이용하여 이전 번역기록 추출
-        query_getAllRequests = "SELECT DISTINCT id FROM CICERON.F_REQUESTS WHERE original_lang_id = %s AND target_lang_id = %s AND status_id = 2"
-        cursor.execute(query_getAllRequests, (source_lang_id, target_lang_id, ))
+        # 해당 Text_id를 사용하는 TEXT_MAPPING 추출
+        query_getTextMapping = "SELECT DISTINCT id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE text_id = %s"
+        cursor.execute(query_getTextMapping, (source_text_id, ))
         res = cursor.fetchall()
         if res is None or len(res) == 0:
             return False, None, None
 
-        # 번역 기록 이용하여 후보 단어 추출
-        request_lists = ','.join([str(row[0]) for row in res])
-        query_getAllTargetWords = "SELECT DISTINCT target_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE request_id in (%s)"
-        query_getAllTargetWords = query_getAllTargetWords % request_lists
-        cursor.execute(query_getAllTargetWords)
-        res = cursor.fetchall()
-        if res is None or len(res) == 0:
-            return False, None, None
+        ###### Source: source_lang_id / Target: target_lang_id ###
+        # source가 주어진 text_id였을 때 target_id 추출
+        source_nothing = False
+        source_mapping_lists = ','.join([str(row[0]) for row in res])
+        query_getAllTargetMappings = "SELECT DISTINCT target_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE source_text_mapping_id in ({0})".format(source_mapping_lists)
+        cursor.execute(query_getAllTargetMappings)
+        res2 = cursor.fetchall()
+        if res2 is None or len(res2) == 0:
+            source_nothing = True
 
-        # 후보 단어 중 가장 추천 많이 된 것 골라줌
-        target_text_id_lists = ','.join([str(row[0]) for row in res])
-        query_getTopTextId = "SELECT id, text FROM CICERON.D_I18N_TEXTS WHERE id in (%s) ORDER BY hit_count LIMIT 1"
-        query_getTopTextId = query_getTopTextId % target_text_id_lists
-        cursor.execute(query_getTopTextId)
-        res = cursor.fetchone()
-        curated_text_id, curated_text = res[0]
+        # Mapping 찾기
+        if source_nothing == False:
+            target_mapping_id_lists = ','.join([str(row[0]) for row in res2])
+            query_getTargetTextId = "SELECT DISTINCT text_id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE id in ({0}) AND lang_id = {1}".format(target_mapping_id_lists, target_lang_id)
+            cursor.execute(query_getTargetTextId)
+            res3 = cursor.fetchall()
+            if res3 is None or len(res3) == 0:
+                source_nothing = True
+
+        # Hit수 높은 텍스트 1 선정
+        if source_nothing == False:
+            target_text_id_lists = ','.join([str(row[0]) for row in res3])
+            query_getTargetText = "SELECT id, text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in ({0}) ORDER BY hit_count DESC LIMIT 1".format(target_text_id_lists)
+            cursor.execute(query_getTargetText)
+            res4 = cursor.fetchone()
+            targetSide_textId = res4[0]
+            targetSide_text = res4[1]
+            targetSide_hitCount = res4[2]
+        #########################################################
+
+        ###### Source: target_lang_id / Target: source_lang_id ###
+        # source가 주어진 text_id였을 때 source_id 추출
+        target_nothing = False
+        target_mapping_lists = ','.join([str(row[0]) for row in res])
+        query_getAllSourceMappings = "SELECT DISTINCT source_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE target_text_mapping_id in ({0})".format(target_mapping_lists)
+        cursor.execute(query_getAllSourceMappings)
+        res5 = cursor.fetchall()
+        if res5 is None or len(res5) == 0:
+            target_nothing = True
+
+        # Mapping 찾기
+        if target_nothing == False:
+            source_mapping_id_lists = ','.join([str(row[0]) for row in res5])
+            query_getSourceTextId = "SELECT DISTINCT text_id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE id in ({0})".format(source_mapping_id_lists)
+            cursor.execute(query_getSourceTextId)
+            res6 = cursor.fetchall()
+            if res6 is None or len(res6) == 0:
+                target_nothing = True
+
+        # Hit수 높은 텍스트 1 선정
+        if target_nothing == False:
+            source_text_id_lists = ','.join([str(row[0]) for row in res6])
+            query_getSourceText = "SELECT text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in ({0}) ORDER BY hit_count DESC LIMIT 1".format(source_text_id_lists)
+            cursor.execute(query_getSourceText)
+            res7 = cursor.fetchone()
+            sourceSide_textId = res7[0]
+            sourceSide_text = res7[1]
+            sourceSide_hitCount = res7[2]
+        ########################################################
+
+        # 두 후보 중 택1
+        curated_text_id = 0
+        curated_text = ""
+        if target_nothing == True and source_nothing == True:
+            return False, None, None
+        elif target_nothing == True and source_nothing == False:
+            curated_text_id = sourceSide_textId
+            curated_text = sourceSide_text
+        elif target_nothing == False and source_nothing == True:
+            curated_text_id = targetSide_textId
+            curated_text = targetSide_text
+        elif sourceSide_hitCount <= targetSide_hitCount:
+            curated_text_id = targetSide_textId
+            curated_text = targetSide_text
+        else:
+            curated_text_id = sourceSide_textId
+            curated_text = sourceSide_text
 
         # 최종 후보 단어는 카운트 +1
         query_hitUp = "UPDATE CICERON.D_I18N_TEXTS SET hit_count = hit_count + 1 WHERE id = %s"
         cursor.execute(query_hitUp, (curated_text_id, ))
 
-        return True, source_text_id, curated_text_id
+        return True, curated_text, curated_text_id
 
     def __insertUnitText(self, cursor, text):
         md5_text = self.__getMD5(text)
@@ -364,7 +421,7 @@ class I18nHandler(object):
         # 원문은 똑같은 텍스트 있나 살펴보는 정도
         is_exist_source, source_text_id = self.__getTextId(cursor, partial_text)
         # 원문 텍스트 이용하여 기존 번역 있는지 검색
-        is_exist_target, _, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
+        is_exist_target, target_curated_text, target_curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, partial_text)
 
         if is_exist_source == False:
             # 원문 부분은 기존 데이터 없을 시 원문 문장 삽입
@@ -776,7 +833,7 @@ class I18nHandler(object):
 
         source_lang_id, target_lang_id = self.__getLangCodesByRequestId(request_id)
         is_mapping_exist, mapping_id = self.__getMappingIdFromVariable(cursor, variable_id, target_lang_id, paragraph_seq, sentence_seq)
-        is_exist, source_text_id, curated_text_id = self.__historyChecker(cursor, source_lang_id, target_lang_id, new_text)
+        is_exist, curated_text_id = self.__getTextId(cursor, new_text)
         if is_exist == False:
             is_unitText_inserted, new_text_id = self.__insertUnitText(cursor, new_text)
             is_mapping_updated = self.__updateMapping(cursor, mapping_id, new_text_id)

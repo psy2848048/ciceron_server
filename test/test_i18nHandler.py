@@ -24,42 +24,42 @@ class I18nHanlderTestCase(TestCase):
         pass
 
     def test_androidToDict(self):
-        f = open('test/testdata/string.xml')
+        f = open('test/testdata/peer_gynt/string.xml')
         xmlText = f.read()
         f.close()
 
         result = self.i18nHandlerObj._androidToDict(xmlText)
         
     def test_androidToDb(self):
-        f = open('test/testdata/string.xml')
+        f = open('test/testdata/peer_gynt/string.xml')
         xmlText = f.read()
         f.close()
 
         self.i18nHandlerObj.androidToDb(360, 1, 2, xmlText)
 
     def test_jsonToDb(self):
-        f = open('test/testdata/i18n.json')
+        f = open('test/testdata/peer_gynt/i18n.json')
         jsonText = f.read()
         f.close()
 
         self.i18nHandlerObj.jsonToDb(360, 'ko', 1, 2, jsonText)
     
     def test_iosToDb(self):
-        f = open('test/testdata/Localizable.strings')
+        f = open('test/testdata/peer_gynt/Localizable.strings')
         iosText = f.read()
         f.close()
 
         self.i18nHandlerObj.iosToDb(360, 1, 2, iosText)
 
     def test_xamarinToDb(self):
-        f = open('test/testdata/AppResources.ko.resx')
+        f = open('test/testdata/peer_gynt/AppResources.ko.resx')
         xamarinText = f.read()
         f.close()
 
         self.i18nHandlerObj.xamarinToDb(360, 1, 2, xamarinText)
 
     def test_unityToDb(self):
-        f = open('test/testdata/Localization.csv')
+        f = open('test/testdata/peer_gynt/Localization.csv')
         unityText = f.read()
         f.close()
 
