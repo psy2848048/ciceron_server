@@ -151,7 +151,7 @@ class I18nHandler(object):
         ###### Source: source_lang_id / Target: target_lang_id ###
         # source가 주어진 text_id였을 때 target_id 추출
         source_nothing = False
-        source_mapping_lists = ','.join([str(row[0]) for row in res])
+        source_mapping_lists = ','.join([str(row[0]) for row in res if row[0] != None ])
         query_getAllTargetMappings = "SELECT DISTINCT target_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE source_text_mapping_id in ({0})".format(source_mapping_lists)
         cursor.execute(query_getAllTargetMappings)
         res2 = cursor.fetchall()
@@ -160,7 +160,7 @@ class I18nHandler(object):
 
         # Mapping 찾기
         if source_nothing == False:
-            target_mapping_id_lists = ','.join([str(row[0]) for row in res2])
+            target_mapping_id_lists = ','.join([str(row[0]) for row in res2 if row[0] != None ])
             query_getTargetTextId = "SELECT DISTINCT text_id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE id in ({0}) AND lang_id = {1}".format(target_mapping_id_lists, target_lang_id)
             cursor.execute(query_getTargetTextId)
             res3 = cursor.fetchall()
@@ -169,7 +169,7 @@ class I18nHandler(object):
 
         # Hit수 높은 텍스트 1 선정
         if source_nothing == False:
-            target_text_id_lists = ','.join([str(row[0]) for row in res3])
+            target_text_id_lists = ','.join([str(row[0]) for row in res3 if row[0] != None ])
             query_getTargetText = "SELECT id, text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in ({0}) ORDER BY hit_count DESC LIMIT 1".format(target_text_id_lists)
             cursor.execute(query_getTargetText)
             res4 = cursor.fetchone()
@@ -181,7 +181,7 @@ class I18nHandler(object):
         ###### Source: target_lang_id / Target: source_lang_id ###
         # source가 주어진 text_id였을 때 source_id 추출
         target_nothing = False
-        target_mapping_lists = ','.join([str(row[0]) for row in res])
+        target_mapping_lists = ','.join([str(row[0]) for row in res if row[0] != None ])
         query_getAllSourceMappings = "SELECT DISTINCT source_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE target_text_mapping_id in ({0})".format(target_mapping_lists)
         cursor.execute(query_getAllSourceMappings)
         res5 = cursor.fetchall()
@@ -190,7 +190,7 @@ class I18nHandler(object):
 
         # Mapping 찾기
         if target_nothing == False:
-            source_mapping_id_lists = ','.join([str(row[0]) for row in res5])
+            source_mapping_id_lists = ','.join([str(row[0]) for row in res5 if row[0] != None ])
             query_getSourceTextId = "SELECT DISTINCT text_id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE id in ({0})".format(source_mapping_id_lists)
             cursor.execute(query_getSourceTextId)
             res6 = cursor.fetchall()
@@ -199,8 +199,8 @@ class I18nHandler(object):
 
         # Hit수 높은 텍스트 1 선정
         if target_nothing == False:
-            source_text_id_lists = ','.join([str(row[0]) for row in res6])
-            query_getSourceText = "SELECT text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in ({0}) ORDER BY hit_count DESC LIMIT 1".format(source_text_id_lists)
+            source_text_id_lists = ','.join([str(row[0]) for row in res6 if row[0] != None ])
+            query_getSourceText = "SELECT id, text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in ({0}) ORDER BY hit_count DESC LIMIT 1".format(source_text_id_lists)
             cursor.execute(query_getSourceText)
             res7 = cursor.fetchone()
             sourceSide_textId = res7[0]
@@ -214,17 +214,17 @@ class I18nHandler(object):
         if target_nothing == True and source_nothing == True:
             return False, None, None
         elif target_nothing == True and source_nothing == False:
-            curated_text_id = sourceSide_textId
-            curated_text = sourceSide_text
+            curated_text_id = targetSide_textId
+            curated_text = targetSide_text
         elif target_nothing == False and source_nothing == True:
-            curated_text_id = targetSide_textId
-            curated_text = targetSide_text
-        elif sourceSide_hitCount <= targetSide_hitCount:
-            curated_text_id = targetSide_textId
-            curated_text = targetSide_text
-        else:
             curated_text_id = sourceSide_textId
             curated_text = sourceSide_text
+        elif sourceSide_hitCount <= targetSide_hitCount:
+            curated_text_id = sourceSide_textId
+            curated_text = sourceSide_text
+        else:
+            curated_text_id = targetSide_textId
+            curated_text = targetSide_text
 
         # 최종 후보 단어는 카운트 +1
         query_hitUp = "UPDATE CICERON.D_I18N_TEXTS SET hit_count = hit_count + 1 WHERE id = %s"
