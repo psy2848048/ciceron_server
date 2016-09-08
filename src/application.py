@@ -1903,9 +1903,9 @@ def post_translate_item():
     # Assign default group to requester and translator
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT client_user_id, ongoing_worker_id, is_splitTrans FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 "
+        query = "SELECT client_user_id, ongoing_worker_id, is_groupRequest FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 "
     else:
-        query = """SELECT client_user_id, ongoing_worker_id, is_splitTrans FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 AND 
+        query = """SELECT client_user_id, ongoing_worker_id, is_groupRequest FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 AND 
         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )"""
 
     cursor.execute(query, (request_id, ))
