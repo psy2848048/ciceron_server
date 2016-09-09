@@ -1627,6 +1627,34 @@ def i18n_checkSourceAndTranslation(request_id):
             realData=result
             ), 200)
 
+@app.route('/api/user/translations/complete/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_completedCheckSourceAndTranslation(request_id):
+    """
+    i18n 번역 불러오기
+    i18nHandler.jsonResponse() 사용
+    """
+    if request.method == 'GET':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        i18nObj = I18nHandler(g.db)
+        result = i18nObj.jsonResponse(request_id, is_restricted=False)
+
+        cursor = g.db.cursor()
+        cursor.execute("SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s", (request_id, ))
+        ret = cursor.fetchall()
+
+        return make_response(json.jsonify(
+            data=json_from_V_REQUESTS(g.db, ret, purpose="complete_translator"),
+            realData=result
+            ), 200)
+
 @app.route('/api/user/translations/ongoing/i18n/<int:request_id>/variable/<int:variable_id>/paragraph/<int:paragraph_seq>/sentence/<int:sentence_seq>', methods=["PUT"])
 #@exception_detector
 @translator_checker
