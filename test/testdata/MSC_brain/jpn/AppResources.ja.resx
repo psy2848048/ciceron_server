@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<data xml:space="preserve" name="COMM_BTN_001">
+		<value>確認</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_002">
+		<value>次へ</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_003">
+		<value>完了</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_004">
+		<value>取り消し</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_005">
+		<value>とてもそうである。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_006">
+		<value>そうである。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_007">
+		<value>そうではない。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_008">
+		<value>まったくそうではない。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_009">
+		<value>簡易保存</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_010">
+		<value>はい</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_011">
+		<value>いいえ</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_012">
+		<value>マッチングする</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_013">
+		<value>詳細を確認する</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_014">
+		<value>Facebook</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_015">
+		<value>カカオトーク</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_016">
+		<value>URLの共有</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_017">
+		<value>その他</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_018">
+		<value>招待する</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_019">
+		<value>再招待</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_001">
+		<value>正しいメールアドレスを入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_002">
+		<value>登録済みの情報です。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_003">
+		<value>メールアドレスを入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_004">
+		<value>電話番号を入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_005">
+		<value>認証コードのエラー</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_006">
+		<value>認証番号が正しくありません。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_007">
+		<value>認証番号を入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_008">
+		<value>名前を入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_009">
+		<value>韓国語、半角の英数字をご利用いただけます。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_010">
+		<value>パスワードを入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_011">
+		<value>半角の英数字をご利用いただけます。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_012">
+		<value>未登録の会員情報です。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_013">
+		<value>対応できないデバイスです。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_014">
+		<value>まだメールアドレスの認証を行っていません。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_015">
+		<value>認証されたメールアドレスでしかサービスを利用できません。会員登録の際に登録したメールアドレスの受信メールをご確認ください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_016">
+		<value>存在しない会員情報です。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_017">
+		<value>登録済みのハンドルネームです。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_018">
+		<value>認証番号が違います。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_019">
+		<value>対応しないブラウザです。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_020">
+		<value>ネットワークに接続していません。ネットワークをご確認ください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_021">
+		<value>QRコードが正しくありません。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_022">
+		<value>登録したメールアドレスは\n使えません。\n正しいメールアドレスを入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_023">
+		<value>認証されました。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_024">
+		<value>名前は2文字以上入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_025">
+		<value>パスワードは6文字以上入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_026">
+		<value>利用規約や個人情報保護方針に\n同意した上で、登録できます。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_027">
+		<value>ハンドルネームは2文字以上入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_028">
+		<value>韓国語、半角の英数字をご利用いただけます。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_029">
+		<value>認証できませんでした。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_030">
+		<value>ソーシャルログインできませんでした。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_031">
+		<value>Facebookの情報を使ってログインできませんでした。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_032">
+		<value>Google＋をアップデートしてください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_033">
+		<value>Google＋の情報を使ってログインできませんでした。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_034">
+		<value>お名前、またはハンドルネームを入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_035">
+		<value>電話帳を確認できませんでした。設定権限をご確認ください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_036">
+		<value>キャンセルされました。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_037">
+		<value>Facebookの場合、まだご利用いただけません。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_038">
+		<value>Facebookで友達を確認できませんでした。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_039">
+		<value>名前は2文字以上入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_040">
+		<value>QRコードが正しくないか、すでに登録済みの情報です。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_041">
+		<value>QA情報が足りません。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_042">
+		<value>登録済みの友達です。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_043">
+		<value>QRコードをスキャンできませんでした。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_044">
+		<value>カメラにアクセスできません。アプリケーションの設定をご確認ください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_045">
+		<value>カメラへのアクセスが拒否されました。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_046">
+		<value>メールアドレスを入力してください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_047">
+		<value>登録した情報がありません。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_048">
+		<value>IDとパスワードをご確認ください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_049">
+		<value>6問以上お答えください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_050">
+		<value>アプリの最新バージョンではありません。\n最新バージョンをダウンロードしてください。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_001">
+		<value>個人情報保護方針</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_002">
+		<value>サービス利用規約</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_003">
+		<value>メールアドレス</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_004">
+		<value>電話番号</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_005">
+		<value>メールアドレスを入力</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_006">
+		<value>電話番号を入力</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_007">
+		<value>個人情報保護方針</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_008">
+		<value>個人情報保護方針</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_009">
+		<value>個人情報保護方針</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_010">
+		<value>個人情報保護方針</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_011">
+		<value>パスワード</value>
+	</data>
+	<data xml:space="preserve" name="KEY">
+		<value>Japanese</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_001">
+		<value>ドラマの主人公と私の相性が&lt;br&gt;知りたい！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_002">
+		<value>簡単なテストで&lt;br&gt;相性を確認し、共有して当ててみよう！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_003">
+		<value>Facebookの情報を使ってログイン</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_004">
+		<value>Googleの情報を使ってログイン</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_005">
+		<value>会員登録</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_006">
+		<value>登録済みの方ですか？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_007">
+		<value>ログイン</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_001">
+		<value>会員登録</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_002">
+		<value>メールアドレス</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_003">
+		<value>認証コードを送信</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_004">
+		<value>メールアドレスを入力</value>
+	</data>
+	<data xml:space="preserve" name="SSM_005_001">
+		<value>電話番号を入力</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_001">
+		<value>電話番号の認証コードSMSが</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_002">
+		<value>に送信されました。しばらくお待ちください。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_001">
+		<value>認証コードを入力</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_002">
+		<value>6文字の数字</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_001">
+		<value>名前</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_002">
+		<value>パスワード</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_003">
+		<value>６文字以上入力してください。 半角の英数字をご利用いただけます。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_004">
+		<value>男性</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_005">
+		<value>女性</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_006">
+		<value>利用規約&lt;/a&gt;および</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_007">
+		<value>個人情報保護方針&lt;/a&gt;に同意</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_001">
+		<value>メールアドレスを認証すると、ソーシャルマッチングサービスをご利用いただけます。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_002">
+		<value>ハンドルネームを入力（選択）</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_003">
+		<value>ハンドルネームは省略・修正（常時）可能</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_001">
+		<value>おめでとうございます。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_002">
+		<value>楽しいソーシャルマッチングの登録が完了しました。&lt;br&gt;楽しいソーシャルマッチングの世界にきっとはまるはず！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_003">
+		<value>スタート</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_004">
+		<value>メールアドレス認証の確認リンクを</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_005">
+		<value>にお送りしました。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_006">
+		<value>メールアドレスの認証に関するメールです。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_007">
+		<value>下記のリンクから認証すると、登録が完了します。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_008">
+		<value>本人認証を行う</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_009">
+		<value>メールアドレスで認証しました。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_010">
+		<value>認証済みです。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_011_001">
+		<value>パスワードを覚えていませんか？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_001">
+		<value>パスワードを忘れましたか？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_002">
+		<value>メールアドレスで登録しました。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_003">
+		<value>電話番号で登録しました。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_004">
+		<value>パスワードを再設定</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_001">
+		<value>メールアドレスで再設定</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_002">
+		<value>パスワードの再設定リンクを送信</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_003">
+		<value>パスワードの再設定に関するメールです。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_004">
+		<value>下記のリンクでパスワードを再設定してください。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_005">
+		<value>パスワードを再設定</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_006">
+		<value>パスワードを確認</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_001">
+		<value>パスワードの再設定リンクを</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_002">
+		<value>にお送りしました。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_001">
+		<value>電話番号で再設定</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_002">
+		<value>3 o'clock for Social パスワードの再設定のリンク</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_001">
+		<value>テストを行う</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_002">
+		<value>お知らせ</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_003">
+		<value>プッシュ通知</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_004">
+		<value>サービス規約を確認する</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_005">
+		<value>サポートセンターにお問い合わせ</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_006">
+		<value>言語設定</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_007">
+		<value>バージョンの詳細</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_008">
+		<value>ログアウト</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_001">
+		<value>テスト</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_002">
+		<value>性格分析用の180問</value>
+	</data>
+	<data xml:space="preserve" name="SSM_022_001">
+		<value>テスト結果</value>
+	</data>
+	<data xml:space="preserve" name="SSM_023_001">
+		<value>私の性格の結果</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_001">
+		<value>プロフィールの修正</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_002">
+		<value>現在の名前</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_003">
+		<value>保存</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_001">
+		<value>約款を読む</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_002">
+		<value>全文を読む</value>
+	</data>
+	<data xml:space="preserve" name="SSM_031_001">
+		<value>ログアウトしますか？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_001">
+		<value>ドラママッチング</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_002">
+		<value>ソーシャルマッチング</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_003">
+		<value>ホットクリープ</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_004">
+		<value>ソーシャルマッチングをする</value>
+	</data>
+	<data xml:space="preserve" name="SSM_034_001">
+		<value>マッチングテストの6問</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_001">
+		<value>マッチングテストの6問</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_002">
+		<value>マッチング結果</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_003">
+		<value>あなたと</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_004">
+		<value>のマッチング結果を分析しています。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_001">
+		<value>他のキャラクターとマッチング</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_002">
+		<value>ソーシャルマッチングをする</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_001">
+		<value>共有する</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_002">
+		<value>URLを共有</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_003">
+		<value>URLをコピーしました。必要なところに貼り付けてください。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_004">
+		<value>アプリに</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_001">
+		<value>友達を追加</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_002">
+		<value>友達リストを確認</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_003">
+		<value>友達リストが見つかりません。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_004">
+		<value>電話帳やSNSで友達を追加しましょう！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_005">
+		<value>友達を追加する</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_006">
+		<value>QRコードで追加する</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_001">
+		<value>Facebookの友達リスト</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_002">
+		<value>電話帳から追加</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_001">
+		<value>マッチングできる友達</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_002">
+		<value>友達招待</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_003">
+		<value>名前やハンドルネームを入力</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_004">
+		<value>友達を招待する</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_005">
+		<value>この友達と私の相性は？今すぐテストを行って友達と私のマッチング率を確認しよう！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_006">
+		<value>アプリにアクセス</value>
+	</data>
+	<data xml:space="preserve" name="SSM_049_001">
+		<value>マッチング率を算出中</value>
+	</data>
+	<data xml:space="preserve" name="SSM_050_001">
+		<value>他の友達とマッチング</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_001">
+		<value>QRコードでマッチング</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_002">
+		<value>カメラでスキャンする</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_003">
+		<value>アルバムから選ぶ</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_004">
+		<value>QRコードでマッチングする方法は？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_005">
+		<value>QRコードでマッチングする方法</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_006">
+		<value>友達とQRコードでマッチングして、友達を追加しましょう。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_007">
+		<value>｢カメラでスキャンする｣を押し、友達のQRコードをスキャンするとマッチングされます。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_008">
+		<value>｢アルバムから選ぶ｣を押し、友達から送ってもらったQRコードをお選びください。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_001">
+		<value>残念！まだマッチングできません。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_002">
+		<value>友達とマッチングする際には、友達と私のテスト結果が必要です。
+今すぐ友達にテストを行うようにお願いしましょう！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_003">
+		<value>SMSの送信</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_004">
+		<value>カカオトークの送信</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_005">
+		<value>URLの送信</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_001">
+		<value>まだテストを行っていません。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_002">
+		<value>友達とマッチングする際には、お二人のテスト結果が必要です。
+今すぐテストを行ってマッチング結果を確認しましょう！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_003">
+		<value>テストを行う</value>
+	</data>
+</root>

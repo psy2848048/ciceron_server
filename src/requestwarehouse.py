@@ -11,7 +11,8 @@ class Warehousing:
         self.sentence_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def __parseParagragh(self, strings):
-        return strings.split('\n')
+        result = strings.replace("\r", "").replace("\n  ", "\n\n")
+        return result.split('\n\n')
 
     def __parseSentence(self, strings):
         return self.sentence_detector.tokenize(strings.strip())
@@ -33,6 +34,14 @@ class Warehousing:
             sentences = self.__parseSentence(paragraph)
             for sentence_seq, sentence in enumerate(sentences, start=1):
                 self._unitOriginalDataInsert(request_id, paragraph_seq, sentence_seq, path, sentence, new_translation_id, original_lang_id, target_lang_id)
+
+    def parseSentence(self, strings):
+        sentences = strings.strip().replace('\r\n', '\n').split('\n')
+        result = []
+        for sentence in sentences:
+            result.extend(self.sentence_detector.tokenize(sentence))
+
+        return result
 
     def _restore_string(self, request_id, source):
         cursor = self.conn.cursor()

@@ -192,6 +192,16 @@ CREATE TABLE CICERON.F_REQUESTS (
     is_need_additional_points BOOLEAN,
     additional_points REAL,
     is_additional_points_paid BOOLEAN,
+
+    is_i18n BOOLEAN,
+    is_movie BOOLEAN,
+    is_docx BOOLEAN,
+    is_public BOOLEAN,
+
+    is_groupRequest BOOLEAN,
+    resell_price REAL,
+    is_copyright_checked BOOLEAN,
+    number_of_member_in_group INT,
     
     PRIMARY KEY(id)
 );
@@ -216,15 +226,15 @@ CREATE INDEX sentence ON CICERON.D_REQUEST_TEXTS (text);
 
 CREATE SEQUENCE CICERON.SEQ_D_REQUEST_TEXTS;
 
-CREATE TABLE CICERON.D_REQUEST_PHOTOS (
-    id INT,
-    path varchar(300),
-    bin BYTEA,
-
-    PRIMARY KEY(id)
-);
-
-CREATE SEQUENCE CICERON.SEQ_D_REQUEST_PHOTOS;
+--CREATE TABLE CICERON.D_REQUEST_PHOTOS (
+--    id INT,
+--    path varchar(300),
+--    bin BYTEA,
+--
+--    PRIMARY KEY(id)
+--);
+--
+--CREATE SEQUENCE CICERON.SEQ_D_REQUEST_PHOTOS;
 
 CREATE TABLE CICERON.D_REQUEST_FILES (
     id INT,
@@ -236,15 +246,39 @@ CREATE TABLE CICERON.D_REQUEST_FILES (
 
 CREATE SEQUENCE CICERON.SEQ_D_REQUEST_FILES;
 
-CREATE TABLE CICERON.D_REQUEST_SOUNDS (
+CREATE TABLE CICERON.D_TRANSLATED_FILES (
     id INT,
+    request_id INT,
     path varchar(300),
     bin BYTEA,
 
     PRIMARY KEY (id)
 );
 
-CREATE SEQUENCE CICERON.SEQ_D_REQUEST_SOUNDS;
+CREATE SEQUENCE CICERON.SEQ_D_TRANSLATED_FILES;
+
+CREATE TABLE CICERON.D_UNORGANIZED_TRANSLATED_RESULT(
+    id INT,
+    request_id INT,
+    file_id INT,
+    file_name VARCHAR(200),
+    translated_text TEXT,
+    translated_file BYTEA,
+
+    PRIMARY KEY (id)
+);
+
+CREATE SEQUENCE CICERON.SEQ_D_UNORGANIZED_TRANSLATED_RESULT;
+
+--CREATE TABLE CICERON.D_REQUEST_SOUNDS (
+--    id INT,
+--    path varchar(300),
+--    bin BYTEA,
+--
+--    PRIMARY KEY (id)
+--);
+--
+--CREATE SEQUENCE CICERON.SEQ_D_REQUEST_SOUNDS;
 
 CREATE TABLE CICERON.D_CLIENT_COMPLETED_GROUPS (
     id INT,
@@ -504,7 +538,20 @@ CREATE VIEW CICERON.V_REQUESTS as
     fact.start_translating_time start_translating_time, --55
     fact.is_need_additional_points is_need_additional_points, --56
     fact.additional_points additional_points, --57
-    fact.is_additional_points_paid is_additional_points_paid -- 58
+    fact.is_additional_points_paid is_additional_points_paid, -- 58
+
+    fact.is_i18n is_i18n, -- 59
+    fact.is_movie is_movie, -- 60
+    fact.is_groupRequest is_groupRequest, --61
+
+    fact.is_docx is_docx, -- 62
+    fact.is_public is_public, --63
+    fact.resell_price, --64
+    fact.is_copyright_checked is_copyright_checked, --65
+    fact.number_of_member_in_group number_of_member_in_group, --66
+
+    group_request.members requested_member,  -- 67
+    copyright.is_confirmed is_confirmed      -- 68
 
   FROM
     CICERON.F_REQUESTS fact
@@ -527,6 +574,14 @@ CREATE VIEW CICERON.V_REQUESTS as
              ON fact.translator_title_id = translator_title.id
   LEFT OUTER JOIN CICERON.D_TRANSLATED_TEXT result
              ON fact.translatedText_id = result.id
+  LEFT OUTER JOIN 
+                (SELECT request_id, count(*) members
+                FROM CICERON.F_GROUP_REQUESTS_USERS
+                WHERE is_paid = true
+                GROUP BY request_id) group_request
+             ON fact.id = group_request.request_id
+  LEFT OUTER JOIN CICERON.F_PUBLIC_REQUESTS_COPYRIGHT_CHECK copyright
+             ON fact.id = copyright.request_id
             ;
 
 CREATE VIEW CICERON.V_TRANSLATABLE_LANGUAGES as
@@ -797,3 +852,100 @@ CREATE TABLE CICERON.COMMENT_PARAGRAPH (
 );
 CREATE INDEX request_id3 ON CICERON.COMMENT_PARAGRAPH (request_id);
 
+CREATE TABLE CICERON.D_I18N_VARIABLE_NAMES (
+    id INT,
+    text VARCHAR(100),
+    comment_string VARCHAR(5000),
+
+    PRIMARY KEY (id)
+);
+CREATE SEQUENCE CICERON.SEQ_D_I18N_VARIABLE_NAMES;
+
+CREATE TABLE CICERON.D_I18N_TEXTS (
+    id INT,
+    text TEXT,
+    md5_checksum VARCHAR(40),
+    hit_count INT,
+
+    PRIMARY KEY (id)
+);
+CREATE SEQUENCE CICERON.SEQ_D_I18N_TEXTS;
+
+CREATE TABLE CICERON.F_I18N_TEXT_MAPPINGS (
+    id INT,
+    variable_id INT,
+    lang_id INT,
+    paragraph_seq INT,
+    sentence_seq INT,
+    text_id INT,
+    is_curated BOOLEAN,
+    is_init_translated BOOLEAN,
+
+    PRIMARY KEY (id),
+    FOREIGN KEY (text_id) REFERENCES CICERON.D_I18N_TEXTS (id),
+    FOREIGN KEY (variable_id) REFERENCES CICERON.D_I18N_VARIABLE_NAMES (id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_I18N_TEXT_MAPPINGS;
+
+CREATE TABLE CICERON.F_I18N_VALUES (
+    id INT,
+    request_id INT,
+    variable_id INT,
+    source_text_mapping_id INT,
+    target_text_mapping_id INT,
+
+    PRIMARY KEY (id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (variable_id) REFERENCES CICERON.D_I18N_VARIABLE_NAMES (id),
+    FOREIGN KEY (source_text_mapping_id) REFERENCES CICERON.F_I18N_TEXT_MAPPINGS (id),
+    FOREIGN KEY (target_text_mapping_id) REFERENCES CICERON.F_I18N_TEXT_MAPPINGS (id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_I18N_VALUES;
+
+CREATE TABLE CICERON.F_GROUP_REQUESTS_USERS (
+    id INT,
+    request_id INT,
+    user_id INT,
+    is_paid BOOLEAN,
+    payment_platform VARCHAR(30),
+    transaction_id VARCHAR(100),
+    complete_client_group_id INT,
+    complete_client_title_id INT,
+
+    PRIMARY KEY (id, request_id, user_id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_GROUP_REQUESTS_USERS;
+
+CREATE TABLE CICERON.F_READ_PUBLIC_REQUESTS_USERS (
+    id INT,
+    request_id INT,
+    user_id INT,
+    is_paid BOOLEAN,
+    payment_platform VARCHAR(30),
+    transaction_id VARCHAR(100),
+    complete_client_group_id INT,
+    complete_client_title_id INT,
+
+    PRIMARY KEY (id, request_id, user_id),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_READ_PUBLIC_REQUESTS_USERS;
+
+CREATE TABLE CICERON.F_PUBLIC_REQUESTS_COPYRIGHT_CHECK (
+    id INT,
+    request_id INT,
+    is_confirmed BOOLEAN,
+    file_bin BYTEA,
+
+    PRIMARY KEY (id, request_id)
+);
+CREATE SEQUENCE CICERON.SEQ_F_PUBLIC_REQUESTS_COPYRIGHT_CHECK;
+
+CREATE TABLE CICERON.INIT_TRANSLATION_TEMP (
+    id INT,
+    sentence VARCHAR(2000)
+);
+CREATE SEQUENCE CICERON.SEQ_INIT_TRANSLATION_TEMP;

@@ -1,0 +1,6 @@
+[run]
+source = src
+omit = 
+    */test*
+    src/locustfile.py
+    src/warning_application.py

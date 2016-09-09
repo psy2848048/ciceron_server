@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours</value>
+	</resheader>
+	<data xml:space="preserve" name="COMM_BTN_001">
+		<value>确认</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_002">
+		<value>下一步</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_003">
+		<value>结束</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_004">
+		<value>取消</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_005">
+		<value>非常同意</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_006">
+		<value>有点同意</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_007">
+		<value>不同意</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_008">
+		<value>非常不同意</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_009">
+		<value>临时储存 </value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_010">
+		<value>是</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_011">
+		<value>不是</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_012">
+		<value>匹配</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_013">
+		<value>查看更多</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_014">
+		<value>脸谱</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_015">
+		<value>Kakao Talk</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_016">
+		<value>共享URL</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_017">
+		<value>其他</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_018">
+		<value>邀请</value>
+	</data>
+	<data xml:space="preserve" name="COMM_BTN_019">
+		<value>重新邀请</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_001">
+		<value>请输入正确的电子邮件。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_002">
+		<value>这是已注册会员的信息。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_003">
+		<value>请输入电子邮件。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_004">
+		<value>请输入电话号码。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_005">
+		<value>验证码错误</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_006">
+		<value>您输入的验证码错误。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_007">
+		<value>请输入验证码。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_008">
+		<value>请输入名字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_009">
+		<value>名字只能输入韩文、英文、数字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_010">
+		<value>请输入密码。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_011">
+		<value>密码只能输入韩文、英文、数字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_012">
+		<value>这不是注册会员的信息。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_013">
+		<value>无法使用的终端机。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_014">
+		<value>哎呀！还未验证电子邮件！</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_015">
+		<value>只有验证的电子邮件才能利用服务。请确认注册会员时输入的电子邮件的信箱！</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_016">
+		<value>这不是注册的会员信息。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_017">
+		<value>这是已经注册过的昵称。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_018">
+		<value>您输入的验证码不一致。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_019">
+		<value>无法使用的浏览器。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_020">
+		<value>网络状态不好，请确认网络连接状态。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_021">
+		<value>这不是正确的QR码图像。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_022">
+		<value>您输入的电子邮件\n无效。\n 请输入有效的电子邮件。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_023">
+		<value>验证成功了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_024">
+		<value>名字至少两个字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_025">
+		<value>密码至少六个字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_026">
+		<value>只要同意使用条款及个人信息处理方针\n才能注册会员。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_027">
+		<value>昵称至少两个字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_028">
+		<value>昵称只能输入韩文、英文、数字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_029">
+		<value>验证失败了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_030">
+		<value>登录社交网站失败了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_031">
+		<value>通过脸谱账户登录失败了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_032">
+		<value>请升级谷歌加至最新版本。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_033">
+		<value>以谷歌加账户登录失败了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_034">
+		<value>请输入名字或昵称。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_035">
+		<value>失败引入电话簿，请确认设置权限。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_036">
+		<value>取消了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_037">
+		<value>正在准备引入到脸谱。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_038">
+		<value>朋友引入到脸谱引入失败了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_039">
+		<value>名字至少两个字。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_040">
+		<value>这不是有效的QR码或已注册的信息。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_041">
+		<value>QA信息不够。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_042">
+		<value>已加好友了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_043">
+		<value>QR码扫描失败了。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_044">
+		<value>您拒绝了连接照相机。请确认应用设置。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_045">
+		<value>您拒绝了连接照相机。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_046">
+		<value>请输入电子邮件。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_047">
+		<value>没有注册过的信息。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_048">
+		<value>请确认用户名和密码。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_049">
+		<value>您要解至少６个问题。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_ERR_050">
+		<value>应用版本太低。\n请升级到最新版本。</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_001">
+		<value>个人信息使用条款</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_002">
+		<value>服务条款</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_003">
+		<value>电子邮件</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_004">
+		<value>电话话吗</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_005">
+		<value>输入电子邮件</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_006">
+		<value>输入手机号码</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_007">
+		<value>个人信息使用条款</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_008">
+		<value>个人信息使用条款</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_009">
+		<value>个人信息使用条款</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_010">
+		<value>个人信息使用条款</value>
+	</data>
+	<data xml:space="preserve" name="COMM_TEXT_011">
+		<value>密码</value>
+	</data>
+	<data xml:space="preserve" name="KEY">
+		<value>Chinese</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_001">
+		<value>电视剧的主人公配得上&lt;br&gt;我吗？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_002">
+		<value>通过很简单的测试&lt;br&gt;了解、共享、猜猜吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_003">
+		<value>登录脸谱</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_004">
+		<value>登录谷歌</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_005">
+		<value>注册会员</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_006">
+		<value>您已经有账户吗？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_002_007">
+		<value>登录</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_001">
+		<value>注册会员</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_002">
+		<value>电子邮件</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_003">
+		<value>发送验证码</value>
+	</data>
+	<data xml:space="preserve" name="SSM_004_004">
+		<value>输入电子邮件</value>
+	</data>
+	<data xml:space="preserve" name="SSM_005_001">
+		<value>输入手机号码</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_001">
+		<value>手机验证码短信发送</value>
+	</data>
+	<data xml:space="preserve" name="SSM_006_002">
+		<value>到~~。等几分钟后会收到验证码。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_001">
+		<value>输入验证码</value>
+	</data>
+	<data xml:space="preserve" name="SSM_007_002">
+		<value>6位数字</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_001">
+		<value>名字</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_002">
+		<value>密码</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_003">
+		<value>输入至少6位数字和字母组合</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_004">
+		<value>男性</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_005">
+		<value>女性</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_006">
+		<value>利用条款&lt;/a&gt;及</value>
+	</data>
+	<data xml:space="preserve" name="SSM_008_007">
+		<value>个人信息条款&lt;/a&gt;同意</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_001">
+		<value>验证电子邮件，就可以利用社交网站匹配服务。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_002">
+		<value>输入昵称（可选填）</value>
+	</data>
+	<data xml:space="preserve" name="SSM_009_003">
+		<value>不输入昵称也可以，随时可以更改</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_001">
+		<value>恭喜您。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_002">
+		<value>您成功注册了开心的社交网站匹配服务。&lt;br&gt;请享受开心的社交网站匹配服务之乐吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_003">
+		<value>开始</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_004">
+		<value>确认验证电子邮件的链接地址</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_005">
+		<value>发给~~。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_006">
+		<value>这是验证邮件。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_007">
+		<value>点击如下链接地址验证成功，完成注册会员。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_008">
+		<value>验证本人</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_009">
+		<value>电子邮件验证成功。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_010_010">
+		<value>已验证。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_011_001">
+		<value>怎么也想不起来密码？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_001">
+		<value>忘记您的密码？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_002">
+		<value>使用电子邮件注册会员。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_003">
+		<value>使用电话号码注册会员。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_014_004">
+		<value>重设密码</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_001">
+		<value>通过电子邮件重设</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_002">
+		<value>发送密码更改链接地址</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_003">
+		<value>为了更改密码发送的邮件。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_004">
+		<value>请进入如下链接地址更改密码。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_005">
+		<value>密码更改</value>
+	</data>
+	<data xml:space="preserve" name="SSM_015_006">
+		<value>确认密码</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_001">
+		<value>重设密码的连接地址</value>
+	</data>
+	<data xml:space="preserve" name="SSM_016_002">
+		<value>发送给~~。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_001">
+		<value>通过电话号码重设</value>
+	</data>
+	<data xml:space="preserve" name="SSM_017_002">
+		<value>重设3 o'clock for Social密码链接地址</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_001">
+		<value>参加测试</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_002">
+		<value>公告事项</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_003">
+		<value>推送通知</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_004">
+		<value>阅读服务条款</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_005">
+		<value>给咨询中心发电子邮件</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_006">
+		<value>语言设置</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_007">
+		<value>版本信息</value>
+	</data>
+	<data xml:space="preserve" name="SSM_020_008">
+		<value>退出</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_001">
+		<value>测试</value>
+	</data>
+	<data xml:space="preserve" name="SSM_021_002">
+		<value>为了分析个人倾向的180个测试</value>
+	</data>
+	<data xml:space="preserve" name="SSM_022_001">
+		<value>我的结果</value>
+	</data>
+	<data xml:space="preserve" name="SSM_023_001">
+		<value>我的倾向分析结果</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_001">
+		<value>修改个人简介</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_002">
+		<value>现在名字</value>
+	</data>
+	<data xml:space="preserve" name="SSM_024_003">
+		<value>保存</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_001">
+		<value>阅读条款</value>
+	</data>
+	<data xml:space="preserve" name="SSM_027_002">
+		<value>阅读全文</value>
+	</data>
+	<data xml:space="preserve" name="SSM_031_001">
+		<value>您真的要退出吗？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_001">
+		<value>电视剧匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_002">
+		<value>社交网站匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_003">
+		<value>Hotclip</value>
+	</data>
+	<data xml:space="preserve" name="SSM_032_004">
+		<value>参加社交网站匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_034_001">
+		<value>为了匹配的6个测试</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_001">
+		<value>为了匹配的6个测试</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_002">
+		<value>匹配结果</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_003">
+		<value>和您</value>
+	</data>
+	<data xml:space="preserve" name="SSM_035_004">
+		<value>正在统计匹配结果。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_001">
+		<value>和其他人物匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_037_002">
+		<value>参加社交网站匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_001">
+		<value>共享</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_002">
+		<value>共享URL</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_003">
+		<value>URL地址复制了，请把它粘贴在您愿意的位置。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_038_004">
+		<value>移到应用</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_001">
+		<value>加好友</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_002">
+		<value>引入好友目录</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_003">
+		<value>查找不到好友目录！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_004">
+		<value>通过通信录或社交网站加好友吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_005">
+		<value>加好友</value>
+	</data>
+	<data xml:space="preserve" name="SSM_044_006">
+		<value>通过QR代码加好友</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_001">
+		<value>脸谱好友目录</value>
+	</data>
+	<data xml:space="preserve" name="SSM_045_002">
+		<value>从电话簿引入</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_001">
+		<value>和我可匹配的朋友</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_002">
+		<value>邀请好友</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_003">
+		<value>输入名字或昵称</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_004">
+		<value>邀请好友</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_005">
+		<value>我和这个朋友配得上吗？现在参加简单测试确认我和朋友的匹配率结果吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_047_006">
+		<value>通过应用链接</value>
+	</data>
+	<data xml:space="preserve" name="SSM_049_001">
+		<value>正在统计匹配率</value>
+	</data>
+	<data xml:space="preserve" name="SSM_050_001">
+		<value>和别朋友匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_001">
+		<value>QR码匹配</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_002">
+		<value>使用照相机扫描</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_003">
+		<value>从相册中选择</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_004">
+		<value>通过QR码怎么可以匹配？</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_005">
+		<value>通过QR码匹配指南</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_006">
+		<value>通过QR码和朋友匹配，简便加好友吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_007">
+		<value>点击“照相机扫描”，扫描朋友的QR码就匹配。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_052_008">
+		<value>点击“从相册中选择”，选朋友发送的QR码！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_001">
+		<value>哎呀！还不能匹配。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_002">
+		<value>为了和朋友匹配需要我和朋友的测试结果！现在对朋友要求参加测试吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_003">
+		<value>发短信邀请</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_004">
+		<value>通过Kakao Talk邀请</value>
+	</data>
+	<data xml:space="preserve" name="SSM_056_005">
+		<value>通过URL邀请</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_001">
+		<value>哎呀！还未参加测试了。</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_002">
+		<value>为了和朋友匹配需要２名的测试结果。现在立即参加测试得到匹配结果吧！</value>
+	</data>
+	<data xml:space="preserve" name="SSM_057_003">
+		<value>参加测试</value>
+	</data>
+</root>

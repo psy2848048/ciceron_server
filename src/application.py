@@ -1,27 +1,41 @@
 # -*- coding: utf-8 -*-
+"""
+어플리케이션 서버 본 코드
+URL rule과 Response가 정의되어 있음.
 
-from flask import Flask, session, redirect, escape, request, g, abort, json, flash, make_response, send_from_directory, url_for, send_file
-from contextlib import closing
+TODO: 이 파일에서는 Function call만 하고, Query 날리는 것은 모두 라이브러리화 시켜 서버 갈아타기 쉽게 하기
+"""
+
+from flask import Flask, session, request, g, make_response, send_from_directory, url_for, send_file, redirect
 from datetime import datetime, timedelta
-import hashlib, sqlite3, os, time, requests, sys, logging, io
-#os.environ['DYLD_LIBRARY_PATH'] = '/usr/local/opt/openssl/lib'
-""" Execute following first!!"""
-""" export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
+import os
+import requests
+import io
 
 import psycopg2
-from functools import wraps
-from werkzeug import secure_filename
-from decimal import Decimal
+from i18nHandler import I18nHandler
+from detourserverConnector import Connector
 from ciceron_lib import *
 from requestwarehouse import Warehousing
+from groupRequest import GroupRequest
+from requestResell import RequestResell
+from payment import Payment
+
 from flask.ext.cors import CORS
 from flask.ext.session import Session
-from multiprocessing import Process
 from flask.ext.cache import Cache
 from flask_oauth import OAuth
 
-#DATABASE = '../db/ciceron.db'
+# DATABASE = '../db/ciceron.db'
 DATABASE = None
+# parser = argparse.ArgumentParser(description='Translation agent')
+# parser.add_argument('--dbpass', dest='dbpass', help='DB password')
+# args = parser.parse_args()
+
+# os.environ['DYLD_LIBRARY_PATH'] = '/usr/local/opt/openssl/lib'
+""" Execute following first!!"""
+""" export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
+
 if os.environ.get('PURPOSE') == 'PROD':
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 else:
@@ -42,9 +56,9 @@ PERMANENT_SESSION_LIFETIME = timedelta(days=15)
 ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'png', 'tiff'])
 ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
 ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
-VERSION= "2015.11.15"
+VERSION = "2015.11.15"
 
-#CELERY_BROKER_URL = 'redis://localhost'
+# CELERY_BROKER_URL = 'redis://localhost'
 
 HOST = ""
 if os.environ.get('PURPOSE') == 'PROD':
@@ -68,34 +82,52 @@ Session(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # Celery
-#celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-#celery.conf.update(app.config)
+# celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+# celery.conf.update(app.config)
 
 # Flask-OAuth for facebook
 oauth = OAuth()
 facebook = oauth.remote_app('facebook',
-    base_url='https://graph.facebook.com/',
-    request_token_url=None,
-    access_token_url='/oauth/access_token',
-    authorize_url='https://www.facebook.com/dialog/oauth',
-    consumer_key=FACEBOOK_APP_ID,
-    consumer_secret=FACEBOOK_APP_SECRET,
-    request_token_params={'scope': 'email'}
-)
-
+                            base_url='https://graph.facebook.com/',
+                            request_token_url=None,
+                            access_token_url='/oauth/access_token',
+                            authorize_url='https://www.facebook.com/dialog/oauth',
+                            consumer_key=FACEBOOK_APP_ID,
+                            consumer_secret=FACEBOOK_APP_SECRET,
+                            request_token_params={'scope': 'email'}
+                            )
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
 
+
 def pic_allowed_file(filename):
+    """
+    확장자를 보고 사진(그림)인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_PIC']
 
+
 def doc_allowed_file(filename):
+    """
+    확장자를 보고 문서인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_DOC']
 
+
 def sound_allowed_file(filename):
+    """
+    확장자를 보고 음성인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
     return '.' in filename and filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS_WAV']
 
+
 def connect_db():
+    """
+    DB connector 함수
+    """
     return psycopg2.connect(app.config['DATABASE'])
 
 ################################################################################
@@ -104,10 +136,16 @@ def connect_db():
 
 @app.before_request
 def before_request():
+    """
+    모든 API 실행 전 실행하는 부분. 여기서는 DB 연결.
+    """
     g.db = connect_db()
 
 @app.teardown_request
 def teardown_request(exception):
+    """
+    모든 API 실행 후 실행하는 부분. 여기서는 DB 연결종료.
+    """
     db = getattr(g, 'db', None)
     if db is not None:
         db.close()
@@ -120,6 +158,15 @@ def get_facebook_token():
 #@exception_detector
 @cache.cached(timeout=50, key_prefix='loginStatusCheck')
 def loginCheck():
+    """
+    해당 세션의 상태를 보여준다.
+    아래 return값은 session[var_name]으로 접근 가능하다
+
+    :returns JSON response
+        useremail: 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
+        isLoggedIn: 로그인 여부 True/False
+        isTranslator: 로그인한 유저의 번역가여부 True/False
+    """
     if 'useremail' in session:
         client_os = request.args.get('client_os', None)
         isTranslator = translator_checker_plain(g.db, session['useremail'])
@@ -141,9 +188,34 @@ def loginCheck():
             message="No user is logged in")
             , 403)
 
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    try:
+        cursor = g.db.cursor()
+        cursor.execute("SELECT * FROM CICERON.F_REQUESTS WHERE id = 1")
+        return make_response(json.jsonify(message="OK"), 200)
+    except:
+        return make_response(json.jsonify(message="Disorder"), 500)
+
 @app.route('/api/login', methods=['POST', 'GET'])
 #@exception_detector
 def login():
+    """
+    로그인 함수
+
+    로그인 로직
+        1. GET /api/login에 접속
+        2. 로그인 Salt를 받는다.
+        3. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
+        4. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
+
+    GET
+        No parameter
+
+    POST
+        :param string email: 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
+        :param string password: 3번 참조
+    """
     if request.method == "POST":
         # Parameter
         #     email:        E-mail ID
@@ -316,6 +388,10 @@ def facebook_signUp(resp):
 @app.route('/api/logout', methods=["GET"])
 #@exception_detector
 def logout():
+    """
+    로그아웃 함수
+        - session에 들어있는 모든 키 제거
+    """
     # No parameter needed
     if session['logged_in'] == True:
         cache.clear()
@@ -338,14 +414,16 @@ def logout():
 @app.route('/api/signup', methods=['POST', 'GET'])
 #@exception_detector
 def signup():
-    # Request method: POST
-    # Parameters
-    #     email: String, email ID ex) psy2848048@gmail.com
-    #     password: String, password
-    #     name: String, this name will be used and appeared in Ciceron system
-    #     mother_language_id: Enum integer, 1st language of user
-    #     (not yet) client_os
-    #     (not yet) registration_id
+    """
+    회원가입 함수
+    
+    :param string email: 회원 email
+    :param string password: sha256(password) 전송. Salt 없음
+    :param string name: 이름
+    :param int mother_tongue_id: 모국어 ID. ID-언어 대응은 원노트 참고
+
+    핵심 동작 함수: ciceron_lib.signUpQuick()
+    """
 
     if request.method == 'POST':
         # Get parameter values
@@ -394,6 +472,11 @@ def signup():
 @app.route('/api/idCheck', methods=['POST'])
 #@exception_detector
 def idChecker():
+    """
+    ID 중복조회
+
+        CICERON.D_USERS에 중복된 이메일주소가 있는지 살펴본다.
+    """
     cursor = g.db.cursor()
 
     # Method: GET
@@ -419,6 +502,17 @@ def idChecker():
 @app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
 def create_recovery_code():
+    """
+    패스워드 잊어버렸을 때 가입한 이메일로 복구 코드 전송
+    담당하는 테이블: CICERON.EMERGENCY_CODE
+    로직
+        1. 유저 이름 받아옴 (핵심은 아니고, 이메일 보낼 때, Dear xx할 때 넣을 이름 조회 목적..)
+        2. ciceron_lib.random_string_gen을 이용하여 랜덤 스트링 12자리로 이루어진 복구 코드를 받아옴
+        3. UPDATE OR INSERT 복구코드
+        4. 복구코드 이메일로 전송
+
+    1 유저당 1레코드만 허용
+    """
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
@@ -474,6 +568,14 @@ def create_recovery_code():
 @app.route('/api/user/recover_password', methods=['POST'])
 #@exception_detector
 def recover_password():
+    """
+    복구 코드를 받아 패스워드 재설정하는 부분
+
+    로직
+        1. 해당 ID의 복구코드 조회
+        2. 새 패스워드 중 패스워드가 아무것도 없는 빈 스트링인 경우 막기 위하여 elif에서 빈 스트링에 대한 hash값은 빠꾸처리
+        3. 패스워드 변경 후 복구 코드는 비움.
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
     email = parameters['email']
@@ -506,6 +608,13 @@ def recover_password():
 @login_required
 #@exception_detector
 def change_password():
+    """
+    패스워드 변경
+
+    로직
+        1. 현재 패스워드의 sha256 값 불러와서 비교
+        2. 일치하면 새로운 패스워드의 sha256값 엎어치기
+    """
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
@@ -538,6 +647,26 @@ def change_password():
 @login_required
 #@exception_detector
 def user_profile():
+    """
+    프로파일 조회 API (GET), 정보 업데이트 API (POST)
+
+    1) GET
+        응답 정보는 원노트 조회 요망
+
+        엥간한 유저 정보: CICERON.D_USERS
+        일반 유저의 적립금 정보: CICERON.REVENUE  (뜻은 안 맞지만... 이전 설계때문에 이리 되었으니 참아주세요 ㅜㅜ)
+        번역가 유저의 수당 정보: CICERON.RETURN_POINT
+
+        GET으로 불러올 때 ?user_email=<other_user_email> 파라미터로 다른 유저 정보를 조회해올 수 있음
+        이 때에는, 다른 유저의 포인트 및 적립금은 -65535로 마스킹됨.
+
+    2) POST
+        프로필 소개글이나 프로필 사진 변경가능
+        프로필 사진 올릴 때에는 Content-Type을 JSON이나 www-urlencode말고, multipart/form-data로 업로드하기 바람
+
+        프로파일 사진 바이너리는 CICERON.F_USER_PROFILE_PIC 에 저장됨. 서버에 물리 파일로 저장하지 않음에 유의.
+        API 경로랍시고 profile_pic_path에 스트링 넣긴 하지만, 의미없음.
+    """
     if request.method == 'GET':
         # Method: GET
         # Parameters
@@ -642,6 +771,25 @@ def user_profile():
 @login_required
 #@exception_detector
 def user_keywords_control(keyword):
+    """
+    프로파일에서 자신을 표현할 수 있는 키워드 기 입력된 키워드에서 검색(GET), 추가(POST), 및 삭제(DELETE)
+    1) GET
+        <keyword>에 집어 넣은 글자를 처음으로 하는, 기 입력된 키워드를 조회하여 후보를 보여준다.
+        키워드 입력시, 연관검색어를 제공하고자 함이다.
+
+    2) POST
+        <keyword>를 입력한다.
+        Keyword Dimension table: CICERON.D_KEYWORDS
+        Keyword Fact table: CICERON.D_USER_KEYWORDS
+
+        기 입력된 키워드면 키워드ID를 찾아서 유저별로 Mapping한다.
+        기존에 입력된 키워드가 아니라면 Dimension table에 INSERT한다.
+
+    3) DELETE
+        해당 유저의 키워드에서 입력된 <keyword>를 삭제한다.
+        Dimension table의 레코드는 건드리지 않고, Fact table에 적혀있는 mapping만 지운다.
+
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
 
@@ -686,6 +834,18 @@ def user_keywords_control(keyword):
 @app.route('/api/requests', methods=["POST"])
 #@exception_detector
 def requests():
+    """
+    번역물 의뢰 API
+
+    로직
+        1. 로그인 판별
+        2. CICERON.F_REQUEST의 새로운 ID따기 (ciceron_lib.get_new_id() 사용)
+        3. 여러 파라미터 받아옴 (원노트 API 문서 참고)
+        4. 텍스트, 사진, 음성, 문서, i18n 등등의 형식에 따라 후처리
+        5. 단문 번역의 경우, isSos = True, 이 경우에는 결제와 상관없이 is_paid = True
+        6. 일반 의뢰의 경우, isSos = False, 이 경우에는 결제 진행해야 리스트에 보이게 해야 하므로, is_paid = False
+        7. splitTrans는 번역 공동구매 여부 선택. is_sound, is_text, is_doc 의 true/false와는 독립적이다.
+    """
     if request.method == "POST":
         if session.get('useremail') == None or session.get('useremail') == False:
             return make_response(json.jsonify(
@@ -714,6 +874,11 @@ def requests():
         is_photo = parameter_to_bool(parameters.get('request_isPhoto', False))
         is_sound = parameter_to_bool(parameters.get('request_isSound', False))
         is_file = parameter_to_bool(parameters.get('request_isFile', False))
+        is_docx = parameter_to_bool(parameters.get('request_isDocx', False))
+        is_i18n = parameter_to_bool(parameters.get('request_isI18n', False))
+        is_movie = parameter_to_bool(parameters.get('request_isMovie', False))
+        is_groupRequest = parameter_to_bool(parameters.get('request_isGroupRequest', False))
+        is_public = parameter_to_bool(parameters.get('request_isPublic', False))
 
         if isSos == False:
             delta_from_due = int(parameters['request_deltaFromDue'])
@@ -727,7 +892,17 @@ def requests():
         new_sound_id = None
         new_file_id = None
         new_text_id = None
+        new_translation_id = None
+        new_context_id = get_new_id(g.db, "D_CONTEXTS")
         is_paid = True if isSos == True else False
+        resell_price = 0.0
+        number_of_member_in_group = 0
+
+        if is_public == True:
+            resell_price = float(parameters.get('request_resellPrice', 0))
+
+        if is_groupRequest == True:
+            number_of_member_in_group = int(parameters.get('request_numberOfMemberInGroup', 0))
 
         if isSos == False and (original_lang_id == 500 or target_lang_id == 500):
             return make_response(json.jsonify(
@@ -740,85 +915,51 @@ def requests():
                 length=len(text_string)
                 ), 417)
 
-        # Upload binaries into file and update each dimension table
-        if (request.files.get('request_photo') != None):
-            binary = request.files['request_photo']
-            filename = ""
-            path = ""
-            new_photo_id = get_new_id(g.db, "D_REQUEST_PHOTOS")
-            if pic_allowed_file(binary.filename):
-                extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-                path = os.path.join("request_pic", str(new_photo_id), filename)
-
-            photo_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_PHOTOS (id, path, bin) VALUES (%s,%s,%s)", (new_photo_id, path, bytearray(photo_bin) ) )
-
-        if (request.files.get('request_sound') != None):
-            binary = request.files['request_sound']
-            filename = ""
-            path = ""
-            new_sound_id = get_new_id(g.db, "D_REQUEST_SOUNDS")
-            if sound_allowed_file(binary.filename):
-                extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-                path = os.path.join("request_sounds", str(new_sound_id), filename)
-
-            sound_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
-        
-        if (request.files.get('request_file') != None):
-            binary = request.files['request_file']
-            filename = ""
-            path = ""
+        if is_file == True:
             new_file_id = get_new_id(g.db, "D_REQUEST_FILES")
-            if doc_allowed_file(binary.filename):
-                extension = binary.filename.split('.')[-1]
-                filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-                path = os.path.join("request_doc", str(new_file_id), filename)
+            new_translated_file_id = get_new_id(g.db, "D_TRANSLATED_FILES")
 
-            file_bin = binary.read()
-            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_file_id, path, bytearray(file_bin) ) )
-
-            ############ Documentfile 2 TEXT ##################
-
-            if (binary.filename).endswith('.docx'):
-                from docx import Document
-                try:
-                    doc = Document(file_bin)
-                    text_string = ('\n').join([ paragraph.text for paragraph in doc.paragraphs ])
-                    print "DOCX file is converted into text."
-                except Exception as e:
-                    print "DOCX Error. Skip."
-                    pass
-
-            elif (binary.filename).endswith('.pdf'):
-                import slate
-                try:
-                    doc = slate.PDF(file_bin)
-                    text_string = ('\n\n').join(doc)
-                except Exception as e:
-                    print "PDF Error. Skip"
-                    pass
-
-            ##################################################
-
-        new_translation_id = None
-        if text_string:
-            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
+        if text_string and is_i18n == False and is_movie == False:
             new_text_id = get_new_id(g.db, "D_REQUEST_TEXTS")
             new_translation_id = get_new_id(g.db, "D_TRANSLATED_TEXT")
-            path = os.path.join("request_text", str(new_text_id), filename)
-            #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
-            warehousing = Warehousing(g.db)
-            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
 
-        # Input context text into dimension table
-        new_context_id = get_new_id(g.db, "D_CONTEXTS")
-        cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
+        # Upload binaries into file and update each dimension table
+        #if (request.files.get('request_photo') != None):
+        #    binary = request.files['request_photo']
+        #    filename = ""
+        #    path = ""
+        #    new_photo_id = get_new_id(g.db, "D_REQUEST_PHOTOS")
+        #    if pic_allowed_file(binary.filename):
+        #        extension = binary.filename.split('.')[-1]
+        #        filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+        #        path = os.path.join("request_pic", str(new_photo_id), filename)
 
+        #    photo_bin = binary.read()
+        #    cursor.execute("INSERT INTO CICERON.D_REQUEST_PHOTOS (id, path, bin) VALUES (%s,%s,%s)", (new_photo_id, path, bytearray(photo_bin) ) )
+
+        #if (request.files.get('request_sound') != None):
+        #    binary = request.files['request_sound']
+        #    filename = ""
+        #    path = ""
+        #    new_sound_id = get_new_id(g.db, "D_REQUEST_SOUNDS")
+        #    if sound_allowed_file(binary.filename):
+        #        extension = binary.filename.split('.')[-1]
+        #        filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+        #        path = os.path.join("request_sounds", str(new_sound_id), filename)
+
+        #    sound_bin = binary.read()
+        #    cursor.execute("INSERT INTO CICERON.D_REQUEST_SOUNDS (id, path, bin) VALUES (%s,%s,%s)", (new_sound_id, path, bytearray(sound_bin) ) )
+        
         cursor.execute("""INSERT INTO CICERON.F_REQUESTS
-            (id, client_user_id, original_lang_id, target_lang_id, isSOS, status_id, format_id, subject_id, queue_id, ongoing_worker_id, is_text, text_id, is_photo, photo_id, is_file, file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id, client_title_id, translator_title_id, registered_time, due_time, points, context_id, comment_id, tone_id, translatedText_id, is_paid, is_need_additional_points)
+            (id, client_user_id, original_lang_id, target_lang_id, isSOS,
+            status_id, format_id, subject_id, queue_id, ongoing_worker_id,
+            is_text, text_id, is_photo, photo_id, is_file,
+            file_id, is_sound, sound_id, client_completed_group_id, translator_completed_group_id,
+            client_title_id, translator_title_id, registered_time, due_time, points,
+            context_id, comment_id, tone_id, translatedText_id, is_paid,
+            is_need_additional_points, is_i18n, is_movie, is_groupRequest, is_docx,
+            is_public, resell_price, number_of_member_in_group
+            )
                 VALUES
                 (%s,%s,%s,%s,%s,
                  %s,%s,%s,%s,%s,
@@ -826,38 +967,105 @@ def requests():
                  %s,%s,%s,%s,%s,
                  %s,%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '%s seconds', %s,
                  %s,%s,%s,%s,%s,
-                 %s)""", 
+                 %s,%s,%s,%s,%s,
+                 %s,%s,%s)""", 
             (
                     request_id,                       # id
                     client_user_id,                   # client_user_id
                     original_lang_id,                 # original_lang_id
                     target_lang_id,                   # target_lang_id
                     isSos,                            # isSOS
+
                     0,                    # status_id
                     format_id,            # format_id
                     subject_id,           # subject_id
                     None,                 # queue_id
                     None,                 # ongoing_worker_id
+
                     is_text,     # is_text
                     new_text_id,          # text_id
                     is_photo,             # is_photo
                     new_photo_id,         # photo_id
                     is_file,              # is_file
+
                     new_file_id,          # file_id
                     is_sound,             # is_sound
                     new_sound_id,         # sound_id
                     None,                 # client_completed_group_id
                     None,                 # translator_completed_group_id
+
                     None,                 # client_title_id
                     None,                 # translator_title_id
                     delta_from_due,       # due_time
                     point,                # points
+
                     new_context_id,       # context_id
                     None,                 # comment_id
                     None,                 # tone_id
                     new_translation_id,                 # translatedText_id
                     is_paid,              # is_paid
-                    False))               # is_need_additional_points
+
+                    False,                # is_need_additional_points
+                    is_i18n,
+                    is_movie,
+                    is_groupRequest,
+                    is_docx,
+
+                    is_public,
+                    resell_price,
+                    number_of_member_in_group,
+             )
+        )
+
+        if text_string and is_i18n == False and is_movie == False:
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + ".txt"
+            path = os.path.join("request_text", str(new_text_id), filename)
+            #cursor.execute("INSERT INTO CICERON.D_REQUEST_TEXTS (id, path, text) VALUES (%s,%s,%s)", (new_text_id, path, text_string))
+            warehousing = Warehousing(g.db)
+            warehousing.store(new_text_id, path, text_string, new_translation_id, original_lang_id, target_lang_id)
+
+        if is_file == True:
+            binary = request.files['request_file']
+            extension = binary.filename.split('.')[-1]
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+            request_path = os.path.join("request_doc", str(new_file_id), filename)
+            translate_path = os.path.join("translated_doc", str(new_translated_file_id), filename)
+
+            file_bin = binary.read()
+            cursor.execute("INSERT INTO CICERON.D_REQUEST_FILES (id, path, bin) VALUES (%s,%s,%s)", (new_file_id, request_path, bytearray(file_bin) ) )
+            cursor.execute("INSERT INTO CICERON.D_TRANSLATED_FILES (id, request_id, path, bin) VALUES (%s,%s,%s,null)", (new_translated_file_id, request_id, translate_path, ))
+
+        if is_i18n == True:
+            i18nObj = I18nHandler(g.db)
+            i18n_file_format = parameters.get('request_i18nFileFormat')
+            i18n_binary = request.files['request_i18nFileBinary'].read()
+            i18n_langKey = parameters.get('request_i18nLangKey')
+
+            try:
+                if i18n_file_format == 'android':
+                    i18nObj.androidToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'json':
+                    i18nObj.jsonToDb(request_id, i18n_langKey, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'iOS':
+                    i18nObj.iosToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'xamarin':
+                    i18nObj.xamarinToDb(request_id, original_lang_id, target_lang_id, i18n_binary)
+                elif i18n_file_format == 'unity':
+                    i18nObj.unityToDb(request_id, i18n_langKey, original_lang_id, target_lang_id, i18n_binary)
+
+            except Exception:
+                g.db.rollback()
+                return make_response(json.jsonify(
+                    message="Something wrong in your file"), 413)
+
+        if is_groupRequest == True:
+            # 번역 공동구매 정보 입력
+            # Execute own SQL in another module
+            groupRequestObj = GroupRequest(g.db)
+            groupRequestObj.addUserToGroup(request_id, client_user_id)
+
+        # Input context text into dimension table
+        cursor.execute("INSERT INTO CICERON.D_CONTEXTS VALUES (%s,%s)", (new_context_id, context))
 
         g.db.commit()
         update_user_record(g.db, client_id=client_user_id)
@@ -883,6 +1091,17 @@ def requests():
 @app.route('/api/user/translations/stoa', methods=["GET"])
 #@exception_detector
 def translator_stoa():
+    """
+    번역가의 스토아 보여주기
+
+    Store 아니다. Stoa다. 상점 아니다. 기둥 사이, 토론 공간이다.
+
+    로직
+        1. 일반 번역인 경우 (isSos = False) 작업중인 번역가가 없으며, (ongoing_worker_id = null) 번역 진행 상태가 pending이고, (status_id = 0) 번역비 결제가 된 경우 (is_paid = True)
+        2. 단문 번역인 경우 (isSos = True) 모든 상태를 다 보여줌.
+        3. 쿼리 후 결과를 ciceron_lib.json_form_V_REQUESTS()를 이용하여 Response를 parsing한다.
+        4. ciceron_lib.json_form_V_REQUESTS()이 하는 일은, 각 의뢰에 필요한 정보를 추려 JSON 꼴로 만들어 주는 라이브러리 함수다.
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -918,6 +1137,21 @@ def translator_stoa():
 #@exception_detector
 @translator_checker
 def show_queue():
+    """
+    [현재는 사용 안함, 기획 후 사용할수도]
+    번역가가 가격 네고를 건 티켓 보여주기 (GET), 가격제시하기 (POST)
+    티켓 단가가 너무 낮아서 번역가들이 작업을 기피하고 있을 때, 번역가들이 티켓 가격을 좀만 올려주면 작업을 하겠다고 말해주는 가격제시 API
+
+    GET 로직
+        1. 장바구니 관리 테이블: CICERON.D_QUEUE_LISTS
+        2. CICERON.D_QUEUE_LISTS에 있는 티켓 중 내 의뢰인 티켓 번호를 찾아 뿌려줌. 결제 완료 의뢰여야 함 (is_paid = True)
+
+    POST 로직
+        1. 기본적으로, 의뢰인 API에서는 의뢰인 입장에서 지불한 금액을 보여주고, 번역가 API에서는 번역가 입장에서 받을 수 있는 금액을 보여준다. 예를 들어, USD 5로 의뢰한 금액을 의뢰인한데는 USD 5로 보여주지만, 번역가에게는 USD 3.5로 보여준다. 번역가 입장에서는 5를 벌고 나중에 가져갈 때 1.5를 공제한다고 하는 것보단 아싸리 3.5 받는다고 하는게 여러모로 좋을 것이라 생각하기 때문이다.
+        2. D_USERS 테이블을 보면 번역가의 등급에 따라 return_rate를 다르게 설정할 수 있다. 기본은 0.7이다. 즉, 의뢰금의 70%를 번역가가 가져간다.
+        3. 이 원리를 거꾸로 생각하면, 번역가가 가격 제시를 할 때에는 return_rate를 고려하여 추가 결제금을 생각향 한다는 것이다. 예를 들어 0.7인 번역가가 7을 제시했으면 의뢰인한테 보여지는 금액은 10이 되어야 한다는 뜻이다.
+        4. 나머지 짜글짜글한 exception의뜻들이 궁금하면 브라이언에게 문의..
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -1052,6 +1286,10 @@ def show_queue():
 @translator_checker
 #@exception_detector
 def work_in_queue(request_id):
+    """
+    네고를 걸었던 티켓 네고취소 (DELETE), 네고금액 수정 (PUT)
+    네고 로직 돌아가는 원리는 바로 위 API의 설명 참고
+    """
     if request.method == "DELETE":
         cursor = g.db.cursor()
 
@@ -1105,6 +1343,17 @@ def work_in_queue(request_id):
 @translator_checker
 #@exception_detector
 def pick_request():
+    """
+    내가 번역중인 티켓 리스트 보여주기 (GET), 내가 번역하기 (POST)
+
+    POST 로직
+        1. 혹시 다른 번역가가 작업중인지 체크
+        2. 이미 내가 번역중인지 체크
+        3. 내가 해당 언어쌍에 번역 권한이 있는지 체크 (ciceron_lib.strict_translator_checker() )
+        4. 번역중 상태로 바꿈 (status_id = 1), 번역중인 번역가를 내 ID로 고침 (ongoing_worker_id = %s)
+        5. 네고 중이었다면, 네고 테이블에서 삭제
+        6. 이메일 알람 전송
+    """
     if request.method == "POST":
         # Request method: POST
         # Parameters
@@ -1130,13 +1379,13 @@ def pick_request():
                 message = "You cannot translate your request. Request ID: %d" % request_id
                 ), 406)
 
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 1, ongoing_worker_id = %s, start_translating_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = 0", (user_id, request_id))
-
         if strict_translator_checker(g.db, user_id, request_id) == False:
             return make_response(
                 json.jsonify(
                    message = "You have no translate permission of given language."
                    ), 401)
+
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 1, ongoing_worker_id = %s, start_translating_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = 0", (user_id, request_id))
 
         cursor.execute("DELETE FROM CICERON.D_QUEUE_LISTS WHERE id = %s and request_id = %s and user_id = %s", (queue_id, request_id, user_id))
         g.db.commit()
@@ -1186,6 +1435,13 @@ def pick_request():
 @translator_checker
 @login_required
 def working_translate_item(request_id):
+    """
+    번역중인 티켓 개별로 보기
+
+    로직
+        1. 기본적으로 위와 로직은 동일
+        2. 그런데 웨어하우징된 티켓을 프론트에 맞게 재구성하여 보여줌
+    """
     if request.method == "GET":
         user_id = get_user_id(g.db, session['useremail'])
         cursor = g.db.cursor()
@@ -1228,6 +1484,13 @@ def working_translate_item(request_id):
 @translator_checker
 @login_required
 def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
+    """
+    문장별 번역 업데이트(PUT), 문장별 원문/번역 살펴보기 (GET)
+
+    로직
+        1. 일단 자신이 번역하는 티켓인지 체크
+        2. 그 다음 보여줄 지, 업데이트할지 하는거 함.
+    """
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
@@ -1273,6 +1536,10 @@ def reviseTranslatedItemByEachLine(request_id, paragraph_id, sentence_id):
 @translator_checker
 @login_required
 def updateSentenceComment(request_id, paragraph_id, sentence_id):
+    """
+    문장별 주석 달기
+    """
+
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
@@ -1304,6 +1571,9 @@ def updateSentenceComment(request_id, paragraph_id, sentence_id):
 @translator_checker
 @login_required
 def updateParagraphComment(request_id, paragraph_id):
+    """
+    문단별 주석 달기 (혼동주의: 위는 문장별, 여기는 문단별)
+    """
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
@@ -1329,11 +1599,239 @@ def updateParagraphComment(request_id, paragraph_id):
                     comment_string=comment_string
                     ), 200)
 
+@app.route('/api/user/translations/ongoing/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_checkSourceAndTranslation(request_id):
+    """
+    i18n 번역 불러오기
+    i18nHandler.jsonResponse() 사용
+    """
+    if request.method == 'GET':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        i18nObj = I18nHandler(g.db)
+        result = i18nObj.jsonResponse(request_id, is_restricted=False)
+
+        cursor = g.db.cursor()
+        cursor.execute("SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s", (request_id, ))
+        ret = cursor.fetchall()
+
+        return make_response(json.jsonify(
+            data=json_from_V_REQUESTS(g.db, ret, purpose="ongoing_translator"),
+            realData=result
+            ), 200)
+
+@app.route('/api/user/translations/complete/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_completedCheckSourceAndTranslation(request_id):
+    """
+    i18n 번역 불러오기
+    i18nHandler.jsonResponse() 사용
+    """
+    if request.method == 'GET':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 2)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        i18nObj = I18nHandler(g.db)
+        result = i18nObj.jsonResponse(request_id, is_restricted=False)
+
+        cursor = g.db.cursor()
+        cursor.execute("SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s", (request_id, ))
+        ret = cursor.fetchall()
+
+        return make_response(json.jsonify(
+            data=json_from_V_REQUESTS(g.db, ret, purpose="complete_translator"),
+            realData=result
+            ), 200)
+
+@app.route('/api/user/translations/ongoing/i18n/<int:request_id>/variable/<int:variable_id>/paragraph/<int:paragraph_seq>/sentence/<int:sentence_seq>', methods=["PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_updateSentence(request_id, variable_id, paragraph_seq, sentence_seq):
+    """
+    해당 Variable, 해당 문단의 해당 문장 번역 업데이트.
+    i18nHandler.updateTranslation() 사용
+    """
+    if request.method == 'PUT':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        parameters = parse_request(request)
+        text = parameters['text']
+
+        i18nObj = I18nHandler(g.db)
+        i18nObj.updateTranslation(request_id, variable_id, paragraph_seq, sentence_seq, text)
+
+        return make_response(json.jsonify(
+                message="Update success",
+                request_id=request_id,
+                variable_id=variable_id,
+                paragraph_seq=paragraph_seq,
+                sentence_seq=sentence_seq
+            ), 200)
+
+@app.route('/api/user/translations/ongoing/i18n/<int:request_id>/variable/<int:variable_id>/comment', methods=["PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def i18n_updateComment(request_id, variable_id):
+    """
+    각 Variable의 comment를 다는 API
+    평문 번역과는 다르게 i18n 번역에서는 comment를 문장별로 달지 않고 variable 별로 단다.
+    """
+    if request.method == 'PUT':
+        user_id = get_user_id(g.db, session['useremail'])
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+        if has_translation_auth == False:
+            return make_response(json.jsonify(
+                message="You are not translator of the request"), 406)
+
+        parameters = parse_request(request)
+        comment_string = parameters['comment_string']
+
+        i18nObj = I18nHandler(g.db)
+        i18nObj.updateComment(request_id, variable_id, comment_string)
+
+        return make_response(json.jsonify(
+                message="Update success",
+                request_id=request_id,
+                variable_id=variable_id
+            ), 200)
+
+@app.route('/api/user/translations/ongoing/<int:request_id>/file', methods=["GET", "PUT"])
+#@exception_detector
+@translator_checker
+@login_required
+def getOrUpdateFile(request_id):
+    """
+    다중파일의뢰 파일 가져오기(GET) / 업데이트(PUT)
+    """
+    cursor = g.db.cursor()
+
+    user_id = get_user_id(g.db, session['useremail'])
+    does_have_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+    if does_have_auth == False:
+        return make_response(json.jsonify(
+            message="You are not translator of the request"), 406)
+
+    if request.method == "GET":
+        query_getFile = "SELECT bin FROM CICERON.D_TRANSLATED_FILES WHERE request_id = %s and bin is not null"
+        cursor.execute(query_getFile, (request_id, ))
+        request_file = cursor.fetchone()
+        if request_file is None:
+            return make_response(json.jsonify(message="No request file"), 404)
+        else:
+            return send_file(io.BytesIO(request_file[0]), attachment_filename="result.zip")
+
+    elif request.method == "PUT":
+        query_updateFile = "UPDATE CICERON.D_TRANSLATED_FILES SET bin = %s WHERE request_id = %s"
+        binary = request.files['translated_file']
+        file_bin = binary.read()
+        cursor.execute(query_updateFile, (file_bin, request_id, ))
+        g.db.commit()
+
+        return make_response(json.jsonify(
+            message="Update success"), 200)
+
+@app.route('/api/user/translations/complete/<int:request_id>/insertPair', methods=["POST"])
+#@exception_detector
+@translator_checker
+@login_required
+def savePair(request_id):
+    """
+    다중 파일 Request를 완료하면서 결과물 텍스트 혹은 바이너리 입력
+    바이너리인지 아닌지는 decode시 에러가 나는지 아닌지로 판단
+    """
+    cursor = g.db.cursor()
+
+    if request.method == "POST":
+        parameters = parse_request(request)
+        translated_filename = eval(parameters['translated_filenames'])
+        translated_pair = eval(parameters['translated_text'])
+
+        new_text_id = get_new_id(g.db, "D_UNORGANIZED_TRANSLATED_RESULT")
+        query_findFileId = """
+            SELECT file_id FROM CICERON.F_REQUESTS
+            WHERE (client_user_id = %s OR ongoing_worker_id = %s) AND id = %s AND is_file = true
+            """
+        cursor.execute(query_findFileId, (user_id, user_id, request_id, ))
+        res = cursor.fetchone()
+        if res is None or len(res) == 0:
+            return make_response(json.jsonify(
+                message="Invalid file request"), 406)
+
+        file_id = res[0]
+        query_insert = """
+            INSERT INTO CICERON.D_UNORGANIZED_TRANSLATED_RESULT
+              (id, request_id, file_id, translated_text, translated_file)
+            VALUES
+              (%s, %s, %s, %s, %s)
+        """
+        for filename, text_or_bin in zip(translated_filename, translated_pair):
+            try:
+                text_or_bin.decode('utf-8')
+                cursor.execute(query_insert, (new_text_id, request_id, file_id, filename, text_or_bin, None, ))
+            except:
+                cursor.execute(query_insert, (new_text_id, request_id, file_id, filename, None, text_or_bin, ))
+
+        g.db.commit()
+        return make_response(json.jsonify(
+            message="Insert success"), 200)
+
+@app.route('/api/user/requests/complete/<int:request_id>/file', methods=["GET"])
+#@exception_detector
+@translator_checker
+@login_required
+def getFileForClient(request_id):
+    """
+    다중파일의뢰 파일 가져오기(GET) / 업데이트(PUT)
+    """
+    cursor = g.db.cursor()
+
+    user_id = get_user_id(g.db, session['useremail'])
+    does_have_auth = clientAuthChecker(g.db, user_id, request_id, 1)
+    if does_have_auth == False:
+        return make_response(json.jsonify(
+            message="You are not client of the request"), 406)
+
+    if request.method == "GET":
+        query_getFile = "SELECT bin FROM CICERON.D_TRANSLATED_FILES WHERE request_id = %s"
+        cursor.execute(query_getFile, (request_id, ))
+        request_file = cursor.fetchone()
+        if request_file is None:
+            return make_response(json.jsonify(message="No request file"), 404)
+        else:
+            return send_file(io.BytesIO(request_file[0]), attachment_filename="result.zip")
+
 @app.route('/api/user/translations/ongoing/<int:request_id>/expected', methods=["GET", "POST", "DELETE"])
 #@exception_detector
 @translator_checker
 @login_required
 def expected_time(request_id):
+    """
+    (현재 사용하지 않음)
+    예상완료시간 보기 (GET), 입력(POST), 번역포기 (DELETE)
+
+    번역가가 번역을 하겠다고 마킹을 하면 바로 번역을 진행하는 것이 아니라, 먼저 본문을 한 번 열람을 하고,
+    언제까지 번역이 가능한지 예상 시간을 입력한다. (혹은 번역 포기를 한다.)
+    만약 번역하겠다고 한 시간에서 1/3 시점까지 예상시간을 입력하지 않으면 자동으로 번역불가로 간주하고 도로 스토아로 되돌려놓는다.
+    주가 되는 column은 CICERON.F_REQUESTS.expected_time이다.
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
@@ -1415,6 +1913,16 @@ def expected_time(request_id):
 @login_required
 @translator_checker
 def post_translate_item():
+    """
+    해당 의뢰 번역 완료 선언을 하는 곳이다.
+    로직
+        1. status_id = 1인 놈을 status_id = 2로 업데이트
+        2. 작업 완료한 번역은 폴더 관리가 된다. 폴더 중 Incoming 폴더에 갖다 집어넣는다. 만약 없다면 만들어 준 다음 집어넣는다.
+        3. 처음 가입할 때에는 작업 완료된 폴더가 없다. 처음 완료할 때 생성된다. 나중에 번역완료 탭에 가서 폴더를 옮길 수 있다.
+        4. 해당 의뢰에 네고를 건 것들 모두 삭제한다.
+        5. 공동구매인 경우, 공동구매한 모든 사람에게 완료 그룹 생성
+        6. 이메일 노티 전송
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -1423,34 +1931,48 @@ def post_translate_item():
     # Assign default group to requester and translator
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 "
+        query = "SELECT client_user_id, ongoing_worker_id, is_groupRequest FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 "
     else:
-        query = """SELECT client_user_id, ongoing_worker_id FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 AND 
+        query = """SELECT client_user_id, ongoing_worker_id, is_groupRequest FROM CICERON.V_REQUESTS WHERE request_id = %s AND status_id = 1 AND 
         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )"""
 
     cursor.execute(query, (request_id, ))
-    rs = cursor.fetchall()
-    if len(rs) == 0:
+    rs = cursor.fetchone()
+    if rs is None or len(rs) == 0:
         return make_response(
             json.jsonify(
                 message="Already completed request %d" % request_id,
                 request_id=request_id), 410)
 
-    requester_id = rs[0][0]
-    translator_id = rs[0][1]
+    requester_id = rs[0]
+    translator_id = rs[1]
+    is_groupRequest = rs[2]
 
-    requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
     translator_default_group_id =  get_group_id_from_user_and_text(g.db, translator_id, "Incoming", "D_TRANSLATOR_COMPLETED_GROUPS")
-
     # No default group. Insert new default group entry for user
-    if requester_default_group_id == -1:
-        requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
-        cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
-            (requester_default_group_id, requester_id, "Incoming"))
     if translator_default_group_id == -1:
         translator_default_group_id = get_new_id(g.db, "D_TRANSLATOR_COMPLETED_GROUPS")
         cursor.execute("INSERT INTO CICERON.D_TRANSLATOR_COMPLETED_GROUPS VALUES (%s,%s,%s)",
             (translator_default_group_id, translator_id, "Incoming"))
+
+
+    requester_default_group_id = None
+    if is_groupRequest:
+        groupRequestObj = GroupRequest(g.db)
+        groupMembers = groupRequestObj.checkGroupMembers(request_id)
+        for each_user_id, is_paid, payment_playform, transaction_id in groupMembers:
+            requester_default_group_id = get_group_id_from_user_and_text(g.db, each_user_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
+            if requester_default_group_id == -1:
+                requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
+                cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
+                    (requester_default_group_id, each_user_id, "Incoming"))
+
+    else:
+        requester_default_group_id = get_group_id_from_user_and_text(g.db, translator_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
+        if requester_default_group_id == -1:
+            requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
+            cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
+                (requester_default_group_id, requester_id, "Incoming"))
 
     # Change the state of the request
     cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 2, client_completed_group_id = %s, translator_completed_group_id = %s, submitted_time = CURRENT_TIMESTAMP WHERE id = %s AND ongoing_worker_id = %s ",
@@ -1480,6 +2002,10 @@ def post_translate_item():
 @login_required
 @translator_checker
 def translation_completed_items_detail(request_id):
+    """
+    특정 티켓 조회 + 토글뷰 지원
+    warehousing.restoreArray() 사용
+    """
     cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
@@ -1518,6 +2044,14 @@ def translation_completed_items_detail(request_id):
 @login_required
 @translator_checker
 def translation_completed_items_all():
+    """
+    작업 완료한 티켓 전체조회
+
+    status_id = 2 : 작업완료
+    is_paid: 처음에 지불 완료
+    is_need_additional_points: 만일, 해당 티켓에 네고가 있었고, 그것을 수락하여 추가 결제가 일어났을 때.
+    is_additional_points_paid: 추가결제 완료?
+    """
     cursor = g.db.cursor()
     since = request.args.get('since', None)
     user_id = get_user_id(g.db, session['useremail'])
@@ -1547,6 +2081,18 @@ def translation_completed_items_all():
 @login_required
 @translator_checker
 def set_title_translator(str_request_id):
+    """
+    작업 완료한 번역에 제목 달기
+
+    작업 완료한 번역은 폴더식으로 관리한다.
+    그리하여 원하는 때에 쉽게 꺼내 볼 수 있도록 지원해준다.
+    여기서 하나 도움을 주는 것이 티켓에 제목달기이다.
+
+    로직
+        1. CICERON.D_TRANSLATOR_COMPLETED_REQUEST_TITLES 에 새 sequence를 딴다. 제목 관리하는 테이블이다. ciceron_lib.get_new_id()
+        2. ciceron_lib.get_group_id_from_user_and_text()를 이용하여 Incoming 폴더의 ID를 찾는다.
+        3. CICERON.F_REQUESTS 테이블에 업데이트한다.
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
@@ -1579,6 +2125,9 @@ def set_title_translator(str_request_id):
 #@exception_detector
 @login_required
 def translators_complete_groups():
+    """
+    해당 유저의 작업 완료 그룹 리스트를 불러온다.(GET), 새 그룹을 등록한다. (POST)
+    """
     if request.method == "GET":
         since = None
         if 'since' in request.args.keys():
@@ -1604,6 +2153,9 @@ def translators_complete_groups():
 @translator_checker
 @login_required
 def modify_translators_complete_groups(str_group_id):
+    """
+    해당 그룹을 삭제한다. (DELETE) 해당 그룹 이름을 바꾼다. (PUT)
+    """
     parameters = parse_request(request)
 
     if request.method == "DELETE":
@@ -1626,6 +2178,15 @@ def modify_translators_complete_groups(str_group_id):
 @translator_checker
 @login_required
 def translation_completed_items_in_group(str_group_id):
+    """
+    해당 그룹에 속한 티켓을 보여준다. (GET) 해당 그룹으로 티켓을 이동한다. (POST)
+
+    POST 로직
+        1. CICERON.F_REQUESTS에서 translator_completed_group_id 값만 업데이트해주면 된다.
+
+    GET 로직
+        1. translator_completed_group_id로만 필터링하면 된다. 거기에 결제여부 체크 필터 넣어서 보여준다.
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
@@ -1666,6 +2227,11 @@ def translation_completed_items_in_group(str_group_id):
 @login_required
 @translator_checker
 def translation_incompleted_items_all():
+    """
+    미완료 리스트 불러오기
+    내가 작업중이라서 완료가 되지 않았거나 (status_id = 1), 혹은 시간을 초과한 티켓 (status_id = -1)을 보여준다.
+    결제여부 필터는 기본이다.
+    """
     cursor = g.db.cursor()
     since = request.args.get('since', None)
     user_id = get_user_id(g.db, session['useremail'])
@@ -1700,6 +2266,9 @@ def translation_incompleted_items_all():
 @login_required
 @translator_checker
 def translation_incompleted_items_each(request_id):
+    """
+    미완료 결제를 티켓 단위로 보는 API. 기본 로직은 위와 동일
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -1725,6 +2294,12 @@ def translation_incompleted_items_each(request_id):
 @app.route('/api/user/requests/stoa', methods=["GET"])
 #@exception_detector
 def user_stoa():
+    """
+    의뢰인의 스토아.
+    번역가 스토아와는 다르게, 일반 의뢰는 보여주지 않고, 대신 모든 사람의 단문번역 내역을 보여준다.
+    일반의뢰는 나름 프라이버시로 취급한다.
+    (단, 9월에 들고갈 번역 공동구매 시작하면 공동구매건은 스토아에 보이게 된다.)
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -1755,6 +2330,12 @@ def user_stoa():
 #@exception_detector
 @login_required
 def show_pending_list_client():
+    """
+    [현재 사용하지 않음]
+
+    티켓을 스토아에 올려는 놓았는데 번역가가 아직 번역을 잡지 않은 경우. 해당 티켓 리스트 보기 (GET)
+    번역가가 네고를 걸었을 때 수락하면서 차액 지불할 때 (POST)
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -1862,6 +2443,9 @@ def show_pending_list_client():
 #@exception_detector
 @login_required
 def show_pending_item_client(request_id):
+    """
+    의뢰한 티켓 개별 정보 보기
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
@@ -1887,6 +2471,15 @@ def show_pending_item_client(request_id):
 #@exception_detector
 @login_required
 def delete_item_client(request_id):
+    """
+    의뢰한 티켓 삭제
+
+    의미는 삭제지만, 실제 구동은 status_id = -2이다. status_id = -2의 의미는 삭제라는 뜻이다.
+    로직
+        1. 티켓 가격을 불러운다.
+        2. 사용한 티켓값은 적립금으로 돌려준다.
+        3. 티켓 status_id = -2 로 변경한다.
+    """
     if request.method == "DELETE":
         cursor = g.db.cursor()
 
@@ -1898,27 +2491,195 @@ def delete_item_client(request_id):
             query = """SELECT points FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND
            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         cursor.execute(query, (request_id, user_id))
-        points = cursor.fetchall()[0][0]
+        points = cursor.fetchone()[0]
         cursor.execute("UPDATE CICERON.REVENUE SET amount = amount + %s WHERE id = %s", (points, user_id))
         cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = -2 WHERE id = %s AND client_user_id = %s AND status_id = 0", (request_id, user_id))
         g.db.commit()
         return make_response(json.jsonify(
             message="Request #%d is deleted. USD %.2f is returned as requester's points" % (request_id, float(points)), request_id=request_id), 200)
 
+@app.route('/api/user/requests/pending/group_request', methods=["GET"])
+#@exception_detector
+@login_required
+def get_groupRequest_list():
+    """
+    번역 공동구매원 모집 리스트
+    """
+    if request.method == "GET":
+        groupRequestObj = GroupRequest(g.db)
+
+        page = 1
+        if 'page' in request.args.keys():
+            page = request.args.get('page', 1)
+
+        result = groupRequestObj.getGroupRequestList(page=page)
+        return make_response(json.jsonify(
+            data = ciceron_lib.json_form_V_REQUESTS(result)
+            ), 200)
+
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["GET"])
+#@exception_detector
+@login_required
+def get_oneGroupRequest(request_id):
+    """
+    번역 공동구매원 모집 리스트 (개별티켓)
+    """
+    if request.method == "GET":
+        groupRequestObj = GroupRequest(g.db)
+        result = groupRequestObj.getOneGroupRequest(request_id)
+        return make_response(json.jsonify(
+            data=json_form_V_REQUESTS(result)
+            ), 200)
+
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["POST"])
+#@exception_detector
+@login_required
+def addUser_groupRequest(request_id):
+    """
+    번역 공동구매 결제
+    """
+    if request.method == "POST":
+        groupRequestObj = GroupRequest(g.db)
+        paymentObj = Payment(g.db)
+
+        # Get and set parameters
+        parameters = parse_request(request)
+        client_email = parameters['payment_clientEmail']
+        payment_platform = parameters['payment_platform']
+        amount = float(parameters['payment_amount'])
+        promo_type = parameters.get('promo_type', 'null')
+        promo_code = parameters.get('promo_code', 'null')
+        point_for_use = float(parameters.get('point_for_use', 0))
+
+        client_userId = get_user_id(g.db, client_email)
+        groupRequestObj.addUserToGroup(request_id, client_userId)
+
+        payload = None
+        if payment_platform == 'iamport':
+            payload = {}
+
+            payload['card_number'] = parameters['card_number']
+            payload['expiry'] = parameters['expiry']
+            payload['birth'] = parameters['birth']
+            payload['pwd_2digit'] = parameters['pwd_2digit']
+
+        is_prod = False
+        if os.environ.get('PURPOSE') == 'PROD':
+            is_prod = True
+
+        # Point test
+        cur_amount = amount
+        if point_for_use > 0.00001:
+            is_point_usable, cur_amount = paymentObj.checkPoint(client_userId, point_for_use)
+            if current_point - use_point < -0.00001:
+                return make_response(json.jsonify(
+                    message="Fail"), 400)
+
+        # Promo code test
+        if promo_type != 'null':
+            isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(user_id, promo_code)
+            isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(user_id, promo_code)
+            if isCommonCode == 0:
+                cur_amount = cur_amount - commonPoint
+            elif isIndivCode == 0:
+                cur_amount = cur_amount - indivPoint
+            else:
+                return make_response(json.jsonify(
+                    message="Fail"), 400)
+
+        # Send payment request
+        is_payment_ok, link = False, ""
+        if payment_platform == 'alipay' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.alipayPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    )
+
+        elif payment_platform == 'paypal' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.paypalPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    )
+
+        elif payment_platform == 'iamport' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.iamportPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    , **payload
+                    )
+
+        else:
+            is_payment_ok, link = paymentObj.pointPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_groupRequest=True
+                    )
+
+        # Return
+        if is_payment_ok:
+            g.db.commit()
+            return make_response(json.jsonify(
+                link=link), 200)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Fail"), 400)
+
+@app.route('/api/user/requests/pending/group_request/<int:request_id>', methods=["DELETE"])
+#@exception_detector
+@login_required
+def deleteUser_groupRequest(request_id):
+    user_id = get_user_id(session['useremail'])
+    groupRequestObj = GroupRequest(g.db)
+    paymentObj = Payment(g.db)
+
+    is_delete_succeeded = groupRequestObj.deleteUserFromGroup(request_id, user_id)
+    is_refund_succeeded = paymentObj.refundByPoint(order_no)
+    if is_delete_succeeded == True and is_refund_succeeded == True:
+        g.db.commit()
+        return make_response(json.jsonify(
+            message="Complete"), 200)
+
+    else:
+        g.db.rollback()
+        return make_response(json.jsonify(
+            message="Failed"), 400)
+
 @app.route('/api/user/requests/ongoing', methods=["GET"])
 #@exception_detector
 @login_required
 def show_ongoing_list_client():
+    """
+    자신이 의뢰한 티켓 중 번역 진행중인 것 표시 (status_id = 1)
+    + 결제완료 여부 필터 첨가
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
         user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 1 "
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE 
+                      (client_user_id = %s OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s) )
+                  AND status_id = 1 """
         else:
-            query = """SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 1 AND
-           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE
+                      (client_user_id = %s OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) )
+                    AND status_id = 1
+                    AND ( (is_paid = true AND is_need_additional_points = false) 
+                          OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
@@ -1926,7 +2687,7 @@ def show_ongoing_list_client():
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (user_id, ))
+        cursor.execute(query, (user_id, user_id, ))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
@@ -1935,16 +2696,29 @@ def show_ongoing_list_client():
 #@exception_detector
 @login_required
 def show_ongoing_item_client(request_id):
+    """
+    자신이 의뢰한 티켓 중 개별 티켓 확인
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
 
         user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 "
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE request_id = %s 
+                  AND (client_user_id = %s OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s ) )
+                  AND status_id = 1
+                """
         else:
-            query = """SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 1 AND
-           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE request_id = %s
+                  AND (client_user_id = %s OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) )
+                  AND status_id = 1
+                  AND ( (is_paid = true AND is_need_additional_points = false)
+                       OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
         if 'since' in request.args.keys():
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
@@ -1952,7 +2726,7 @@ def show_ongoing_item_client(request_id):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (request_id, user_id))
+        cursor.execute(query, (request_id, user_id, user_id, ))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="ongoing_translator")
         return make_response(json.jsonify(data=result), 200)
@@ -1961,15 +2735,34 @@ def show_ongoing_item_client(request_id):
 #@exception_detector
 @login_required
 def client_completed_items():
+    """
+    완료한 번역 보여주기 (목록)
+    """
     cursor = g.db.cursor()
 
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s "
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id = 2 
+              AND (
+                      client_user_id = %s 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s ) 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+                  )
+              """
     else:
-        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND 
-        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id = 2
+              AND (
+                      client_user_id = %s 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                  )
+              AND ( (is_paid = true AND is_need_additional_points = false) 
+                   OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
     if 'since' in request.args.keys():
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -1977,7 +2770,7 @@ def client_completed_items():
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-    cursor.execute(query, (user_id, ))
+    cursor.execute(query, (user_id, user_id, user_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(data=result), 200)
@@ -1986,12 +2779,25 @@ def client_completed_items():
 #@exception_detector
 @login_required
 def client_completed_items_detail(request_id):
+    """
+    완료한 번역 보여주기 (개별)
+    토글뷰 지원 ( warehousing.restoreArray() )
+    """
     warehousing = Warehousing(g.db)
     user_id = get_user_id(g.db, session['useremail'])
     cursor = g.db.cursor()
 
-    query = """SELECT count(*) FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND client_user_id = %s """
-    cursor.execute(query, (request_id, user_id, ))
+    query = """
+        SELECT count(*) FROM CICERON.V_REQUESTS
+        WHERE status_id = 2
+          AND request_id = %s
+          AND (
+                  client_user_id = %s 
+               OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s ) 
+               OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+              )
+        """
+    cursor.execute(query, (request_id, user_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
         return make_response(json.jsonify(
@@ -2001,10 +2807,28 @@ def client_completed_items_detail(request_id):
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s "
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id = 2
+              AND request_id = %s
+              AND (
+                      client_user_id = %s 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                  )
+              """
     else:
-        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND client_user_id = %s AND request_id = %s AND
-         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id = 2
+              AND request_id = %s
+              AND (
+                      client_user_id = %s 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                   OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                  )
+              AND ( (is_paid = true AND is_need_additional_points = false) 
+                    OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
     if 'since' in request.args.keys():
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
@@ -2012,7 +2836,7 @@ def client_completed_items_detail(request_id):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-    cursor.execute(query, (user_id, request_id, ))
+    cursor.execute(query, (request_id, user_id, user_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(
@@ -2024,6 +2848,13 @@ def client_completed_items_detail(request_id):
 #@exception_detector
 @login_required
 def client_rate_request(request_id):
+    """
+    완료한 번역 유저평가
+    CICERON.F_REQUESTS.feedback_score에 0~2점 입력
+
+    + Rating 전에는 번역가에게 대금이 들어가지 않도록 설계 (추후, 1주일동안 평가 없으면 돈 들어가도록 수정)
+    + 해당 거래에 대금 지급 완료되었는지도 CICERON.PAYMENT_INFO에 마킹
+    """
     cursor = g.db.cursor()
 
     parameters = parse_request(request)
@@ -2031,14 +2862,21 @@ def client_rate_request(request_id):
 
     # Pay back part
     if session['useremail'] in super_user:
-        query_getTranslator = "SELECT ongoing_worker_id, points, feedback_score, is_need_additional_points, additional_points FROM CICERON.F_REQUESTS WHERE id = %s "
+        query_getTranslator = """
+            SELECT ongoing_worker_id, points, feedback_score, is_need_additional_points, additional_points
+            FROM CICERON.F_REQUESTS
+            WHERE id = %s """
     else:
-        query_getTranslator = """SELECT ongoing_worker_id, points, feedback_score, is_need_additional_points, additional_points FROM CICERON.F_REQUESTS WHERE id = %s AND 
-         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+        query_getTranslator = """
+            SELECT ongoing_worker_id, points, feedback_score, is_need_additional_points, additional_points
+            FROM CICERON.F_REQUESTS
+            WHERE id = %s 
+              AND ( (is_paid = true AND is_need_additional_points = false) 
+                  OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
     cursor.execute(query_getTranslator, (request_id, ) )
-    rs = cursor.fetchall()
-    formal_feedback_score = rs[0][2]
+    rs = cursor.fetchone()
+    formal_feedback_score = rs[2]
 
     # If the request is rated, another rate should be blocked
     if formal_feedback_score != None:
@@ -2075,8 +2913,8 @@ def client_rate_request(request_id):
     # Notification
     query = "SELECT ongoing_worker_id, client_user_id FROM CICERON.F_REQUESTS WHERE id = %s AND client_user_id = %s"
     cursor.execute(query, (request_id, user_id, ) )
-    rs = cursor.fetchall()
-    send_noti_lite(g.db, rs[0][0], 3, rs[0][1], request_id)
+    rs = cursor.fetchone()
+    send_noti_lite(g.db, rs[0], 3, rs[1], request_id)
 
     g.db.commit()
 
@@ -2089,9 +2927,16 @@ def client_rate_request(request_id):
 #@exception_detector
 @login_required
 def set_title_client(request_id):
+    """
+    완료한 번역에 제목달기
+    위부터 읽어왔으면 우리는 완료한 번역을 폴더로 관리하는 것은 알 것이리라 믿음
+    폴더별로 관리하는 티켓에 제목을 달아주는 일임
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
+        groupRequestObj = GroupRequest(g.db)
+        requestResellObj = RequestResell(g.db)
 
         title_text = parameters['title_text']
 
@@ -2102,7 +2947,9 @@ def set_title_client(request_id):
         new_title_id = get_new_id(g.db, "D_CLIENT_COMPLETED_REQUEST_TITLES")
         cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_REQUEST_TITLES VALUES (%s,%s)", (new_title_id, title_text) )
 
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET client_title_id = %s WHERE id = %s", (new_title_id, request_id))
+        cursor.execute("UPDATE CICERON.F_REQUESTS SET client_title_id = %s WHERE id = %s AND client_user_id = %s", (new_title_id, request_id, my_user_id, ))
+        groupRequestObj.insertTitle(request_id, my_user_id, new_title_id)
+        requestResellObj.insertTitle(request_id, my_user_id, new_title_id)
         g.db.commit()
         return make_response(json.jsonify(
             message="The title is set as '%s' to the request #%d" % (title_text, request_id)),
@@ -2117,6 +2964,10 @@ def set_title_client(request_id):
 #@exception_detector
 @login_required
 def client_complete_groups():
+    """
+    의뢰인기준 완료한 티켓 그룹관리.
+    그룹목목 보기 (GET), 그룹 생성 (POST)
+    """
     if request.method == "GET":
         since = None
         if 'since' in request.args.keys():
@@ -2142,6 +2993,9 @@ def client_complete_groups():
 #@exception_detector
 @login_required
 def modify_client_completed_groups(str_group_id):
+    """
+    그룹명수정 (PUT), 그룹 지우기 (DELETE)
+    """
     if request.method == "PUT":
         parameters = parse_request(request)
         group_name = complete_groups(g.db, parameters, "D_CLIENT_COMPLETED_GROUPS", "PUT", url_group_id=str_group_id)
@@ -2165,11 +3019,25 @@ def modify_client_completed_groups(str_group_id):
 #@exception_detector
 @login_required
 def client_completed_items_in_group(group_id):
+    """
+    해당 그룹에 속한 티켓 보기 (GET), 해당 그룹으로 티켓 옮기기 (POST)
+    """
     if request.method == "POST":
         cursor = g.db.cursor()
         parameters = parse_request(request)
         request_id = int(parameters['request_id'])
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET client_completed_group_id = %s WHERE id = %s", (group_id, request_id, ))
+        user_id = get_user_id(g.db, session['useremail'])
+        groupRequestObj = GroupRequest(g.db)
+        requestResellObj = RequestResell(g.db)
+
+        cursor.execute("""
+            UPDATE CICERON.F_REQUESTS 
+            SET client_completed_group_id = %s 
+            WHERE id = %s 
+              AND client_user_id = %s
+            """, (group_id, request_id, user_id, ))
+        groupRequestObj.assignToGroup(request_id, user_id, group_id)
+        requestResellObj.assignToGroup(request_id, user_id, group_id)
         group_name = get_text_from_id(g.db, group_id, "D_CLIENT_COMPLETED_GROUPS")
         g.db.commit()
         return make_response(
@@ -2180,10 +3048,23 @@ def client_completed_items_in_group(group_id):
         my_user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND client_completed_group_id = %s "
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE (client_user_id = %s AND client_completed_group_id = %s) 
+                    OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND complete_client_group_id = %s )
+                   OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND complete_client_group_id = %s ) 
+                    """
         else:
-            query = """SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND client_completed_group_id = %s AND
-           ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE (
+                           (client_user_id = %s AND client_completed_group_id = %s ) 
+                        OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s AND complete_client_group_id = %s AND is_paid = true)
+                        OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND complete_client_group_id = %s AND is_paid = true)
+                      )
+                  AND ( (is_paid = true AND is_need_additional_points = false) 
+                      OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
+                """
         if 'since' in request.args.keys():
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += "ORDER BY submitted_time DESC"
@@ -2191,7 +3072,7 @@ def client_completed_items_in_group(group_id):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (my_user_id, group_id, ))
+        cursor.execute(query, (my_user_id, group_id, my_user_id, group_id, my_user_id, group_id,))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
         return make_response(json.jsonify(data=result), 200)
@@ -2200,14 +3081,28 @@ def client_completed_items_in_group(group_id):
 #@exception_detector
 @login_required
 def client_incompleted_items():
+    """
+    자신이 의뢰한 티켓 중 미완료 리스트 ( status_id in (-1, 0, 1) ) <- 마감시간초과, 의뢰했으나 번역가 미 매칭, 작업진행중
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query = None
     if session['useremail'] in super_user:
-        query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s "
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id IN (-1,0,1) 
+              AND (client_user_id = %s
+                  OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+            """
     else:
-        query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND
-        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id IN (-1,0,1)
+              AND (client_user_id = %s
+                  OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+              AND ( (is_paid = true AND is_need_additional_points = false) 
+                  OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
+              """
     if 'since' in request.args.keys():
         query += "AND registered_time < to-timestamp(%s) " % request.args.get('since')
     query += " ORDER BY registered_time DESC LIMIT 20"
@@ -2215,7 +3110,7 @@ def client_incompleted_items():
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-    cursor.execute(query, (user_id, ))
+    cursor.execute(query, (user_id, user_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
     return make_response(json.jsonify(data=result), 200)
@@ -2224,15 +3119,37 @@ def client_incompleted_items():
 #@exception_detector
 @login_required
 def client_incompleted_item_control(request_id):
+    """
+    자신이 의뢰한 티켓 처리
+    조회 (GET),
+    번역하다가 마감시간 초과시 번역가 변경 없이 마감시간 및 금액 수정(PUT),
+    번역하다가 마감시간 초과시 번역가 변경하고 스토아로 보낸 후 마감시간 및 금액 수정 (POST),
+    마감시간 경과한 티켓 삭제 (DELETE)
+
+    결제가 필요하면 결제로 이어지는 API 주소 제공, is_paid = false로 마킹
+    """
     if request.method == "GET":
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
         query = None
         if session['useremail'] in super_user:
-            query = "SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND request_id = %s "
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE status_id IN (-1,0,1) 
+                  AND request_id = %s
+                  AND (client_user_id = %s
+                      OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                """
         else:
-            query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,0,1) AND client_user_id = %s AND request_id = %s AND 
-            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
+            query = """
+                SELECT * FROM CICERON.V_REQUESTS
+                WHERE status_id IN (-1,0,1)
+                  AND request_id = %s
+                  AND (client_user_id = %s
+                      OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                  AND ( (is_paid = true AND is_need_additional_points = false) 
+                      OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
+                  """
         if 'since' in request.args.keys():
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
@@ -2240,7 +3157,7 @@ def client_incompleted_item_control(request_id):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-        cursor.execute(query, (user_id, request_id))
+        cursor.execute(query, (request_id, user_id, user_id, ))
         rs = cursor.fetchall()
         result = json_from_V_REQUESTS(g.db, rs, purpose="pending_client")
         return make_response(json.jsonify(data=result), 200)
@@ -2272,8 +3189,28 @@ def client_incompleted_item_control(request_id):
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
         if additional_price == 0:
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is null", (additional_time_in_sec, request_id, user_id))
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 1, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, request_id, user_id))
+            cursor.execute("""
+                    UPDATE CICERON.F_REQUESTS
+                    SET   due_time = CURRENT_TIMESTAMP + interval '+%s seconds'
+                        , status_id = 0
+                        , registered_time = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                      AND status_id = -1
+                      AND (client_user_id = %s
+                          OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                      AND ongoing_worker_id is null
+                      """, (additional_time_in_sec, request_id, user_id, user_id, ))
+            cursor.execute("""
+                    UPDATE CICERON.F_REQUESTS
+                    SET   due_time = CURRENT_TIMESTAMP + interval '+%s seconds'
+                        , status_id = 1
+                        , registered_time = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                      AND status_id = -1
+                      AND (client_user_id = %s
+                          OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                      AND ongoing_worker_id is not null
+                      """, (additional_time_in_sec, request_id, user_id, user_id, ))
             g.db.commit()
 
             cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
@@ -2292,8 +3229,32 @@ def client_incompleted_item_control(request_id):
 
         # Change due date w/additional money
         else:
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, is_paid = false, points = points + %s WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is null", (additional_time_in_sec, additional_price, request_id, user_id))
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 1, is_paid = true, points = points + %s WHERE id = %s AND status_id = -1 AND client_user_id = %s AND ongoing_worker_id is not null", (additional_time_in_sec, additional_price, request_id, user_id))
+            cursor.execute("""
+                    UPDATE CICERON.F_REQUESTS
+                    SET   due_time = CURRENT_TIMESTAMP + interval '+%s seconds'
+                        , status_id = 0
+                        , registered_time = CURRENT_TIMESTAMP
+                        , is_paid = false
+                        , points = points + %s
+                    WHERE id = %s
+                      AND status_id = -1
+                      AND (client_user_id = %s
+                          OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                      AND ongoing_worker_id is null
+                      """, (additional_time_in_sec, additional_price, request_id, user_id, user_id, ))
+            cursor.execute("""
+                    UPDATE CICERON.F_REQUESTS
+                    SET   due_time = CURRENT_TIMESTAMP + interval '+%s seconds'
+                        , status_id = 1
+                        , registered_time = CURRENT_TIMESTAMP
+                        , is_paid = false
+                        , points = points + %s
+                    WHERE id = %s
+                      AND status_id = -1
+                      AND (client_user_id = %s
+                          OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                      AND ongoing_worker_id is not null
+                      """, (additional_time_in_sec, additional_price, request_id, user_id, user_id, ))
             g.db.commit()
 
             cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
@@ -2327,7 +3288,17 @@ def client_incompleted_item_control(request_id):
         user_id = get_user_id(g.db, session['useremail'])
         # Change due date w/o addtional money
         if additional_price == 0:
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s", (additional_time_in_sec, request_id, user_id) )
+            cursor.execute("""
+                    UPDATE CICERON.F_REQUESTS
+                    SET   due_time = CURRENT_TIMESTAMP + interval '+%s seconds'
+                        , status_id = 0
+                        , ongoing_worker_id = null
+                        , registered_time = CURRENT_TIMESTAMP
+                    WHERE id = %s 
+                      AND status_id = -1 
+                      AND (client_user_id = %s
+                          OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                    """, (additional_time_in_sec, request_id, user_id, user_id, ) )
             g.db.commit()
 
             cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
@@ -2346,7 +3317,19 @@ def client_incompleted_item_control(request_id):
 
         # Change due date w/additional money
         else:
-            cursor.execute("UPDATE CICERON.F_REQUESTS SET due_time = CURRENT_TIMESTAMP + interval '+%s seconds', status_id = 0, is_paid = false, points = points + %s, ongoing_worker_id = null, registered_time = CURRENT_TIMESTAMP WHERE id = %s AND status_id = -1 AND client_user_id = %s ", (additional_time_in_sec, additional_price, request_id, user_id))
+            cursor.execute("""
+                    UPDATE CICERON.F_REQUESTS 
+                    SET   due_time = CURRENT_TIMESTAMP + interval '+%s seconds'
+                        , status_id = 0
+                        , is_paid = false
+                        , points = points + %s
+                        , ongoing_worker_id = null
+                        , registered_time = CURRENT_TIMESTAMP 
+                    WHERE id = %s 
+                      AND status_id = -1 
+                      AND (client_user_id = %s
+                          OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                      """, (additional_time_in_sec, additional_price, request_id, user_id, user_id, ))
             g.db.commit()
 
             cursor.execute("SELECT registered_time, due_time, points FROM CICERON.F_REQUESTS WHERE id = %s", (request_id, ))
@@ -2370,7 +3353,14 @@ def client_incompleted_item_control(request_id):
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
 
-        cursor.execute("SELECT points FROM CICERON.F_REQUESTS WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s AND is_paid = true ", (request_id, user_id))
+        cursor.execute("""
+                SELECT points 
+                FROM CICERON.F_REQUESTS 
+                WHERE id = %s 
+                  AND status_id IN (-1,0) 
+                  AND (client_user_id = %s
+                      OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                  AND is_paid = true """, (request_id, user_id, user_id, ))
         ret = cursor.fetchone()
         points = None
         if ret is None or len(ret) == 0:
@@ -2384,7 +3374,15 @@ def client_incompleted_item_control(request_id):
 
         cursor.execute("UPDATE CICERON.REVENUE SET amount = amount + %s WHERE id = %s", (points, user_id))
 
-        cursor.execute("UPDATE CICERON.F_REQUESTS SET is_paid = false, status_id = -2 WHERE id = %s AND status_id IN (-1,0) AND client_user_id = %s ", (request_id, user_id))
+        cursor.execute("""
+                UPDATE CICERON.F_REQUESTS 
+                SET   is_paid = false
+                    , status_id = -2 
+                WHERE id = %s 
+                  AND status_id IN (-1,0) 
+                  AND (client_user_id = %s
+                      OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+                  """, (request_id, user_id, user_id, ))
 
         g.db.commit()
 
@@ -2409,6 +3407,13 @@ def client_incompleted_item_control(request_id):
 #@exception_detector
 @login_required
 def check_promotionCode(request_id):
+    """
+    프로모션 코드 유효성 체크
+    적용은 결제 API에서 이루어짐
+
+    promoCode = common -> 누구나 적용하는 캠페인
+    promoCode = indiv -> 개인한테만 제공
+    """
     user_id = get_user_id(g.db, session['useremail'])
     parameters = parse_request(request)
 
@@ -2438,24 +3443,36 @@ def check_promotionCode(request_id):
 #@exception_detector
 @login_required
 def pay_for_request(request_id):
+    """
+    결제 API
+    /api/requests에서 의뢰한 후 이곳으로 연결해야 is_paid = true로 바꿀 수 있음
+
+    pay_by := [web, mobile] 플랫폼을 의미
+    pay_via := [alipay, paypal, iamport] 결제 플랫폼
+    promo_type := [common, indiv] 프로모션 코드 있으면 전 회원 캠페인인지, 개인인지 구분
+    promo_code => 프로모션 코드
+    use_point => 적립금이 있다면, 사용함. 적립금이 있는지 검사하는 로직 수반함
+    is_additional := ['true', 'false'] 티켓 등록하면서 일어난 결제인지 (false) 티켓 등록 후 네고, 혹은 티켓 재등록 때문에 생기는 결제인지 (true) 구별
+    payload => (iamport 결제에서만 사용) 카드정보, 유효기간 등 입력
+    """
+
+    paymentObj = Payment(g.db)
+    requestResellObj = RequestResell(g.db)
+    groupRequestObj = GroupRequest(g.db)
     parameters = parse_request(request)
 
-    pay_by = parameters.get('pay_by')
-    pay_via = parameters.get('pay_via')
-    total_amount = float(parameters['pay_amount'])
-    use_point = float(parameters.get('use_point', 0))
-
+    client_email = session['useremail']
+    payment_platform = parameters['payment_platform']
+    amount = float(parameters['payment_amount'])
     promo_type = parameters.get('promo_type', 'null')
     promo_code = parameters.get('promo_code', 'null')
+    point_for_use = float(parameters.get('point_for_use', 0))
 
-    # Check whether the price exceeds the client's money purse.
-    amount = None
-    user_id = get_user_id(g.db, session['useremail'])
+    client_userId = get_user_id(g.db, client_email)
+    groupRequestObj.addUserToGroup(request_id, client_userId)
 
-    host_ip = os.environ.get('HOST', app.config['HOST'])
-    
     payload = None
-    if pay_via == 'iamport':
+    if payment_platform == 'iamport':
         payload = {}
 
         payload['card_number'] = parameters['card_number']
@@ -2463,72 +3480,119 @@ def pay_for_request(request_id):
         payload['birth'] = parameters['birth']
         payload['pwd_2digit'] = parameters['pwd_2digit']
 
-    status_code, provided_link, current_point = payment_start(g.db, pay_by, pay_via, request_id, total_amount, user_id, host_ip, use_point=use_point, promo_type=promo_type, promo_code=promo_code, payload=payload)
+    is_prod = False
+    if os.environ.get('PURPOSE') == 'PROD':
+        is_prod = True
 
-    if status_code == 'point_exceeded_than_you_have':
+    # Point test
+    cur_amount = amount
+    if point_for_use > 0.00001:
+        is_point_usable, cur_amount = paymentObj.checkPoint(client_userId, point_for_use)
+        if current_point - use_point < -0.00001:
+            return make_response(json.jsonify(
+                message="Fail"), 400)
+
+    # Promo code test
+    if promo_type != 'null':
+        isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(user_id, promo_code)
+        isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(user_id, promo_code)
+        if isCommonCode == 0:
+            cur_amount = cur_amount - commonPoint
+        elif isIndivCode == 0:
+            cur_amount = cur_amount - indivPoint
+        else:
+            return make_response(json.jsonify(
+                message="Fail"), 400)
+
+    # Send payment request
+    is_payment_ok, link = False, ""
+    if payment_platform == 'alipay' and cur_amount > 0.0001:
+        is_payment_ok, link = paymentObj.alipayPayment(is_prod, request_id, client_email, cur_amount
+                , point_for_use=point_for_use
+                , promo_type=promo_type
+                , promo_code=promo_code
+                )
+
+    elif payment_platform == 'paypal' and cur_amount > 0.0001:
+        is_payment_ok, link = paymentObj.paypalPayment(is_prod, request_id, client_email, cur_amount
+                , point_for_use=point_for_use
+                , promo_type=promo_type
+                , promo_code=promo_code
+                )
+
+    elif payment_platform == 'iamport' and cur_amount > 0.0001:
+        is_payment_ok, link = paymentObj.iamportPayment(is_prod, request_id, client_email, cur_amount
+                , point_for_use=point_for_use
+                , promo_type=promo_type
+                , promo_code=promo_code
+                , **payload
+                )
+
+    else:
+        is_payment_ok, link = paymentObj.pointPayment(is_prod, request_id, client_email, cur_amount
+                , point_for_use=point_for_use
+                , promo_type=promo_type
+                , promo_code=promo_code
+                )
+
+    # Return
+    if is_payment_ok:
+        g.db.commit()
         return make_response(json.jsonify(
-            message="You requested to use your points more than what you have. Price: %.2f, Your purse: %.2f" % (use_point, current_point)), 402)
+            link=link), 200)
 
-    elif status_code == 'paypal_error':
+    else:
+        g.db.rollback()
         return make_response(json.jsonify(
-            message="Something wrong in paypal"), 400)
-
-    elif status_code == 'paypal_success':
-        return make_response(json.jsonify(
-            message="Redirect link is provided!",
-            link=provided_link), 200)
-
-    elif status_code == 'alipay_success':
-        return make_response(json.jsonify(
-            message="Link to Alipay is provided.",
-            link=provided_link), 200)
-
-    elif status_code == 'iamport_error':
-        return make_response(json.jsonify(
-            message="Something wrong in iamport"), 400)
-
-    elif status_code == 'iamport_success':
-        return make_response(json.jsonify(message="Iamport success",
-            link="%s%s" % (HOST, '/stoa')), 200)
-
-    elif status_code == 'point_success':
-        return make_response(json.jsonify(message="Point success",
-            link="%s%s" % (HOST, '/stoa')), 200)
+            message="Fail"), 400)
 
 @app.route('/api/user/requests/<int:request_id>/payment/postprocess', methods = ["GET"])
 #@exception_detector
 def pay_for_request_process(request_id):
-    cursor = g.db.cursor()
-    user = request.args['user_id']
-    user_id = get_user_id(g.db, user)
-    pay_via = request.args['pay_via']
-    pay_by = request.args['pay_by']
-    is_success = True if request.args['status'] == "success" else False
-    amount = float(request.args.get('pay_amt'))
-    use_point = float(request.args.get('use_point', 0))
+    """
+    결제 후처리 API. Callback API
+    우리가 직접 부를 일 없음. Alipay, Paypal 등에 결제 후, 성공하면 그 쪽에서 부르는 API
+    결제정보 DB에 입력하고 is_paid = true로, 혹은 is_addional_point_paid = true로 바꿔주는 일을 한다.
+    """
+    paymentObj = Payment(g.db)
 
-    promo_type = request.args.get('promo_type', 'null')
-    promo_code = request.args.get('promo_code', 'null')
+    payload = {
+          'user_email': request.args['user_id']
+        , 'request_id': request_id
+        , 'pay_via': request.args['pay_via']
+        , 'pay_by': request.args['pay_by']
+        , 'is_succeeded': True if request.args['status'] == "success" else False
+        , 'amount': float(request.args.get('pay_amt'))
+        , 'use_point': float(request.args.get('use_point', 0))
+        , 'promo_type': request.args.get('promo_type', None)
+        , 'promo_code': request.args.get('promo_code', None)
+        , 'is_additional': parameter_to_bool(request.args.get('is_additional', False))
+        , 'is_groupRequest': parameter_to_bool(request.args.get('is_groupRequest', False))
+        , 'is_public': parameter_to_bool(request.args.get('is_public', False))
+        , 'paymentId': request.args.get('paymentId', None)
+        , 'PayerID': request.args.get('PayerID', None)
+        , 'ciceron_order_id': request.args.get('ciceron_order_id', None)
+    }
 
-    is_additional = request.args.get('is_additional', 'false')
+    is_succeeded = paymentObj.postProcess(**payload)
 
-    status_code = payment_postprocess(g.db, pay_by, pay_via, request_id, user_id, is_success, amount,
-            use_point=use_point, promo_type=promo_type, promo_code=promo_code, is_additional=is_additional)
+    if is_succeeded == True:
+        g.db.commit()
+        return redirect('/status', code=302)
 
-    if status_code == 'no_record':
-        return redirect(HOST, code=302)
-
-    if pay_by == "web":
-        return redirect("%s%s" % (HOST, '/stoa'), code=302)
-        #return make_response("OK", 200)
-    elif pay_by == "mobile":
-        return redirect("%s%s" % (HOST, '/stoa'), code=302)
+    else:
+        g.db.rollback()
+        return redirect('/stoa', code=302)
 
 @app.route('/api/user/translations/<int:request_id>', methods=["GET"])
 @login_required
 #@exception_detector
 @translator_checker
 def getOneTicketOfHero(request_id):
+    """
+    request_id만 입력받으면 알아서 status_id 감지하여 상황에 맞게 API를 포워딩해주고 상황에 맞는 데이터를 제공해주는 API
+    번역가 전용
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -2557,6 +3621,10 @@ def getOneTicketOfHero(request_id):
 @app.route('/api/user/requests/<int:request_id>', methods=["GET"])
 #@exception_detector
 def getOneTicketOfClient(request_id):
+    """
+    request_id만 입력받으면 알아서 status_id 감지하여 상황에 맞게 API를 포워딩해주고 상황에 맞는 데이터를 제공해주는 API
+    의뢰인 전용
+    """
     if request.method == "GET":
         # Request method: GET
         # Parameters
@@ -2582,10 +3650,277 @@ def getOneTicketOfClient(request_id):
             return make_response(json.jsonify(
                 message="Invalid request"), 404)
 
+@app.route('/api/user/requests/ongoing/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@login_required
+def i18n_getData_ongoing(request_id):
+    """
+    번역 진행중인 i18n 의뢰 열람
+    """
+    cursor = g.db.cursor()
+    user_id = get_user_id(g.db, session['useremail'])
+
+    is_user_request = clientAuthChecker(g.db, user_id, request_id, 1)
+    if is_user_request == False:
+        return make_response(json.jsonify(
+            message="Not your request"), 406)
+
+    if session['useremail'] in super_user:
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS
+            WHERE status_id = 1 
+              AND (client_user_id = %s
+                  OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+              AND request_id = %s """
+    else:
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS 
+            WHERE status_id = 1 
+              AND (client_user_id = %s
+                  OR (request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )))
+              AND request_id = %s 
+              AND ( (is_paid = true AND is_need_additional_points = false) 
+                  OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+    if 'since' in request.args.keys():
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+    query += " ORDER BY submitted_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+    cursor.execute(query, (user_id, user_id, request_id, ))
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
+
+    i18nObj = I18nHandler(g.db)
+
+    return make_response(json.jsonify(
+        data=result,
+        realData=i18nObj.jsonResponse(request_id, is_restricted=True)
+        ), 200)
+
+@app.route('/api/user/requests/complete/i18n/<int:request_id>', methods=["GET"])
+#@exception_detector
+@login_required
+def i18n_getData_complete(request_id):
+    """
+    번역 완료한 i18n 의뢰 열람
+    """
+    cursor = g.db.cursor()
+    user_id = get_user_id(g.db, session['useremail'])
+
+    is_user_request = clientAuthChecker(g.db, user_id, request_id, 2)
+    if is_user_request == False:
+        return make_response(json.jsonify(
+            message="Not your request"), 406)
+
+    if session['useremail'] in super_user:
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS 
+            WHERE status_id = 2 
+              AND (
+                     client_user_id = %s
+                  OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+                  OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+                  )
+              AND request_id = %s """
+    else:
+        query = """
+            SELECT * FROM CICERON.V_REQUESTS 
+            WHERE status_id = 2 
+              AND (
+                      client_user_id = %s
+                  OR request_id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+                  OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s AND is_paid = true) 
+                  )
+              AND request_id = %s 
+              AND ( (is_paid = true AND is_need_additional_points = false) 
+                  OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
+    if 'since' in request.args.keys():
+        query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
+    query += " ORDER BY submitted_time DESC LIMIT 20"
+    if 'page' in request.args.keys():
+        page = request.args.get('page')
+        query += " OFFSET %d " % (( int(page)-1 ) * 20)
+
+    cursor.execute(query, (user_id, user_id, request_id, ))
+    rs = cursor.fetchall()
+    result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
+
+    i18nObj = I18nHandler(g.db)
+
+    return make_response(json.jsonify(
+        data=result,
+        realData=i18nObj.jsonResponse(request_id, is_restricted=False)
+        ), 200)
+
+@app.route('/api/user/requests/complete/i18n/<int:request_id>/download', methods=["GET"])
+#@exception_detector
+@login_required
+def i18n_download(request_id):
+    """
+    번역 완료된 i18n 의뢰 포멧별로 다운로드
+    """
+    user_id = get_user_id(g.db, session['useremail'])
+    is_user_request = clientAuthChecker(g.db, user_id, request_id, 2)
+    if is_user_request == False:
+        return make_response(json.jsonify(
+            message="Not your request"), 406)
+
+    i18nObj = I18nHandler(g.db)
+    download_format = request.args.get('format', 'json')
+    download_binary = None
+
+    if   download_format == 'android':
+        filename, download_binary = i18nObj.exportAndroid(request_id)
+    elif download_format == 'iOS':
+        filename, download_binary = i18nObj.exportIOs(request_id)
+    elif download_format == 'unity':
+        filename, download_binary = i18nObj.exportUnity(request_id)
+    elif download_format == 'json':
+        filename, download_binary = i18nObj.exportJson(request_id)
+    elif download_format == 'xamarin':
+        filename, download_binary = i18nObj.exportXamarin(request_id)
+
+    return send_file(io.BytesIO(download_binary), attachment_filename=filename)
+
+@app.route('/api/public/random', methods=["GET"])
+#@exception_detector
+@login_required
+def public_list_random():
+    requestResellObj = RequestResell(g.db)
+    result_random = requestResellObj.getListRandomPick()
+
+    return make_response(json.jsonify(
+        data=json_form_V_REQUESTS(result_random)), 200)
+
+@app.route('/api/public', methods=["GET"])
+#@exception_detector
+@login_required
+def public_list():
+    page = request.args.get('page', 1)
+    requestResellObj = RequestResell(g.db)
+    result = requestResellObj.getList(page=page)
+
+    return make_response(json.jsonify(
+        data=json_form_V_REQUESTS(result)), 200)
+
+@app.route('/api/public/<int:request_id>', methods=["GET"])
+#@exception_detector
+@login_required
+def public_oneTicket(request_id):
+    requestResellObj = RequestResell(g.db)
+    result = requestResellObj.getOneTicket(request_id)
+
+    return make_response(json.jsonify(
+        data=json_form_V_REQUESTS(result)), 200)
+
+@app.route('/api/public/<int:request_id>', methods=["POST"])
+#@exception_detector
+@login_required
+def public_payment(request_id):
+    if request.method == "POST":
+
+        paymentObj = Payment(g.db)
+        requestResellObj = RequestResell(g.db)
+        parameters = parse_request(request)
+
+        client_email = parameters['payment_clientEmail']
+        payment_platform = parameters['payment_platform']
+        amount = float(parameters['payment_amount'])
+        promo_type = parameters.get('promo_type', 'null')
+        promo_code = parameters.get('promo_code', 'null')
+        point_for_use = float(parameters.get('point_for_use', 0))
+
+        client_userId = get_user_id(g.db, client_email)
+        requestResellObj.setReadPermission(request_id, client_userId)
+
+        payload = None
+        if payment_platform == 'iamport':
+            payload = {}
+
+            payload['card_number'] = parameters['card_number']
+            payload['expiry'] = parameters['expiry']
+            payload['birth'] = parameters['birth']
+            payload['pwd_2digit'] = parameters['pwd_2digit']
+
+        is_prod = False
+        if os.environ.get('PURPOSE') == 'PROD':
+            is_prod = True
+
+        # Point test
+        cur_amount = amount
+        if point_for_use > 0.00001:
+            is_point_usable, cur_amount = paymentObj.checkPoint(client_userId, point_for_use)
+            if current_point - use_point < -0.00001:
+                return make_response(json.jsonify(
+                    message="Fail"), 400)
+
+        # Promo code test
+        if promo_type != 'null':
+            isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(user_id, promo_code)
+            isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(user_id, promo_code)
+            if isCommonCode == 0:
+                cur_amount = cur_amount - commonPoint
+            elif isIndivCode == 0:
+                cur_amount = cur_amount - indivPoint
+            else:
+                return make_response(json.jsonify(
+                    message="Fail"), 400)
+
+        # Send payment request
+        is_payment_ok, link = False, ""
+        if payment_platform == 'alipay' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.alipayPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_public=True
+                    )
+
+        elif payment_platform == 'paypal' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.paypalPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_pubic=True
+                    )
+
+        elif payment_platform == 'iamport' and cur_amount > 0.0001:
+            is_payment_ok, link = paymentObj.iamportPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_public=True
+                    , **payload
+                    )
+
+        else:
+            is_payment_ok, link = paymentObj.pointPayment(is_prod, request_id, session['useremail'], cur_amount
+                    , point_for_use=point_for_use
+                    , promo_type=promo_type
+                    , promo_code=promo_code
+                    , is_public=True
+                    )
+
+        # Return
+        if is_payment_ok:
+            g.db.commit()
+            return make_response(json.jsonify(
+                link=link), 200)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Fail"), 400)
+
 @app.route('/api/user/device', methods = ["POST"])
 #@exception_detector
 @login_required
 def register_or_update_register_id():
+    """
+    푸시 알림을 위한 기기등록
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -2612,6 +3947,11 @@ def register_or_update_register_id():
 @app.route('/api/access_file/profile_pic/<user_id>/<fake_filename>')
 @login_required
 def access_profile_pic(user_id, fake_filename):
+    """
+    프로파일 사진 access를 위한 API.
+    파라미터 중 하나 이름이 fake_filename인 이유는, 이거 별로 중요하지 않아서
+    아무렇게나 입력해도 파일은 받아진다. 근데 확장자 잘못 넣으면 파일 안 열릴수도.
+    """
     cursor = g.db.cursor()
     query_getPic = "SELECT bin FROM CICERON.F_USER_PROFILE_PIC WHERE user_id = %s"
     cursor.execute(query_getPic, (user_id, ))
@@ -2624,13 +3964,23 @@ def access_profile_pic(user_id, fake_filename):
 @app.route('/api/access_file/request_pic/<photo_id>/<fake_filename>')
 @login_required
 def access_request_pic(photo_id, fake_filename):
+    """
+    사진 의뢰 access를 위한 API
+    file을 직접 access하는 것이 아닌, DB에 저장된 Bianry를 파일로 만들어서 준다.
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
         SELECT photo_id FROM CICERON.F_REQUESTS
-        WHERE (client_user_id = %s OR ongoing_worker_id = %s) AND photo_id = %s
+        WHERE (
+               client_user_id = %s 
+            OR ongoing_worker_id = %s 
+            OR id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+            OR id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+            )
+          AND photo_id = %s
         """
-    cursor.execute(query_checkAuth, (user_id, user_id, photo_id))
+    cursor.execute(query_checkAuth, (user_id, user_id, user_id, user_id, photo_id, ))
     checkAuth = cursor.fetchone()
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)
@@ -2646,13 +3996,22 @@ def access_request_pic(photo_id, fake_filename):
 @app.route('/api/access_file/request_sounds/<sound_id>/<fake_filename>')
 @login_required
 def access_request_sound(sound_id, fake_filename):
+    """
+    음성 의뢰 파일 access를 위한 API
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
-        SELECT photo_id FROM CICERON.F_REQUESTS
-        WHERE (client_user_id = %s OR ongoing_worker_id = %s) AND sound_id = %s
+        SELECT sound_id FROM CICERON.F_REQUESTS
+        WHERE (
+               client_user_id = %s 
+            OR ongoing_worker_id = %s 
+            OR id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+            OR id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+            )
+          AND sound_id = %s
         """
-    cursor.execute(query_checkAuth, (user_id, user_id, sound_id))
+    cursor.execute(query_checkAuth, (user_id, user_id, user_id, user_id, sound_id, ))
     checkAuth = cursor.fetchone()
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)
@@ -2668,18 +4027,27 @@ def access_request_sound(sound_id, fake_filename):
 @app.route('/api/access_file/request_doc/<doc_id>/<fake_filename>')
 @login_required
 def access_request_file(doc_id, fake_filename):
+    """
+    문서 의뢰 파일 access를 위한 API
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
     query_checkAuth = """
-        SELECT photo_id FROM CICERON.F_REQUESTS
-        WHERE (client_user_id = %s OR ongoing_worker_id = %s) AND file_id = %s
+        SELECT file_id FROM CICERON.F_REQUESTS
+        WHERE (
+               client_user_id = %s 
+            OR ongoing_worker_id = %s 
+            OR id IN (SELECT request_id FROM CICERON.F_GROUP_REQUESTS_USERS WHERE user_id = %s )
+            OR id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
+            )
+          AND file_id = %s
         """
-    cursor.execute(query_checkAuth, (user_id, user_id, doc_id))
+    cursor.execute(query_checkAuth, (user_id, user_id, user_id, user_id, doc_id, ))
     checkAuth = cursor.fetchone()
     if checkAuth is None:
         return make_response(json.jsonify(message="Only requester or translator can see the file"), 401)
 
-    query_getFile = "SELECT bin FROM CICERON.D_REQUEST_FILES  WHERE id = %s"
+    query_getFile = "SELECT bin FROM CICERON.D_REQUEST_FILES WHERE id = %s"
     cursor.execute(query_getFile, (doc_id, ))
     request_file = cursor.fetchone()
     if request_file is None:
@@ -2689,12 +4057,19 @@ def access_request_file(doc_id, fake_filename):
 
 @app.route('/api/access_file/img/<filename>')
 def mail_img(filename):
+    """
+    img 폴더의 이미지들을 access하기 위한 API
+    """
     return send_from_directory('img', filename)
 
 @app.route('/api/action_record', methods = ["POST"])
 @login_required
 #@exception_detector
 def record_user_location():
+    """
+    사용안함. 지워도 됨.
+    API call logging에 사용. 지금은 아예 내장시킴
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
     
@@ -2714,6 +4089,9 @@ def record_user_location():
 @login_required
 #@exception_detector
 def get_notification():
+    """
+    알림 내역 조회
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
@@ -2783,6 +4161,9 @@ def get_notification():
 @login_required
 #@exception_detector
 def read_notification():
+    """
+    조회한 노티 읽음으로 처리
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail']) 
     if 'noti_id' in request.args.keys():
@@ -2803,6 +4184,9 @@ def read_notification():
 @login_required
 #@exception_detector
 def register_payback():
+    """
+    적립금 환불신청 넣는 API
+    """
     if request.method == "GET":
         # GET payback list
         cursor = g.db.cursor()
@@ -2860,6 +4244,9 @@ def register_payback():
 @login_required
 #@exception_detector
 def point_detail():
+    """
+    적립금 / 포인트 사용 및 적립내역 보여줌
+    """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail'])
 
@@ -2868,7 +4255,7 @@ def point_detail():
     SELECT 2 as message_id, request_time, -1 * amount as points, is_returned, return_time FROM CICERON.RETURN_MONEY_BANK_ACCOUNT WHERE user_id = %s
     UNION
     SELECT 1 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
-    FROM CICERON.F_REQUESTS WHERE status_id = 2 AND is_paid = true AND ongoing_worker_id = %s
+    FROM CICERON.F_REQUESTS WHERE status_id = 2 AND is_paid = true AND ongoing_worker_id = %s AND points > 0
     UNION
     SELECT 0 as message_id, registered_time as request_time, points, null as is_returned, null as return_time
     FROM CICERON.F_REQUESTS WHERE status_id = -2 AND is_paid = false AND client_user_id = %s) total
@@ -2897,7 +4284,12 @@ def point_detail():
 @app.route('/api/user/payback_email', methods = ["GET"])
 @login_required
 #@exception_detector
-def register_paybacki_email():
+def register_payback_email():
+    """
+    페이백 신청 보내는 이메일.
+    /api/user/payback과 기능이 겹치는데 왜 구닥닥리 API를 만드느냐?
+      -> 위의건 혹시 개발이 어려울 수 있어서...
+    """
     cursor = g.db.cursor()
     mail_to = session['useremail']
     user_id = get_user_id(g.db, mail_to)
@@ -2940,6 +4332,9 @@ def register_paybacki_email():
 @login_required
 #@exception_detector
 def revise_payback(str_id, order_no):
+    """
+    환급 신청 수정 (PUT), 삭제 (DELETE)
+    """
     if request.method == "PUT":
         cursor = g.db.cursor()
         user_id = get_user_id(g.db, session['useremail'])
@@ -2982,6 +4377,9 @@ def revise_payback(str_id, order_no):
 @login_required
 #@exception_detector
 def be_hero():
+    """
+    번역가 권한 신청
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
     email = parameters['email']
@@ -3038,6 +4436,63 @@ def be_hero():
     return make_response(json.jsonify(
         message="Application mail has just sent to %s!" % email), 200)
 
+@app.route('/api/tool/initial_translate', methods=['POST'])
+#@exception_detector
+def initial_translate():
+    connector = Connector()
+    parameter = parse_request(request)
+
+    user_email = parameter['user_email']
+    request_id = int(parameter['request_id'])
+    sentence = parameter['sentence']
+    source_lang_id = int(parameter['source_lang_id'])
+    target_lang_id = int(parameter['target_lang_id'])
+
+    user_id = get_user_id(g.db, user_email)
+
+    init_result = connector.getTranslatedDataParallel(g.db, user_id, request_id, sentence, source_lang_id, target_lang_id)
+    result = {
+            "cand1": init_result['google'],
+            "cand2": init_result['bing'],
+            "cand3": init_result['yandex']
+            }
+
+    return make_response(json.jsonify(**result), 200)
+
+@app.route('/api/tool/sentence_tokenize', methods=['POST'])
+#@exception_detector
+def sentence_tokenize():
+    warehouseObj = Warehousing(g.db)
+    parameters = parse_request(request)
+
+    sentences = parameters['sentences']
+    result = warehouseObj.parseSentence(sentences)
+    return make_response(json.jsonify(
+        sentences=result), 200)
+
+@app.route('/api/tool/i18n_test_parsing', methods=['POST'])
+#@exception_detector
+def i18n_parsing():
+    i18nHandlerObj = I18nHandler(g.db)
+    parameter = parse_request(request)
+    file_format = parameter.get('file_format', 'json')
+    file_binary = request.files['file_binary'].read()
+    file_langKey = parameter.get('file_langKey')
+
+    result_dict = None
+    if file_format == 'json':
+        result_dict = i18nHandlerObj._jsonToDict(file_binary, file_langKey)
+    elif file_format == 'unity':
+        result_dict = i18nHandlerObj._unityToDict(file_binary, file_langKey)
+    elif file_format == 'iOS':
+        result_dict = i18nHandlerObj._iosToDict(file_binary)
+    elif file_format == 'android':
+        result_dict = i18nHandlerObj._androidToDict(file_binary)
+    elif file_format == 'xamarin':
+        result_dict = i18nHandlerObj._xamarinToDict(file_binary)
+
+    return make_response(json.jsonify(data=result_dict), 200)
+
 ################################################################################
 #########                        ADMIN TOOL                            #########
 ################################################################################
@@ -3046,6 +4501,9 @@ def be_hero():
 #@exception_detector
 @admin_required
 def language_assigner():
+    """
+    해당 유저에게 해당 언어 번역가 권한 부여
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -3066,6 +4524,9 @@ def language_assigner():
 #@exception_detector
 @admin_required
 def language_rejector():
+    """
+    해당 유저 번역가 권한 빼앗기
+    """
     cursor = g.db.cursor()
     parameters = parse_request(request)
 
@@ -3080,6 +4541,9 @@ def language_rejector():
 #@exception_detector
 @admin_required
 def return_money():
+    """
+    환급해줘야 할 내역 조회 (GET), 환급으로 마킹 (POST)
+    """
     if request.method == "POST":
         # We've not prepared for card payback.
 
@@ -3176,5 +4640,5 @@ def return_money():
             data=result), 200)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, threaded=True)
     
