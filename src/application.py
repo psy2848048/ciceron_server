@@ -1944,7 +1944,7 @@ def post_translate_item():
         if requester_default_group_id == -1:
             requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
             cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
-                (requester_default_group_id, translator_id, "Incoming"))
+                (requester_default_group_id, requester_id, "Incoming"))
 
     # Change the state of the request
     cursor.execute("UPDATE CICERON.F_REQUESTS SET status_id = 2, client_completed_group_id = %s, translator_completed_group_id = %s, submitted_time = CURRENT_TIMESTAMP WHERE id = %s AND ongoing_worker_id = %s ",
