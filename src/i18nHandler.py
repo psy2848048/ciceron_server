@@ -572,6 +572,7 @@ class I18nHandler(object):
         result_obj = {}
 
         cur_variable = ""
+        cur_variable_id = 0
         cur_paragraph_seq = -1
         cur_comment_string = ""
         paragraph_per_variable = []
@@ -587,18 +588,20 @@ class I18nHandler(object):
 
             if cur_variable != variable and idx > 0:
                 result_obj[ cur_variable ] = {
-                        "variable_id": variable_id,
+                        "variable_id": cur_variable_id,
                         "comment": cur_comment_string,
                         "texts": paragraph_per_variable
                         }
 
                 cur_variable = variable
+                cur_variable_id = variable_id
                 cur_comment_string = comment_string
 
                 paragraph_per_variable = []
 
             elif cur_variable != variable and idx == 0:
                 cur_variable = variable
+                cur_variable_id = variable_id
 
             unit_row = {}
 
