@@ -1638,7 +1638,7 @@ def i18n_completedCheckSourceAndTranslation(request_id):
     """
     if request.method == 'GET':
         user_id = get_user_id(g.db, session['useremail'])
-        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 1)
+        has_translation_auth = translationAuthChecker(g.db, user_id, request_id, 2)
         if has_translation_auth == False:
             return make_response(json.jsonify(
                 message="You are not translator of the request"), 406)
