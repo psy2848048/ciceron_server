@@ -569,7 +569,7 @@ class I18nHandler(object):
         cursor.execute(query_db, (request_id, ))
         res = cursor.fetchall()
 
-        result_obj = {}
+        result_obj = OrderedDict()
 
         cur_variable = ""
         cur_variable_id = 0
@@ -625,7 +625,7 @@ class I18nHandler(object):
         return result_obj
 
     def _jQueryToDict(self, jsonText, code):
-        obj = json.loads(jsonText)
+        obj = json.loads(jsonText, object_pairs_hook=OrderedDict)
         return obj[code]
 
     def _jsonToDict(self, jsonText, code):
