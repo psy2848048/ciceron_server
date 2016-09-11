@@ -629,7 +629,7 @@ class I18nHandler(object):
         return obj[code]
 
     def _jsonToDict(self, jsonText, code):
-        obj = json.loads(jsonText)
+        obj = json.loads(jsonText, object_pairs_hook=OrderedDict)
         if code in obj:
             return obj[code]
         elif code.upper() in obj:
@@ -700,7 +700,7 @@ class I18nHandler(object):
 
     def _dictToIOs(self, iosDict):
         output = io.BytesIO()
-        for key, text in sorted(iosDict.iteritems()):
+        for key, text in iosDict.iteritems():
             output.write(("\"%s\" = \"%s\";\n" % (key, text)))
 
         return ('Localizable.strings', output.getvalue())
@@ -724,7 +724,7 @@ class I18nHandler(object):
         result = []
         result.append(['KEY', language])
 
-        for key, text in sorted(unityDict.iteritems()):
+        for key, text in unityDict.iteritems():
             result.append([key, text])
 
         output = io.BytesIO()
@@ -747,7 +747,7 @@ class I18nHandler(object):
 
         wrappeddict['root']['data'] = []
 
-        for key, text in sorted(xamDict.iteritems()):
+        for key, text in xamDict.iteritems():
             row = {}
             row['@name'] = key.decode('utf-8')
             row['@xml:space'] = 'preserve'
@@ -761,7 +761,7 @@ class I18nHandler(object):
     def _dictToJson(self, lang_code, jsonDict):
         result = OrderedDict()
         result[lang_code] = jsonDict
-        return ('i18n.json', json.dumps(result, indent=4, encoding='utf-8', sort_keys=True))
+        return ('i18n.json', json.dumps(result, indent=4, encoding='utf-8', sort_keys=False))
 
     def _updateComment(self, cursor, variable_id, comment):
         query = """
