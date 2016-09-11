@@ -500,8 +500,8 @@ class I18nHandler(object):
         cursor.execute(query_db, (request_id, ))
         res = cursor.fetchall()
 
-        source_obj = {}
-        target_obj = {}
+        source_obj = OrderedDict()
+        target_obj = OrderedDict()
 
         cur_variable = ""
         cur_paragraph_seq = -1
