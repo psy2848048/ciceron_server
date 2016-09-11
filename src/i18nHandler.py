@@ -453,7 +453,7 @@ class I18nHandler(object):
     def _dictToDb(self, request_id, source_lang_id, target_lang_id, dictData):
         cursor = self.conn.cursor()
 
-        for key, whole_text in sorted(dictData.iteritems()):
+        for key, whole_text in dictData.iteritems():
             whole_text_temp = whole_text.replace("\r", "").replace("\n  ", "\n\n")
             splited_text = whole_text_temp.split('\n\n')
 
@@ -710,7 +710,7 @@ class I18nHandler(object):
         wrappeddict['resources'] = OrderedDict()
         wrappeddict['resources']['string'] = []
 
-        for key, text in sorted(andrDict.iteritems()):
+        for key, text in andrDict.iteritems():
             row = {}
             row['@value'] = key
             row['#text'] = text
