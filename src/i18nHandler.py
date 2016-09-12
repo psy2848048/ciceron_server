@@ -517,8 +517,8 @@ class I18nHandler(object):
 
             #
             if cur_variable != variable and idx > 0:
-                source_obj[ cur_variable ] = source_paragraph_per_variable
-                target_obj[ cur_variable ] = target_paragraph_per_variable
+                source_obj[ cur_variable ] = source_paragraph_per_variable.lstrip('\n').rstrip('\n')
+                target_obj[ cur_variable ] = target_paragraph_per_variable.lstrip('\n').rstrip('\n')
                 cur_variable = variable
 
                 source_paragraph_per_variable = ""
@@ -547,8 +547,8 @@ class I18nHandler(object):
                     target_paragraph_per_variable += target_sentence
 
             if idx == len(res) - 1:
-                source_obj[ cur_variable ] = source_paragraph_per_variable
-                target_obj[ cur_variable ] = target_paragraph_per_variable
+                source_obj[ cur_variable ] = source_paragraph_per_variable.lstrip('\n').rstrip('\n')
+                target_obj[ cur_variable ] = target_paragraph_per_variable.lstrip('\n').rstrip('\n')
 
         return source_obj, target_obj
 
