@@ -517,8 +517,8 @@ class I18nHandler(object):
 
             #
             if cur_variable != variable and idx > 0:
-                source_obj[ cur_variable ] = source_paragraph_per_variable
-                target_obj[ cur_variable ] = target_paragraph_per_variable
+                source_obj[ cur_variable ] = source_paragraph_per_variable.decode('utf-8')
+                target_obj[ cur_variable ] = target_paragraph_per_variable.decode('utf-8')
                 cur_variable = variable
 
                 source_paragraph_per_variable = ""
