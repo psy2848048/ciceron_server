@@ -106,8 +106,8 @@ class Payment(object):
         """
         cursor = self.conn.cursor()
         query_commonPromotionCode= """
-            SELECT id, benefitPoint, expireTime FROM CICERON.PROMOTIONCODES_COMMON WHERE text = %s """
-        cursor.execute(query_commonPromotionCode, (code, ))
+            SELECT id, benefitPoint, expireTime FROM CICERON.PROMOTIONCODES_COMMON WHERE text = UPPER(%s) """
+        cursor.execute(query_commonPromotionCode, (code.upper(), ))
         ret = cursor.fetchone()
     
         if ret is None or len(ret) == 0:
@@ -140,9 +140,9 @@ class Payment(object):
 
         user_id = ciceron_lib.get_user_id(self.conn, user_email)
         query_searchPromoCodeId = """
-            SELECT id FROM CICERON.PROMOTIONCODES_COMMON WHERE text = %s
+            SELECT id FROM CICERON.PROMOTIONCODES_COMMON WHERE text = UPPER(%s)
             """
-        cursor.execute(query_searchPromoCodeId, (code, ))
+        cursor.execute(query_searchPromoCodeId, (code.upper(), ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
             raise Exception("Promo code '%s' doesn't exist!" % code)
@@ -165,9 +165,9 @@ class Payment(object):
         query_individualPromotionCode= """
             SELECT benefitPoint, expireTime, is_used
             FROM CICERON.PROMOTIONCODES_USER
-            WHERE user_id = %s AND text = %s
+            WHERE user_id = %s AND text = UPPER(%s)
             """
-        cursor.execute(query_individualPromotionCode, (user_id, code, ))
+        cursor.execute(query_individualPromotionCode, (user_id, code.upper(), ))
         ret = cursor.fetchone()
     
         if ret is None or len(ret) == 0:
@@ -195,9 +195,9 @@ class Payment(object):
         query_commonPromotionCodeExeutor = """
             UPDATE CICERON.PROMOTIONCODES_USER
             SET is_used = true 
-            WHERE user_id = %s AND text = %s
+            WHERE user_id = %s AND text = UPPER(%s)
             """
-        cursor.execute(query_commonPromotionCodeExeutor, (user_id, code, ))
+        cursor.execute(query_commonPromotionCodeExeutor, (user_id, code.upper(), ))
 
     def checkPoint(self, user_id, point_for_use):
         """
