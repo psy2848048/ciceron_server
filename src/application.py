@@ -3417,11 +3417,12 @@ def check_promotionCode(request_id):
     """
     user_id = get_user_id(g.db, session['useremail'])
     parameters = parse_request(request)
+    paymentObj = Payment(g.db)
 
     code = parameters['promoCode'].upper()
 
-    isCommonCode, commonPoint, commonMessage = commonPromotionCodeChecker(g.db, user_id, code)
-    isIndivCode, indivPoint, indivMessage = individualPromotionCodeChecker(g.db, user_id, code)
+    isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(g.db, user_id, code)
+    isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(g.db, user_id, code)
     if isCommonCode in [1, 2]:
         return make_response(json.jsonify(
             promoType=None, message=commonMessage, code=isCommonCode, point=0), 402)
