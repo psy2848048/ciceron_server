@@ -115,7 +115,7 @@ class Payment(object):
     
         code_id = ret[0]
         benefitPoint = ret[1]
-        expireTime = ciceron_lib.string2Date(ret[2])
+        expireTime = ret[2]
     
         if expireTime < datetime.now():
             return (2, 0, "This promo code is expired.")
@@ -174,7 +174,7 @@ class Payment(object):
             return (3, 0, "There is no promo code matched.")
     
         benefitPoint = ret[0]
-        expireTime = ciceron_lib.string2Date(ret[1])
+        expireTime = ret[1]
         isUsed = ret[2]
     
         if expireTime < datetime.now():
