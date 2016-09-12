@@ -3421,8 +3421,8 @@ def check_promotionCode(request_id):
 
     code = parameters['promoCode'].upper()
 
-    isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(g.db, user_id, code)
-    isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(g.db, user_id, code)
+    isCommonCode, commonPoint, commonMessage = paymentObj.commonPromotionCodeChecker(user_id, code)
+    isIndivCode, indivPoint, indivMessage = paymentObj.individualPromotionCodeChecker(user_id, code)
     if isCommonCode in [1, 2]:
         return make_response(json.jsonify(
             promoType=None, message=commonMessage, code=isCommonCode, point=0), 402)
