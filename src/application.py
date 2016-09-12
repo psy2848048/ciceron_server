@@ -3745,7 +3745,7 @@ def i18n_getData_complete(request_id):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-    cursor.execute(query, (user_id, user_id, request_id, ))
+    cursor.execute(query, (user_id, user_id, user_id, request_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
 
