@@ -14,6 +14,18 @@ import ciceron_lib
 from groupRequest import GroupRequest
 from requestResell import RequestResell
 
+ZERO = timedelta(0)
+
+class UTC(tzinfo):
+  def utcoffset(self, dt):
+    return ZERO
+  def tzname(self, dt):
+    return "UTC"
+  def dst(self, dt):
+    return ZERO
+
+utc = UTC()
+
 class Payment(object):
     """
     결제모듈 담당
@@ -117,7 +129,7 @@ class Payment(object):
         benefitPoint = ret[1]
         expireTime = ret[2]
     
-        if expireTime < datetime.now():
+        if expireTime < datetime.now(utc):
             return (2, 0, "This promo code is expired.")
     
         query_userCheck = """
@@ -177,7 +189,7 @@ class Payment(object):
         expireTime = ret[1]
         isUsed = ret[2]
     
-        if expireTime < datetime.now():
+        if expireTime < datetime.now(utc):
             return (2, 0, "This promo code is expired.")
     
         if isUsed == 1:
