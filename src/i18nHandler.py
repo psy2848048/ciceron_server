@@ -718,7 +718,7 @@ class I18nHandler(object):
             wrappeddict['resources']['string'].append(row)
 
         xmlResult = xmltodict.unparse(wrappeddict, pretty=True)
-        return ('string.xml', xmlResult)
+        return ('string.xml', xmlResult.encode('utf-8'))
 
     def _dictToUnity(self, language, unityDict):
         result = []
