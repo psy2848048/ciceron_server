@@ -2798,7 +2798,7 @@ def client_completed_items_detail(request_id):
                OR request_id IN (SELECT request_id FROM CICERON.F_READ_PUBLIC_REQUESTS_USERS WHERE user_id = %s )
               )
         """
-    cursor.execute(query, (request_id, user_id, user_id, ))
+    cursor.execute(query, (request_id, user_id, user_id, user_id, ))
     count = cursor.fetchone()[0]
     if count == 0:
         return make_response(json.jsonify(
@@ -2837,7 +2837,7 @@ def client_completed_items_detail(request_id):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
-    cursor.execute(query, (request_id, user_id, user_id, ))
+    cursor.execute(query, (request_id, user_id, user_id, user_id, ))
     rs = cursor.fetchall()
     result = json_from_V_REQUESTS(g.db, rs, purpose="complete_client")
     return make_response(json.jsonify(
