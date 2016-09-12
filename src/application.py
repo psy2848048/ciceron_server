@@ -1969,7 +1969,7 @@ def post_translate_item():
                     (requester_default_group_id, each_user_id, "Incoming"))
 
     else:
-        requester_default_group_id = get_group_id_from_user_and_text(g.db, translator_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
+        requester_default_group_id = get_group_id_from_user_and_text(g.db, requester_id, "Incoming", "D_CLIENT_COMPLETED_GROUPS")
         if requester_default_group_id == -1:
             requester_default_group_id = get_new_id(g.db, "D_CLIENT_COMPLETED_GROUPS")
             cursor.execute("INSERT INTO CICERON.D_CLIENT_COMPLETED_GROUPS VALUES (%s,%s,%s)",
