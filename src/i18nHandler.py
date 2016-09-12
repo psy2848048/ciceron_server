@@ -528,15 +528,23 @@ class I18nHandler(object):
                 cur_variable = variable
 
             #
-            if cur_paragraph_seq != paragraph_seq and idx > 0:
-                source_paragraph_per_variable += '\n\n'
-                target_paragraph_per_variable += '\n\n'
+            if cur_paragraph_seq != paragraph_seq:
+                if paragraph_seq > 0:
+                    source_paragraph_per_variable += '\n\n'
+                    target_paragraph_per_variable += '\n\n'
                 cur_paragraph_seq = paragraph_seq
 
             if source_sentence != None:
-                source_paragraph_per_variable += " " + source_sentence
+                if sentence_seq > 0:
+                    source_paragraph_per_variable += " " + source_sentence
+                else:
+                    source_paragraph_per_variable += source_sentence
+
             if target_sentence != None:
-                target_paragraph_per_variable += " " + target_sentence
+                if sentence_seq > 0:
+                    target_paragraph_per_variable += " " + target_sentence
+                else:
+                    target_paragraph_per_variable += target_sentence
 
             if idx == len(res) - 1:
                 source_obj[ cur_variable ] = source_paragraph_per_variable.decode('utf-8')
