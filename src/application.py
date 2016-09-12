@@ -3783,7 +3783,7 @@ def i18n_download(request_id):
     elif download_format == 'xamarin':
         filename, download_binary = i18nObj.exportXamarin(request_id)
 
-    return send_file(io.BytesIO(download_binary), attachment_filename=filename.decode('utf-8'))
+    return send_file(io.BytesIO(download_binary), attachment_filename=filename, as_attachment=True)
 
 @app.route('/api/public/random', methods=["GET"])
 #@exception_detector
