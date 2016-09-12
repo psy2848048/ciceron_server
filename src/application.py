@@ -3490,7 +3490,7 @@ def pay_for_request(request_id):
     cur_amount = amount
     if point_for_use > 0.00001:
         is_point_usable, cur_amount = paymentObj.checkPoint(client_userId, point_for_use)
-        if cur_amount - use_point < -0.00001:
+        if cur_amount - point_for_use < -0.00001:
             return make_response(json.jsonify(
                 message="Fail"), 400)
 
