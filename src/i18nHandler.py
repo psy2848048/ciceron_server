@@ -674,7 +674,7 @@ class I18nHandler(object):
 
         return result
 
-    def _unityToDict(self, unityText, source_lang_id):
+    def _unityToDict(self, unityText, source_lang_key):
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(unityText)
         f.close()
@@ -683,8 +683,18 @@ class I18nHandler(object):
         items = csv.reader(f2)
 
         result = OrderedDict()
+        lang_key_idx = 1
         for idx, row in enumerate(items):
-            if idx != 0:
+            if idx == 0:
+                for idx2, lang_key in enumerate(row):
+                    if lang_key.upper() == source_lang_key.upper():
+                        print "Detected in {0}".format(idx2)
+                        lang_key_idx = idx2
+                        break
+                else:
+                    print "Default 0"
+
+            else:
                 result[ row[0] ] = row[1].decode('utf-8')
 
         f2.close()
