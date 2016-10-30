@@ -4642,5 +4642,8 @@ def return_money():
             data=result), 200)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, threaded=True)
+    from gevent.wsgi import WSGIServer
+    http_server = WSGIServer(('0.0.0.0', 5000), app)
+    http_server.serve_forever()
+    #app.run(host="0.0.0.0", port=5000, threaded=True)
     
