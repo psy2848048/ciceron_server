@@ -2,8 +2,8 @@
 import os
 import csv
 from bs4 import BeautifulSoup
-import tarfile
-import zipfile
+from tarfile import TarFile
+from zipfile import ZipFile
 import json
 import io
 
@@ -13,16 +13,18 @@ class Localizer(object):
     def __init__(self, file_name, file_bin):
         self.old_file_bin = None
         if file_name.endswith('.tar.gz') or file_name.endswith('.tar.bz2'):
-            self.old_file_bin = tarfile.open(file_bin)
+            self.old_file_bin = TarFile(file_bin, 'r')
+            self.file_list = self.old_file_bin.getnames()
         elif file_name.endswith('.zip'):
-            self.old_file_bin = zipfile.open(file_bin)
+            self.old_file_bin = ZipFile(file_bin, 'r')
+            self.file_list = self.old_file_bin.namelist()
         else:
             raise Exception('Compressed tar file of Zip are supported!')
-        self.file_list = self.old_file_bin.getnames()
+
         self.json_value = {}
 
         self.binary_obj = io.BytesIO()
-        self.zip_obj = zipfile.ZipFile(binary_obj, 'w')
+        self.zip_obj = ZipFile(self.binary_obj, 'w')
 
         self.html_extensions = [
             "asp"
@@ -77,12 +79,12 @@ class Localizer(object):
         return json.dumps(return_dict, indent=4)
 
     def compressFileOrganizer(self, filename, binary):
-        self.zip_obj.writestr(filename, binary)
+        self.zip_obj.writestr(filename, buffer(binary))
 
     def run(self, target_lang):
         for filename in self.file_list:
-            file_binary = self.zip_obj.extract(filename)
-            if filename.split['.'][-1] in self.html_extensions:
+            file_binary = self.old_file_bin.extract(filename)
+            if filename.split('.')[-1] in self.html_extensions:
                 file_binary = self.textExtractor(filename, file_binary)
             self.compressFileOrganizer(filename, file_binary)
 
@@ -94,4 +96,13 @@ class Localizer(object):
 
 
 if __name__ == "__main__":
-    localizer = Localizer()
+    localizer = None
+    result_binary = None
+
+    with open('../test/testdata/ciceron_webclient.zip', 'r') as f:
+        localizer = Localizer('ciceron_webclient.zip', f)
+        result_binary = localizer.run('en')
+
+    result_file = open('ciceron_webclient_replaced.zip', 'w')
+    result_file.write(result_binary.read())
+    result_file.close()
