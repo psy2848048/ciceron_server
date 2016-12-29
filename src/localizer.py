@@ -54,23 +54,24 @@ class Localizer(object):
 
         idx = 1
         for tag in soup.find_all(True):
-            if tag.startswith('<script>') or tag.startswith('<style>'):
+            if tag is not None and ( '<script>' in tag or '<style>' in tag ):
                 # Skip for script of style code
                 continue
 
             strings = tag.strings
-            for detail_idx, string in enumerate(strings):
-                if string is not None:
-                    can_find, key = self._findKeyByBalue(filename, string.encode('utf-8'))
+            for unit_string in list(strings):
+                if unit_string != None and unit_string != '':
+                    can_find, key = self._findKeyByBalue(filename, unit_string.encode('utf-8'))
                     if can_find == True:
-                        tag.strings[detail_idx] = "{{ %s }}" % key
+                        unit_string.replace_with("{{ %s }}" % key)
 
                     else:
                         key = "%s%03d" % (filename, idx)
-                        self.json_value[ key ] = string.encode('utf-8')
-                        tag.strings[detail_idx] = "{{ %s }}" % key
+                        self.json_value[ key ] = unit_string.encode('utf-8')
+                        unit_string.replace_with("{{ %s }}" % key)
                         idx += 1
 
+        print soup.prettify()
         return soup.prettify()
 
     def jsonWriter(self, target_lang):
@@ -83,7 +84,8 @@ class Localizer(object):
 
     def run(self, target_lang):
         for filename in self.file_list:
-            file_binary = self.old_file_bin.extract(filename)
+            print filename
+            file_binary = self.old_file_bin.read(filename)
             if filename.split('.')[-1] in self.html_extensions:
                 file_binary = self.textExtractor(filename, file_binary)
             self.compressFileOrganizer(filename, file_binary)
