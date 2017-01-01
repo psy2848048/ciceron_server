@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import csv
-from bs4 import BeautifulSoup
+from lxml import etree
+import lxml.html
 from tarfile import TarFile
 from zipfile import ZipFile
 import json
 import io
+import re
 
 
 class Localizer(object):
@@ -50,29 +52,33 @@ class Localizer(object):
             return False, None
 
     def textExtractor(self, filename, htmlString):
-        soup = BeautifulSoup(htmlString, "html.parser")
+        utf8_parser = etree.HTMLParser(encoding='utf-8')
+        # <br> 태그를 제거하지 않으면 이 태그 이후의 텍스트를 텍스트로 인식하지 못하고 URL식으로 인코딩을 하기 때문에 일찍 처리해야 한다.
+        replaced_html_string = htmlString.replace('<br>', '\n').replace('<br/>', '\n').replace('<br />', '\n')
+        root = etree.parse(io.StringIO(replaced_html_string), utf8_parser)
 
         idx = 1
-        for tag in soup.find_all(True):
-            if tag is not None and ( '<script>' in tag or '<style>' in tag ):
-                # Skip for script of style code
+        for tag in root.iter():
+            if tag.tag == 'script' or tag.tag == 'style':
                 continue
 
-            strings = tag.strings
-            for unit_string in list(strings):
-                if unit_string != None and unit_string != '':
-                    can_find, key = self._findKeyByBalue(filename, unit_string.encode('utf-8'))
-                    if can_find == True:
-                        unit_string.replace_with("{{ %s }}" % key)
+            unit_string = tag.text.encode('utf-8')
+            if unit_string is not None and unit_string != "" and unit_string.strip() != "":
+                can_find, key = self._findKeyByBalue(filename, unit_string)
+                if can_find == True:
+                    tag.text = "{{ %s }}" % key
 
-                    else:
-                        key = "%s%03d" % (filename, idx)
-                        self.json_value[ key ] = unit_string.encode('utf-8')
-                        unit_string.replace_with("{{ %s }}" % key)
-                        idx += 1
+                elif can_find == False and "{{" not in stripped_string and "}}" not in stripped_string:
+                    real_filename = ('.'.join(filename.split('.')[:-1])).split('/')[-1]
+                    key = "%s%03d" % (real_filename, idx)
+                    self.json_value[ key ] = unit_string
+                    tag.text = "{{ %s }}" % key
+                    idx += 1
 
-        print soup.prettify()
-        return soup.prettify()
+                else:
+                    continue
+
+        return lxml.html.tostring(root.getroot(), pretty_print=True, method="html")
 
     def jsonWriter(self, target_lang):
         return_dict = {}
@@ -91,6 +97,7 @@ class Localizer(object):
             self.compressFileOrganizer(filename, file_binary)
 
         jsonText = self.jsonWriter(target_lang)
+        print jsonText
         self.compressFileOrganizer('i18n.json', jsonText)
         self.zip_obj.close()
 
