@@ -68,15 +68,17 @@ class Localizer(object):
 
             unit_string = tag.text
             if unit_string is not None and unit_string != "" and unit_string.strip() != "":
+                unit_string = unit_string.strip()
                 can_find, key = self._findKeyByBalue(filename, unit_string)
+
                 if can_find == True:
-                    tag.text = "{{ %s }}" % key
+                    tag.text = tag.text.replace(unit_string, "{{ %s }}" % key)
 
                 elif can_find == False and not unit_string.strip().startswith("{") and not unit_string.strip().endswith("}"):
                     real_filename = ('.'.join(filename.split('.')[:-1])).split('/')[-1]
                     key = "%s%03d" % (real_filename, idx)
-                    self.json_value[ key ] = unit_string
-                    tag.text = "{{ %s }}" % key
+                    self.json_value[ key ] = unit_string.strip()
+                    tag.text = tag.text.replace(unit_string, "{{ %s }}" % key)
                     idx += 1
 
                 else:
