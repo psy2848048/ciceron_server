@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import os
 import csv
+import json
+import io
+import re
 from lxml import etree
 import lxml.html
 from tarfile import TarFile
 from zipfile import ZipFile
-import json
-import io
-import re
-
+import traceback
 
 class Localizer(object):
 
@@ -53,22 +53,26 @@ class Localizer(object):
 
     def textExtractor(self, filename, htmlString):
         utf8_parser = etree.HTMLParser(encoding='utf-8')
-        # <br> 태그를 제거하지 않으면 이 태그 이후의 텍스트를 텍스트로 인식하지 못하고 URL식으로 인코딩을 하기 때문에 일찍 처리해야 한다.
-        replaced_html_string = htmlString.replace('<br>', '\n').replace('<br/>', '\n').replace('<br />', '\n')
+        #utf8_parser = etree.HTMLParser()
+        # <br> 태그를 제거하지 않으면 이 태그 이후의 텍스트를 텍스트로 인식하지 못하고
+        # URL식으로 인코딩을 하기 때문에 일찍 처리해야 한다.
+        replaced_html_string = htmlString.replace('<br>', '\n').\
+                replace('<br/>', '\n').replace('<br />', '\n')
+        #replaced_html_string = unicode(htmlString)
         root = etree.parse(io.StringIO(replaced_html_string), utf8_parser)
 
         idx = 1
         for tag in root.iter():
-            if tag.tag == 'script' or tag.tag == 'style':
+            if tag.tag == 'script' or tag.tag == 'style' or str(tag.tag) == "<built-in function Comment>":
                 continue
 
-            unit_string = tag.text.encode('utf-8')
+            unit_string = tag.text
             if unit_string is not None and unit_string != "" and unit_string.strip() != "":
                 can_find, key = self._findKeyByBalue(filename, unit_string)
                 if can_find == True:
                     tag.text = "{{ %s }}" % key
 
-                elif can_find == False and "{{" not in stripped_string and "}}" not in stripped_string:
+                elif can_find == False and "{{" not in unit_string and "}}" not in unit_string:
                     real_filename = ('.'.join(filename.split('.')[:-1])).split('/')[-1]
                     key = "%s%03d" % (real_filename, idx)
                     self.json_value[ key ] = unit_string
@@ -78,6 +82,7 @@ class Localizer(object):
                 else:
                     continue
 
+        print lxml.html.tostring(root.getroot(), pretty_print=True, method="html")
         return lxml.html.tostring(root.getroot(), pretty_print=True, method="html")
 
     def jsonWriter(self, target_lang):
@@ -92,6 +97,16 @@ class Localizer(object):
         for filename in self.file_list:
             print filename
             file_binary = self.old_file_bin.read(filename)
+
+            # 인코딩 처리
+            try:
+                file_binary = unicode(file_binary.decode('utf-8'))
+            except UnicodeDecodeError:
+                try:
+                    file_binary = unicode(file_binary)
+                except UnicodeDecodeError:
+                    file_binary = file_binary
+
             if filename.split('.')[-1] in self.html_extensions:
                 file_binary = self.textExtractor(filename, file_binary)
             self.compressFileOrganizer(filename, file_binary)
