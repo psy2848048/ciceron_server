@@ -86,5 +86,8 @@ def translate():
         return render_template('layout.html', translatedText=result['google'])
 
 if __name__ == "__main__":
+    from gevent.wsgi import WSGIServer
+    http_server = WSGIServer(('0.0.0.0', 80), app)
+    http_server.serve_forever()
     # Should be masked!
-    app.run(host="0.0.0.0", port=80)
+    #app.run(host="0.0.0.0", port=80)
