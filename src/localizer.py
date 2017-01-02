@@ -6,8 +6,8 @@ import io
 import re
 from lxml import etree
 import lxml.html
-from tarfile import TarFile
-from zipfile import ZipFile
+import tarfile
+import zipfile
 import traceback
 
 class Localizer(object):
@@ -15,10 +15,10 @@ class Localizer(object):
     def __init__(self, file_name, file_bin):
         self.old_file_bin = None
         if file_name.endswith('.tar.gz') or file_name.endswith('.tar.bz2'):
-            self.old_file_bin = TarFile(file_bin, 'r')
+            self.old_file_bin = tarfile.TarFile(file_bin, 'r')
             self.file_list = self.old_file_bin.getnames()
         elif file_name.endswith('.zip'):
-            self.old_file_bin = ZipFile(file_bin, 'r')
+            self.old_file_bin = zipfile.ZipFile(file_bin, 'r')
             self.file_list = self.old_file_bin.namelist()
         else:
             raise Exception('Compressed tar file of Zip are supported!')
@@ -26,7 +26,7 @@ class Localizer(object):
         self.json_value = {}
 
         self.binary_obj = io.BytesIO()
-        self.zip_obj = ZipFile(self.binary_obj, 'w')
+        self.zip_obj = zipfile.ZipFile(self.binary_obj, 'w', zipfile.ZIP_DEFLATED)
 
         self.html_extensions = [
             "asp"
@@ -72,7 +72,7 @@ class Localizer(object):
                 if can_find == True:
                     tag.text = "{{ %s }}" % key
 
-                elif can_find == False and "{{" not in unit_string and "}}" not in unit_string:
+                elif can_find == False and not unit_string.strip().startswith("{") and not unit_string.strip().endswith("}"):
                     real_filename = ('.'.join(filename.split('.')[:-1])).split('/')[-1]
                     key = "%s%03d" % (real_filename, idx)
                     self.json_value[ key ] = unit_string
@@ -82,7 +82,6 @@ class Localizer(object):
                 else:
                     continue
 
-        print lxml.html.tostring(root.getroot(), pretty_print=True, method="html")
         return lxml.html.tostring(root.getroot(), pretty_print=True, method="html")
 
     def jsonWriter(self, target_lang):
@@ -116,8 +115,7 @@ class Localizer(object):
         self.compressFileOrganizer('i18n.json', jsonText)
         self.zip_obj.close()
 
-        return self.binary_obj
-
+        return self.binary_obj.getvalue()
 
 if __name__ == "__main__":
     localizer = None
@@ -128,5 +126,5 @@ if __name__ == "__main__":
         result_binary = localizer.run('en')
 
     result_file = open('ciceron_webclient_replaced.zip', 'w')
-    result_file.write(result_binary.read())
+    result_file.write(result_binary)
     result_file.close()
