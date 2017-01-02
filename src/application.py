@@ -64,8 +64,13 @@ VERSION = "2015.11.15"
 HOST = ""
 if os.environ.get('PURPOSE') == 'PROD':
     HOST = 'http://ciceron.me'
+    SESSION_COOKIE_DOMAIN = ".ciceron.me"
+    
 else:
     HOST = 'http://ciceron.xyz'
+    SESSION_COOKIE_DOMAIN = ".ciceron.xyz"
+
+SESSION_COOKIE_PATH = "/"
 
 # APP setting
 app = Flask(__name__)
