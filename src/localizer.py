@@ -3,7 +3,6 @@ import os
 import csv
 import json
 import io
-import re
 from lxml import etree
 import lxml.html
 import tarfile
