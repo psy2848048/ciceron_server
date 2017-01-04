@@ -6,6 +6,13 @@ from flask.ext.session import Session
 from flask.ext.cache import Cache
 from flask_oauth import OAuth
 
+import i18nHandler.inject_api
+import detourserverConnector.inject_api
+from ciceron_lib import *
+import requestwarehouse.inject_api
+import groupRequest.inject_api
+import requestResell.inject_api
+
 if os.environ.get('PURPOSE') == 'PROD':
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 else:
