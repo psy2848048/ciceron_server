@@ -25,7 +25,7 @@ from payment import Payment
 from flask_cors import CORS
 from flask_session import Session
 from flask_cache import Cache
-from flask_oauth import OAuth
+#from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
 DATABASE = None
@@ -93,16 +93,16 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 # celery.conf.update(app.config)
 
 # Flask-OAuth for facebook
-oauth = OAuth()
-facebook = oauth.remote_app('facebook',
-                            base_url='https://graph.facebook.com/',
-                            request_token_url=None,
-                            access_token_url='/oauth/access_token',
-                            authorize_url='https://www.facebook.com/dialog/oauth',
-                            consumer_key=FACEBOOK_APP_ID,
-                            consumer_secret=FACEBOOK_APP_SECRET,
-                            request_token_params={'scope': 'email'}
-                            )
+#oauth = OAuth()
+#facebook = oauth.remote_app('facebook',
+#                            base_url='https://graph.facebook.com/',
+#                            request_token_url=None,
+#                            access_token_url='/oauth/access_token',
+#                            authorize_url='https://www.facebook.com/dialog/oauth',
+#                            consumer_key=FACEBOOK_APP_ID,
+#                            consumer_secret=FACEBOOK_APP_SECRET,
+#                            request_token_params={'scope': 'email'}
+#                            )
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
 
@@ -157,9 +157,9 @@ def teardown_request(exception):
     if db is not None:
         db.close()
 
-@facebook.tokengetter
-def get_facebook_token():
-    return session.get('facebook_token')
+#@facebook.tokengetter
+#def get_facebook_token():
+#    return session.get('facebook_token')
 
 @app.route('/api', methods=['GET'])
 #@exception_detector
@@ -285,112 +285,112 @@ def login():
         session['salt'] = salt
         return make_response(json.jsonify(identifier=salt), 200)
 
-@app.route("/api/facebook_login")
-def facebook_auth():
-    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp='N', _external=True))
-
-@app.route("/api/facebook_signUpCheck")
-def facebook_signUpCheck():
-    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp='Y', _external=True))
-
-@app.route("/api/facebook_authorized")
-@facebook.authorized_handler
-def facebook_authorized(resp):
-    if resp is None or 'access_token' not in resp:
-        return make_response(json.jsonify(
-            message="No access token from facebook"), 403)
-
-    session['facebook_token'] = (resp['access_token'], '')
-    user_data = facebook.get('/me').data
-
-    # Login with facebook
-    if request.args.get('is_signUp') == 'N':
-        facebook_id, user_id = get_facebook_user_id(g.db, user_data['email'])
-        if facebook_id == -1:
-            return make_response(json.jsonify(
-                message='No user signed up with %s' % user_data['email']
-                ), 403)
-
-        session['logged_in'] = True
-        session['useremail'] = get_user_email(g.db, user_id[1])
-
-        return make_response(json.jsonify(
-            show_signUpView=False,
-            is_alreadySignedUp=None,
-            email=None,
-            user_name=None), 200)
-
-    # SignUp with facebook
-    elif request.args.get('is_signUp') == 'Y':
-        facebook_id, _ = get_facebook_user_id(g.db, user_data['email'])
-        # Defence duplicated facebook ID signing up
-        if facebook_id != -1:
-            return make_repsonse(json.jsonify(
-                message="You already signed up on facebook"), 403)
-
-        user_id = get_user_id(g.db, user_data['email'])
-        if user_id == -1:
-            return make_response(json.jsonify(
-                show_signUpView=True,
-                is_alreadySignedUp=False,
-                email=user_data['email'],
-                user_name=user_data['name']), 200)
-        else:
-            new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
-            g.db.execute("INSERT INTO CICERON.D_FACEBOOK_USERS VALUES (%s,%s,%s) ",
-                    (new_facebook_id, user_data['email'], user_id))
-            g.db.commit()
-            return make_response(json.jsonify(
-                show_signUpView=True,
-                is_alreadySignedUp=True,
-                email=user_data['email'],
-                user_name=user_data['name']), 200)
-
-@app.route("/api/facebook_connectUser", methods=["GET"])
-@facebook.authorized_handler
-def facebook_connectUser(resp):
-    parameters = parse_request(request)
-    email = parameters['email']
-    user_id = get_user_id(g.db, email)
-
-    if facebook.get('/me').data['email'] != email:
-        return make_response(json.jsonify(
-            message="DO NOT HACK!!!!"), 403)
-
-    if user_id == -1:
-        return make_response(json.jsonify(
-            message="Not registered as normal user"), 403)
-
-    new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
-    g.db.execute("INSERT INTO CICERON.D_FACEBOOK_USERS VALUES (%s,%s,%s) ",
-            (new_facebook_id, email, user_id))
-    g.db.commit()
-
-    return make_response(json.jsonify(
-        message="Successfully connected with facebook ID"), 200)
-
-@app.route("/api/facebook_signUp", methods=["POST"])
-@facebook.authorized_handler
-def facebook_signUp(resp):
-    parameters = parse_request(request)
-    email = parameters['email']
-    # OAuth hacking check
-    if facebook.get('/me').data['email'] != email:
-        return make_response(json.jsonify(
-            message="DO NOT HACK!!!!"), 403)
-
-    hashed_password = parameters['password']
-    name = (parameters['name']).encode('utf-8')
-    mother_language_id = int(parameters['mother_language_id'])
-    nationality_id = int(parameters['nationality_id'])
-    residence_id = int(parameters['residence_id'])
-    result = signUpQuick(g.db, email, hashed_password, name, mother_language_id, nationality_id, residence_id, external__service_provider=["facebook"])
-
-    if result == 200:
-        return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
-    elif result == 412:
-        return make_response(json.jsonify(
-            message="ID %s is duplicated. Please check the email." % email), 412)
+#@app.route("/api/facebook_login")
+#def facebook_auth():
+#    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp='N', _external=True))
+#
+#@app.route("/api/facebook_signUpCheck")
+#def facebook_signUpCheck():
+#    return facebook.authorize(callback=url_for('facebook_authorized', is_signUp='Y', _external=True))
+#
+#@app.route("/api/facebook_authorized")
+#@facebook.authorized_handler
+#def facebook_authorized(resp):
+#    if resp is None or 'access_token' not in resp:
+#        return make_response(json.jsonify(
+#            message="No access token from facebook"), 403)
+#
+#    session['facebook_token'] = (resp['access_token'], '')
+#    user_data = facebook.get('/me').data
+#
+#    # Login with facebook
+#    if request.args.get('is_signUp') == 'N':
+#        facebook_id, user_id = get_facebook_user_id(g.db, user_data['email'])
+#        if facebook_id == -1:
+#            return make_response(json.jsonify(
+#                message='No user signed up with %s' % user_data['email']
+#                ), 403)
+#
+#        session['logged_in'] = True
+#        session['useremail'] = get_user_email(g.db, user_id[1])
+#
+#        return make_response(json.jsonify(
+#            show_signUpView=False,
+#            is_alreadySignedUp=None,
+#            email=None,
+#            user_name=None), 200)
+#
+#    # SignUp with facebook
+#    elif request.args.get('is_signUp') == 'Y':
+#        facebook_id, _ = get_facebook_user_id(g.db, user_data['email'])
+#        # Defence duplicated facebook ID signing up
+#        if facebook_id != -1:
+#            return make_repsonse(json.jsonify(
+#                message="You already signed up on facebook"), 403)
+#
+#        user_id = get_user_id(g.db, user_data['email'])
+#        if user_id == -1:
+#            return make_response(json.jsonify(
+#                show_signUpView=True,
+#                is_alreadySignedUp=False,
+#                email=user_data['email'],
+#                user_name=user_data['name']), 200)
+#        else:
+#            new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
+#            g.db.execute("INSERT INTO CICERON.D_FACEBOOK_USERS VALUES (%s,%s,%s) ",
+#                    (new_facebook_id, user_data['email'], user_id))
+#            g.db.commit()
+#            return make_response(json.jsonify(
+#                show_signUpView=True,
+#                is_alreadySignedUp=True,
+#                email=user_data['email'],
+#                user_name=user_data['name']), 200)
+#
+#@app.route("/api/facebook_connectUser", methods=["GET"])
+#@facebook.authorized_handler
+#def facebook_connectUser(resp):
+#    parameters = parse_request(request)
+#    email = parameters['email']
+#    user_id = get_user_id(g.db, email)
+#
+#    if facebook.get('/me').data['email'] != email:
+#        return make_response(json.jsonify(
+#            message="DO NOT HACK!!!!"), 403)
+#
+#    if user_id == -1:
+#        return make_response(json.jsonify(
+#            message="Not registered as normal user"), 403)
+#
+#    new_facebook_id = get_new_id(g.db, "D_FACEBOOK_USERS")
+#    g.db.execute("INSERT INTO CICERON.D_FACEBOOK_USERS VALUES (%s,%s,%s) ",
+#            (new_facebook_id, email, user_id))
+#    g.db.commit()
+#
+#    return make_response(json.jsonify(
+#        message="Successfully connected with facebook ID"), 200)
+#
+#@app.route("/api/facebook_signUp", methods=["POST"])
+#@facebook.authorized_handler
+#def facebook_signUp(resp):
+#    parameters = parse_request(request)
+#    email = parameters['email']
+#    # OAuth hacking check
+#    if facebook.get('/me').data['email'] != email:
+#        return make_response(json.jsonify(
+#            message="DO NOT HACK!!!!"), 403)
+#
+#    hashed_password = parameters['password']
+#    name = (parameters['name']).encode('utf-8')
+#    mother_language_id = int(parameters['mother_language_id'])
+#    nationality_id = int(parameters['nationality_id'])
+#    residence_id = int(parameters['residence_id'])
+#    result = signUpQuick(g.db, email, hashed_password, name, mother_language_id, nationality_id, residence_id, external__service_provider=["facebook"])
+#
+#    if result == 200:
+#        return make_response(json.jsonify(message="Registration %s: successful" % email), 200)
+#    elif result == 412:
+#        return make_response(json.jsonify(
+#            message="ID %s is duplicated. Please check the email." % email), 412)
 
 @app.route('/api/logout', methods=["GET"])
 #@exception_detector

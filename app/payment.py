@@ -11,9 +11,9 @@ from iamport import Iamport
 from alipay import Alipay
 
 try:
-    from .ciceron_lib import *
+    from . import ciceron_lib
 except:
-    from ciceron_lib import *
+    import ciceron_lib
 try:
     from .groupRequest import GroupRequest
 except:
@@ -43,14 +43,6 @@ class Payment(object):
     def __init__(self, conn):
         self.conn = conn
 
-    def __random_string_gen(self, size=6, chars=string.letters + string.digits):
-        """
-        무작위 string 만들어줌. 길이 조절도 가능함
-        """
-        gened_string = ''.join(random.choice(chars) for _ in range(size))
-        gened_string = gened_string.encode('utf-8')
-        return gened_string
-
     def _orderNoGenerator(self):
         """
         Iamport 방식으로 결제할 때에는 Iamport 단에서 주문번호를 만들어 주지 않기 때문에 우리가 직접 만들어야 한다.
@@ -60,7 +52,7 @@ class Payment(object):
         order_no = None
     
         for _ in range(1000):
-            order_no = datetime.strftime(datetime.now(), "%Y%m%d") + self.__random_string_gen(size=4)
+            order_no = datetime.strftime(datetime.now(), "%Y%m%d") + ciceron_lib.random_string_gen(size=4)
             cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no, ))
             cnt = cursor.fetchone()[0]
     

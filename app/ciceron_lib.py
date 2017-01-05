@@ -44,10 +44,15 @@ def get_hashed_password(password, salt=None):
 
     return hash_maker.hexdigest()
 
-def random_string_gen(size=6, chars=string.letters + string.digits):
+def random_string_gen(size=6, chars=None):
     """
     무작위 string 만들어줌. 길이 조절도 가능함
     """
+    try:
+        chars = string.ascii_letters + string.digits
+    except:
+        chars = string.letters + string.digits
+
     gened_string = ''.join(random.choice(chars) for _ in range(size))
     gened_string = gened_string.encode('utf-8')
     return gened_string
