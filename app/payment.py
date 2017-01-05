@@ -10,9 +10,19 @@ import paypalrestsdk
 from iamport import Iamport
 from alipay import Alipay
 
-import ciceron_lib
-from groupRequest import GroupRequest
-from requestResell import RequestResell
+try:
+    from .ciceron_lib import *
+except:
+    from ciceron_lib import *
+try:
+    from .groupRequest import GroupRequest
+except:
+    from groupRequest import GroupRequest
+
+try:
+    from .requestResell import RequestResell
+except:
+    from requestResell import RequestResell
 
 ZERO = timedelta(0)
 
@@ -49,7 +59,7 @@ class Payment(object):
         cursor = self.conn.cursor()
         order_no = None
     
-        for _ in xrange(1000):
+        for _ in range(1000):
             order_no = datetime.strftime(datetime.now(), "%Y%m%d") + self.__random_string_gen(size=4)
             cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no, ))
             cnt = cursor.fetchone()[0]
@@ -309,7 +319,7 @@ class Payment(object):
         # Payload parameter check
         for item in ['card_number', 'expiry', 'birth', 'pwd_2digit']:
             if item not in payload:
-                print "    Insufficient parameters. 'card_number', 'expiry', 'birth', 'pwd_2digit' are needed."
+                print("    Insufficient parameters. 'card_number', 'expiry', 'birth', 'pwd_2digit' are needed.")
                 return False, None
 
         new_payload = payload
@@ -327,8 +337,8 @@ class Payment(object):
             payment_result = pay_module.pay_onetime(**new_payload)
             double_check = pay_module.is_paid(**payment_result)
         except Iamport.ResponseError as e:
-            print e.code
-            print e.message
+            print(e.code)
+            print(e.message)
             raise Exception
 
         postprocess_api = "%s/%s" % (host_name, 'api/user/requests/%d/payment/postprocess' % request_id)
@@ -349,7 +359,7 @@ class Payment(object):
         return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
         if double_check == False:
-            print "    Iamport checkout abnormaly works!"
+            print("    Iamport checkout abnormaly works!")
             return False, None
         else:
             return True, return_url

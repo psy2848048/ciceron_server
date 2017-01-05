@@ -3,7 +3,10 @@
 import psycopg2
 import os
 import traceback
-import ciceron_lib
+try:
+    from .ciceron_lib import *
+except:
+    from ciceron_lib import *
 
 class GroupRequest(object):
     def __init__(self, conn):

@@ -2,10 +2,13 @@
 
 import requests
 import json
-import ciceron_lib
 from multiprocessing import Process
 from copy import deepcopy
 import psycopg2
+try:
+    from .ciceron_lib import *
+except:
+    from ciceron_lib import *
 
 
 class Connector:

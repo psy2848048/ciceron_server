@@ -43,7 +43,7 @@ class Localizer(object):
         ]
 
     def _findKeyByBalue(self, filename, value_args):
-        for key, value_dic in self.json_value.iteritems():
+        for key, value_dic in self.json_value.items():
             if value_args == value_dic and filename in key:
                 return True, key
 
@@ -95,15 +95,15 @@ class Localizer(object):
 
     def run(self, target_lang):
         for filename in self.file_list:
-            print filename
+            print(filename)
             file_binary = self.old_file_bin.read(filename)
 
             # 인코딩 처리
             try:
-                file_binary = unicode(file_binary.decode('utf-8'))
+                file_binary = str(file_binary.decode('utf-8'))
             except UnicodeDecodeError:
                 try:
-                    file_binary = unicode(file_binary)
+                    file_binary = str(file_binary)
                 except UnicodeDecodeError:
                     file_binary = file_binary
 
@@ -112,7 +112,7 @@ class Localizer(object):
             self.compressFileOrganizer(filename, file_binary)
 
         jsonText = self.jsonWriter(target_lang)
-        print jsonText
+        print(jsonText)
         self.compressFileOrganizer('i18n.json', jsonText)
         self.zip_obj.close()
 

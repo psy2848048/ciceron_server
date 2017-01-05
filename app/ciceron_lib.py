@@ -5,7 +5,12 @@ from flask import make_response, json, g, session, request, current_app
 from datetime import datetime, timedelta
 from functools import wraps
 from iamport import Iamport
-from requestwarehouse import Warehousing
+
+try:
+    from .requestwarehouse import Warehousing
+except:
+    from requestwarehouse import Warehousing
+
 super_user = ["pjh0308@gmail.com", "happyhj@gmail.com", "admin@ciceron.me"]
 
 """
@@ -275,7 +280,7 @@ def ddosCheckAndWriteLog(conn):
 def apiURLOrganizer(api_base, **kwargs):
     basic = api_base + '?'
     param = []
-    for key, value in kwargs.iteritems():
+    for key, value in kwargs.items():
         param.append('%s=%s' % (key, value))
 
     query = '&'.join(param)
@@ -326,7 +331,7 @@ def exception_detector(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            print e
+            print(e)
             g.db.rollback()
             return make_response(json.jsonify(message=str(e)),500)
 
@@ -452,7 +457,7 @@ def orderNoGenerator(conn):
     cursor = conn.cursor()
     order_no = None
 
-    for _ in xrange(1000):
+    for _ in range(1000):
         order_no = datetime.strftime(datetime.now(), "%Y%m%d") + random_string_gen(size=4)
         cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no, ))
         cnt = cursor.fetchone()[0]
@@ -712,7 +717,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
     elif method == "POST":
         cursor = conn.cursor()
         group_name = parameters['group_name']
-        if group_name == "Incoming" or group_name == u'Incoming':
+        if group_name == "Incoming" or group_name == 'Incoming':
             return -1
 
         my_user_id = get_user_id(conn, session['useremail'])
@@ -735,7 +740,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
         cursor = conn.cursor()
         group_id = int(url_group_id)
         group_name = parameters['group_name']
-        if group_name == u"Incoming" or group_name == "Incoming":
+        if group_name == "Incoming" or group_name == "Incoming":
             return -1
 
         query = "UPDATE CICERON.%s " % table
@@ -749,7 +754,7 @@ def complete_groups(conn, parameters, table, method, url_group_id=None, since=No
 
         group_id = int(url_group_id)
         group_text = get_text_from_id(conn, group_id, table)
-        if group_text == "Incoming" or group_text == u'Incoming':
+        if group_text == "Incoming" or group_text == 'Incoming':
             return -1
         elif group_text == None:
             return -2
@@ -836,7 +841,7 @@ def parse_request(req):
         if parameter_list != None:
             result = dict()
 
-            for key, value in parameter_list.iteritems():
+            for key, value in parameter_list.items():
                 result[key] = value
 
             return result
@@ -847,7 +852,7 @@ def parse_request(req):
     else:
         if len(req.form) != 0:
             result = dict()
-            for key, value in req.form.iteritems():
+            for key, value in req.form.items():
                 result[key] = value
 
             return result
@@ -944,7 +949,7 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
 
     service = get_gmail_service()
 
-    print msg
+    print(msg)
     #a = smtplib.SMTP('smtp.gmail.com:587')
     #a.ehlo()
     #a.starttls()
@@ -1211,7 +1216,7 @@ def signUpQuick(conn, email, hashed_password, name, mother_language_id, national
     # Insert values to D_USERS
     user_id = get_new_id(conn, "D_USERS")
 
-    print "New user id: %d" % user_id
+    print("New user id: %d" % user_id)
     cursor.execute("""INSERT INTO CICERON.D_USERS
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)""",
             (user_id,
@@ -1595,7 +1600,7 @@ def payment_postprocess(conn, pay_by, pay_via, request_id, user_id, is_success, 
     cursor.execute("SELECT original_lang_id, target_lang_id FROM CICERON.F_REQUESTS WHERE id = %s ", (request_id, ))
     record = cursor.fetchone()
     if record is None or len(record) == 0:
-        print "No record for this request. Request ID: %d" % request_id
+        print("No record for this request. Request ID: %d" % request_id)
         return 'no_record'
 
     original_lang_id = record[0]

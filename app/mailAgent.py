@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import psycopg2
 from pushjack import GCMClient
-import ciceron_lib as lib
-import mail_template
+from . import ciceron_lib as lib
+from . import mail_template
 from multiprocessing import Process
 import argparse, os
 
@@ -238,7 +238,7 @@ class MailAgent:
                  "link": (HOST + '/stoa')}
 
         lib.send_mail(user_email, "Here is your news, %s" % user_name, message)
-        print "Request ID: %d | Mail to: %s | Notification type ID: %d" % (request_id, user_email, noti_type)
+        print("Request ID: %d | Mail to: %s | Notification type ID: %d" % (request_id, user_email, noti_type))
 
     def parallel_send_email(self):
         cursor = self.conn.cursor()

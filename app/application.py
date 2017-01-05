@@ -10,7 +10,8 @@ from flask import Flask, session, request, g, make_response, send_from_directory
 from datetime import datetime, timedelta
 import os
 import requests
-import io
+import io, sys
+sys.path.append( os.path.dirname(os.path.abspath(os.path.dirname(__file__))) )
 
 import psycopg2
 from i18nHandler import I18nHandler
@@ -21,9 +22,9 @@ from groupRequest import GroupRequest
 from requestResell import RequestResell
 from payment import Payment
 
-from flask.ext.cors import CORS
-from flask.ext.session import Session
-from flask.ext.cache import Cache
+from flask_cors import CORS
+from flask_session import Session
+from flask_cache import Cache
 from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
@@ -489,7 +490,7 @@ def idChecker():
     # Parameter: String id
     parameters = parse_request(request)
     email = parameters['email']
-    print "email_id: %s" % email
+    print("email_id: {}".format(email))
     cursor.execute("select id from CICERON.D_USERS where email = %s", (email, ))
     check_data = cursor.fetchall()
     if len(check_data) == 0:
@@ -1123,12 +1124,12 @@ def translator_stoa():
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE
                 (((ongoing_worker_id is null AND status_id = 0 AND isSos = false AND is_paid = true) OR (isSos = true AND status_id IN (0, 1, 2) ))) AND due_time > CURRENT_TIMESTAMP """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
 
         query += " ORDER BY registered_time DESC LIMIT 20 "
 
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -1174,11 +1175,11 @@ def show_queue():
             query_pending = """SELECT * FROM CICERON.V_REQUESTS 
                 WHERE request_id IN (SELECT request_id FROM CICERON.D_QUEUE_LISTS WHERE user_id = %s) AND is_paid = true """
 
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query_pending += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query_pending += "ORDER BY registered_time DESC LIMIT 20"
 
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -1421,11 +1422,11 @@ def pick_request():
             query_ongoing = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND ongoing_worker_id = %s
             AND ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query_ongoing += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query_ongoing += " ORDER BY start_translating_time DESC LIMIT 20 "
 
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -1467,12 +1468,12 @@ def working_translate_item(request_id):
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 1 AND request_id = %s AND
             ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
 
         query += " ORDER BY start_translating_time desc LIMIT 20 "
 
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -1847,11 +1848,11 @@ def expected_time(request_id):
         else:
             query = """SELECT expected_time, due_time FROM CICERON.F_REQUESTS WHERE status_id = 1 AND id = %s AND ongoing_worker_id = %s
             AND ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
 
         query += " ORDER BY start_translating_time desc LIMIT 20 "
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2030,10 +2031,10 @@ def translation_completed_items_detail(request_id):
         query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND request_id = %s AND ongoing_worker_id = %s AND 
         ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20 "
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2069,11 +2070,11 @@ def translation_completed_items_all():
         query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id = 2 AND ongoing_worker_id = %s AND 
        ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
 
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2136,11 +2137,11 @@ def translators_complete_groups():
     """
     if request.method == "GET":
         since = None
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             since = request.args['since']
 
         page = None
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
 
         result = complete_groups(g.db, None, "D_TRANSLATOR_COMPLETED_GROUPS", "GET", since=since, page=page)
@@ -2216,10 +2217,10 @@ def translation_completed_items_in_group(str_group_id):
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE ongoing_worker_id = %s AND translator_completed_group_id = %s AND 
            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY submitted_time DESC LIMIT 20"
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2255,10 +2256,10 @@ def translation_incompleted_items_all():
               AND
              ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
 
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY request_id DESC LIMIT 20"
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2285,10 +2286,10 @@ def translation_incompleted_items_each(request_id):
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE status_id IN (-1,1) AND ongoing_worker_id = %s AND request_id = %s AND
            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2317,12 +2318,12 @@ def user_stoa():
         pager_date = None
         query = """SELECT * FROM CICERON.V_REQUESTS WHERE
                 isSos = true AND status_id IN (0, 1, 2) AND due_time > CURRENT_TIMESTAMP """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
 
         query += " ORDER BY registered_time DESC LIMIT 20 "
 
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2351,10 +2352,10 @@ def show_pending_list_client():
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE client_user_id = %s AND status_id = 0 AND 
             ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
 
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2404,7 +2405,7 @@ def show_pending_list_client():
         # status_code == 200: pass
 
         diff_amount = get_total_amount(g.db, request_id, translator_id, is_additional='true')
-        print diff_amount
+        print(diff_amount)
         if diff_amount == "ERROR":
             return make_response(json.jsonify(
                 message="Something wrong in DB record"
@@ -2462,9 +2463,9 @@ def show_pending_item_client(request_id):
         else:
             query = """SELECT * FROM CICERON.V_REQUESTS WHERE request_id = %s AND client_user_id = %s AND status_id = 0 AND
            ( (is_paid = true AND is_need_additional_points = false) OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2515,7 +2516,7 @@ def get_groupRequest_list():
         groupRequestObj = GroupRequest(g.db)
 
         page = 1
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page', 1)
 
         result = groupRequestObj.getGroupRequestList(page=page)
@@ -2686,10 +2687,10 @@ def show_ongoing_list_client():
                     AND status_id = 1
                     AND ( (is_paid = true AND is_need_additional_points = false) 
                           OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2725,10 +2726,10 @@ def show_ongoing_item_client(request_id):
                   AND status_id = 1
                   AND ( (is_paid = true AND is_need_additional_points = false)
                        OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND start_translating_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY start_translating_time DESC LIMIT 20"
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2769,10 +2770,10 @@ def client_completed_items():
                   )
               AND ( (is_paid = true AND is_need_additional_points = false) 
                    OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) ) """
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2835,10 +2836,10 @@ def client_completed_items_detail(request_id):
                   )
               AND ( (is_paid = true AND is_need_additional_points = false) 
                     OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -2976,11 +2977,11 @@ def client_complete_groups():
     """
     if request.method == "GET":
         since = None
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             since = request.args['since']
 
         page = None
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
 
         result = complete_groups(g.db, None, "D_CLIENT_COMPLETED_GROUPS", "GET", since=since, page=page)
@@ -3071,10 +3072,10 @@ def client_completed_items_in_group(group_id):
                   AND ( (is_paid = true AND is_need_additional_points = false) 
                       OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
                 """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND submitted_time < to_timestamp(%s) " % request.args.get('since')
         query += "ORDER BY submitted_time DESC"
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -3109,10 +3110,10 @@ def client_incompleted_items():
               AND ( (is_paid = true AND is_need_additional_points = false) 
                   OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
               """
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND registered_time < to-timestamp(%s) " % request.args.get('since')
     query += " ORDER BY registered_time DESC LIMIT 20"
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -3156,10 +3157,10 @@ def client_incompleted_item_control(request_id):
                   AND ( (is_paid = true AND is_need_additional_points = false) 
                       OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )
                   """
-        if 'since' in request.args.keys():
+        if 'since' in list(request.args.keys()):
             query += "AND registered_time < to_timestamp(%s) " % request.args.get('since')
         query += " ORDER BY registered_time DESC LIMIT 20"
-        if 'page' in request.args.keys():
+        if 'page' in list(request.args.keys()):
             page = request.args.get('page')
             query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -3688,10 +3689,10 @@ def i18n_getData_ongoing(request_id):
               AND request_id = %s 
               AND ( (is_paid = true AND is_need_additional_points = false) 
                   OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -3743,10 +3744,10 @@ def i18n_getData_complete(request_id):
               AND request_id = %s 
               AND ( (is_paid = true AND is_need_additional_points = false) 
                   OR (is_paid = true AND is_need_additional_points = true AND is_additional_points_paid = true) )  """
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND submitted_time < datetime(%s, 'unixepoch') " % request.args.get('since')
     query += " ORDER BY submitted_time DESC LIMIT 20"
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 
@@ -4122,11 +4123,11 @@ def get_notification():
                       noti.id
             FROM CICERON.V_NOTIFICATION noti LEFT OUTER JOIN CICERON.F_REQUESTS req ON noti.request_id = req.id
             WHERE noti.user_id = %s AND req.status_id != -2 """
-    if 'since' in request.args.keys():
+    if 'since' in list(request.args.keys()):
         query += "AND ts < to_timestamp(%s) " % request.args.get('since')
     query += "ORDER BY ts DESC LIMIT 10 "
 
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = int(request.args.get('page', 1))
         query += " OFFSET %d" % ((page-1) * 10)
     cursor.execute(query, (user_id, ))
@@ -4173,7 +4174,7 @@ def read_notification():
     """
     cursor = g.db.cursor()
     user_id = get_user_id(g.db, session['useremail']) 
-    if 'noti_id' in request.args.keys():
+    if 'noti_id' in list(request.args.keys()):
         query = """UPDATE CICERON.F_NOTIFICATION SET is_read = true WHERE id = %s """
         noti_id = request.args.get('noti_id')
         cursor.execute(query, (noti_id, ))
@@ -4268,7 +4269,7 @@ def point_detail():
     FROM CICERON.F_REQUESTS WHERE status_id = -2 AND is_paid = false AND client_user_id = %s) total
     order by request_time desc LIMIT 20 """
 
-    if 'page' in request.args.keys():
+    if 'page' in list(request.args.keys()):
         page = request.args.get('page')
         query += " OFFSET %d " % (( int(page)-1 ) * 20)
 

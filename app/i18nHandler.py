@@ -11,8 +11,11 @@ import tempfile
 from collections import OrderedDict
 
 from nslocalized import StringTable
-import ciceron_lib
 import nltk.data
+try:
+    from . import ciceron_lib
+except:
+    from ciceron_lib import *
 
 
 class I18nHandler(object):
@@ -453,7 +456,7 @@ class I18nHandler(object):
     def _dictToDb(self, request_id, source_lang_id, target_lang_id, dictData):
         cursor = self.conn.cursor()
 
-        for key, whole_text in dictData.iteritems():
+        for key, whole_text in dictData.items():
             whole_text_temp = whole_text.replace("\r", "").replace("\n  ", "\n\n")
             splited_text = whole_text_temp.split('\n\n')
 
@@ -653,7 +656,7 @@ class I18nHandler(object):
         os.unlink(f.name)
 
         result = {}
-        for key, value in st.strings.iteritems():
+        for key, value in st.strings.items():
             result[key] = value.target
 
         return result
@@ -688,11 +691,11 @@ class I18nHandler(object):
             if idx == 0:
                 for idx2, lang_key in enumerate(row):
                     if lang_key.upper() == source_lang_key.upper():
-                        print "Detected in {0}".format(idx2)
+                        print("Detected in {0}".format(idx2))
                         lang_key_idx = idx2
                         break
                 else:
-                    print "Default 0"
+                    print("Default 0")
 
             else:
                 result[ row[0] ] = row[1].decode('utf-8')
@@ -718,7 +721,7 @@ class I18nHandler(object):
 
     def _dictToIOs(self, iosDict):
         output = io.BytesIO()
-        for key, text in iosDict.iteritems():
+        for key, text in iosDict.items():
             output.write(("\"%s\" = \"%s\";\n" % (key, text)))
 
         return ('Localizable.strings', output.getvalue())
@@ -728,7 +731,7 @@ class I18nHandler(object):
         wrappeddict['resources'] = OrderedDict()
         wrappeddict['resources']['string'] = []
 
-        for key, text in andrDict.iteritems():
+        for key, text in andrDict.items():
             row = {}
             row['@value'] = key
             row['#text'] = text
@@ -742,7 +745,7 @@ class I18nHandler(object):
         result = []
         result.append(['KEY', language])
 
-        for key, text in unityDict.iteritems():
+        for key, text in unityDict.items():
             result.append([key, text])
 
         output = io.BytesIO()
@@ -765,7 +768,7 @@ class I18nHandler(object):
 
         wrappeddict['root']['data'] = []
 
-        for key, text in xamDict.iteritems():
+        for key, text in xamDict.items():
             row = {}
             row['@name'] = key.decode('utf-8')
             row['@xml:space'] = 'preserve'

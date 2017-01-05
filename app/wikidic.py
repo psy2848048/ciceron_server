@@ -4,7 +4,7 @@ Class for internal wiki dictionary
 
 import traceback
 import psycopg2
-import ciceron_lib as lib
+from . import ciceron_lib as lib
 
 
 class WikiDic(object):
@@ -31,7 +31,7 @@ class WikiDic(object):
             cursor.execute(query_insert, (udfDic_id, request_id, meaning_id, language_id, category, word, added_user_id, ))
 
         except Exception:
-            print traceback.print_exc()
+            print(traceback.print_exc())
             self.conn.rollback()
             return False
 
@@ -52,7 +52,7 @@ class WikiDic(object):
             cursor.execute(query_insert, (central_dic_id, meaning_id, language_id, category, word, added_user_id, ))
 
         except Exception:
-            print traceback.print_exc()
+            print(traceback.print_exc())
             self.conn.rollback()
             return False
 

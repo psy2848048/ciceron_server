@@ -45,6 +45,7 @@ Ciceron server code
   - python-i18n
   - nslocalized
   - xmltodict
+  - gevent
 
 * Summary of set up
  1) Env

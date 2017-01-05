@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-import ciceron_lib
+try:
+    from .ciceron_lib import *
+except:
+    from ciceron_lib import *
 
 
 class RequestResell(object):

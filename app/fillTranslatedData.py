@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import psycopg2
-from detourserverConnector import Connector
 import random, argparse, traceback, os, sys
+try:
+    from .detourserverConnector import Connector
+except:
+    from detourserverConnector import Connector
 
 
 DATABASE = None
@@ -30,7 +33,7 @@ class TranslationAgent:
         if result is None or len(result) == 0:
             return False, None
         else:
-            print "Translated text ID: %d | Paragragh ID: %d | Sentence ID: %d" % (result[3], result[0], result[1])
+            print("Translated text ID: %d | Paragragh ID: %d | Sentence ID: %d" % (result[3], result[0], result[1]))
             return True, result
 
     def fillInitialTranslatedData(self, paragraph_seq, sentence_seq, sentence, translation_id, original_lang_id, target_lang_id):

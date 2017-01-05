@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 
-from flask.ext.cors import CORS
-from flask.ext.session import Session
-from flask.ext.cache import Cache
+from flask_cors import CORS
+from flask_session import Session
+from flask_cache import Cache
 from flask_oauth import OAuth
 
-import i18nHandler.inject_api
-import detourserverConnector.inject_api
-from ciceron_lib import *
-import requestwarehouse.inject_api
-import groupRequest.inject_api
-import requestResell.inject_api
+from .i18nHandler import inject_api as i18nHandler_injectApi
+from .detourserverConnector import inject_api as detourserverConnector_injectApi
+from .requestwarehouse import inject_api as requestWarehouse_injectApi
+from .groupRequest import inject_api as groupRequest_injectApi
+from .requestResell import inject_api as requestResell_injectApi
+from .ciceron_lib import *
+
 
 if os.environ.get('PURPOSE') == 'PROD':
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
