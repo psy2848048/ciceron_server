@@ -947,22 +947,22 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     content = MIMEText(message, 'html', _charset='utf-8')
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
-    msg['From'] = 'Ciceron team <%s>' % mail_from
+    msg['From'] = 'CICERON team <%s>' % mail_from
     msg['To'] = str(mail_to)
     msg.attach(content)
-    encoded_msg = {'raw': base64.urlsafe_b64encode(msg.as_string())}
+    encoded_msg = {'raw': base64.urlsafe_b64encode(msg.as_string().encode("utf-8"))}
 
-    service = get_gmail_service()
+    #service = get_gmail_service()
 
     print(msg)
-    #a = smtplib.SMTP('smtp.gmail.com:587')
-    #a.ehlo()
-    #a.starttls()
-    #a.login('no-reply@ciceron.me', 'ciceron3388!')
-    #a.sendmail('no-reply@ciceron.me', str(mail_to), base64.urlsafe_b64encode(msg.as_string()))
-    #a.quit()
-    message = (service.users().messages().send(userId=mail_to, body=encoded_msg)
-                           .execute())
+    a = smtplib.SMTP('smtp.gmail.com:587')
+    a.ehlo()
+    a.starttls()
+    a.login('no-reply@ciceron.me', 'ciceron3388!')
+    a.sendmail('no-reply@ciceron.me', str(mail_to), base64.urlsafe_b64encode(msg.as_string().encode('utf-8')))
+    a.quit()
+    #message = (service.users().messages().send(userId=mail_to, body=encoded_msg)
+    #                       .execute())
 
 def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     """
