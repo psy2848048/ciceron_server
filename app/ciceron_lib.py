@@ -906,35 +906,6 @@ def send_push(conn, gcm_obj,
 
     return response
 
-def get_gmail_service():
-    #from oauth2client import client
-    #from oauth2client import tools
-    #from oauth2client.file import Storage
-    #import httplib2
-    #CLIENT_SECRET_FILE = 'client_secret.json'
-    #APPLICATION_NAME = 'SexyCookie'
-
-    #home_dir = os.path.expanduser('~')
-    #credential_dir = os.path.join(home_dir, '.credentials')
-    #if not os.path.exists(credential_dir):
-    #    os.makedirs(credential_dir)
-    #credential_path = os.path.join(credential_dir,
-    #                               'gmail-python-quickstart.json')
-
-    #store = Storage(credential_path)
-
-    from oauth2client.service_account import ServiceAccountCredentials
-    from apiclient import discovery
-    import httplib2
-
-    scopes = ['https://www.googleapis.com/auth/gmail.send']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        'ciceron_oauth2.json', scopes)
-
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('gmail', 'v1', http=http)
-    return service
-
 def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     """
     주어진 mesasge를 메일로 날려주는 라이브러리이다.
@@ -950,19 +921,14 @@ def send_mail(mail_to, subject, message, mail_from='no-reply@ciceron.me'):
     msg['From'] = 'CICERON team <%s>' % mail_from
     msg['To'] = str(mail_to)
     msg.attach(content)
-    encoded_msg = {'raw': base64.urlsafe_b64encode(msg.as_string().encode("utf-8"))}
-
-    #service = get_gmail_service()
 
     print(msg)
     a = smtplib.SMTP('smtp.gmail.com:587')
     a.ehlo()
     a.starttls()
     a.login('no-reply@ciceron.me', 'ciceron3388!')
-    a.sendmail('no-reply@ciceron.me', str(mail_to), base64.urlsafe_b64encode(msg.as_string().encode('utf-8')))
+    a.sendmail('no-reply@ciceron.me', str(mail_to), msg.as_string())
     a.quit()
-    #message = (service.users().messages().send(userId=mail_to, body=encoded_msg)
-    #                       .execute())
 
 def store_notiTable(conn, user_id, noti_type_id, target_user_id, request_id):
     """
