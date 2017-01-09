@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.mailAgent &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.mailAgent</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">from</span> <span class="nn">pushjack</span> <span class="k">import</span> <span class="n">GCMClient</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">ciceron_lib</span> <span class="k">as</span> <span class="n">lib</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">mail_template</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Process</span>
+<span class="kn">import</span> <span class="nn">argparse</span><span class="o">,</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="MailAgent"><a class="viewcode-back" href="../../docs/app.mailAgent.html#app.mailAgent.MailAgent">[문서]</a><span class="k">class</span> <span class="nc">MailAgent</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dbInfo</span><span class="p">,</span> <span class="n">GCMKey</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">dbInfo</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span> <span class="o">=</span> <span class="n">GCMClient</span><span class="p">(</span><span class="n">GCMKey</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MailAgent.publicize"><a class="viewcode-back" href="../../docs/app.mailAgent.html#app.mailAgent.MailAgent.publicize">[문서]</a>    <span class="k">def</span> <span class="nf">publicize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">isCheck</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># No Expected time</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">translator_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">client_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1">#query_no_expected_time = &quot;&quot;&quot;SELECT ongoing_worker_id, client_user_id, id</span>
+        <span class="c1">#    FROM CICERON.F_REQUESTS</span>
+        <span class="c1">#    WHERE (isSos = false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) &gt; (due_time - start_translating_time)/2 AND start_translating_time + interval &#39;30 minutes&#39; &lt; due_time)</span>
+        <span class="c1">#    OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) &gt; (due_time - start_translating_time)/3 AND start_translating_time + interval &#39;30 minutes&#39; &gt; due_time) &quot;&quot;&quot;</span>
+        <span class="c1">#cursor.execute(query_no_expected_time)</span>
+        <span class="c1">#rs = cursor.fetchall()</span>
+        <span class="c1">#for item in rs:</span>
+        <span class="c1">#    if isCheck == False:</span>
+        <span class="c1">#        lib.send_noti_suite(self.gcm_server, self.conn, item[0], 6, item[1], item[2])</span>
+        <span class="c1">#        lib.send_noti_suite(self.gcm_server, self.conn, item[1], 10, item[0], item[2])</span>
+        <span class="c1">#        translator_list.append(item[0])</span>
+        <span class="c1">#        client_list.append(item[1])</span>
+
+        <span class="c1">#    else:</span>
+        <span class="c1">#        self._monitorFileRefresher()</span>
+        <span class="c1">#        return</span>
+
+        <span class="c1"># Expired deadline</span>
+        <span class="n">query_expired_deadline</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT ongoing_worker_id, client_user_id, id</span>
+<span class="s2">            FROM CICERON.F_REQUESTS</span>
+<span class="s2">            WHERE isSos = false AND status_id = 1 AND CURRENT_TIMESTAMP &gt; due_time &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_expired_deadline</span><span class="p">)</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">12</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="mi">4</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">translator_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">client_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_monitorFileRefresher</span><span class="p">()</span>
+                <span class="k">return</span>
+
+        <span class="c1"># No translators</span>
+        <span class="n">query_no_translators</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT client_user_id, id</span>
+<span class="s2">            FROM CICERON.F_REQUESTS</span>
+<span class="s2">            WHERE isSos = false AND status_id = 0 AND CURRENT_TIMESTAMP &gt; due_time &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_no_translators</span><span class="p">)</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">13</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">client_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_monitorFileRefresher</span><span class="p">()</span>
+                <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;UPDATE CICERON.F_REQUESTS SET status_id = -1</span>
+<span class="s2">                WHERE isSos = false AND status_id IN (0,1) AND CURRENT_TIMESTAMP &gt; due_time &quot;&quot;&quot;</span><span class="p">)</span>
+            <span class="c1">#cursor.execute(&quot;&quot;&quot;UPDATE CICERON.F_REQUESTS SET status_id = 0, ongoing_worker_id = null, start_translating_time = null</span>
+            <span class="c1">#    WHERE (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) &gt; (due_time - start_translating_time)/2 AND start_translating_time + interval &#39;30 minutes&#39; &lt; due_time)</span>
+            <span class="c1">#    OR    (isSos= false AND status_id = 1 AND expected_time is null AND (CURRENT_TIMESTAMP - start_translating_time) &gt; (due_time - start_translating_time)/3 AND start_translating_time + interval &#39;30 minutes&#39; &gt; due_time) &quot;&quot;&quot;)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="n">translator_list</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">update_user_record</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">translator_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="n">client_list</span><span class="p">:</span>     <span class="n">lib</span><span class="o">.</span><span class="n">update_user_record</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">client_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MailAgent.ask_expected_time"><a class="viewcode-back" href="../../docs/app.mailAgent.html#app.mailAgent.MailAgent.ask_expected_time">[문서]</a>    <span class="k">def</span> <span class="nf">ask_expected_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">isCheck</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT fact.ongoing_worker_id, fact.id, fact.client_user_id FROM CICERON.F_REQUESTS fact</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.V_NOTIFICATION noti ON fact.id = noti.request_id AND noti.noti_type_id = 1</span>
+<span class="s2">            WHERE fact.isSos= false AND fact.status_id = 1 AND fact.expected_time is null AND noti.is_read is null</span>
+<span class="s2">            AND (</span>
+<span class="s2">              (CURRENT_TIMESTAMP &gt; fact.start_translating_time + interval &#39;30 minutes&#39; AND fact.due_time &gt; CURRENT_TIMESTAMP + interval &#39;30 minutes&#39;)</span>
+<span class="s2">            OR </span>
+<span class="s2">              (CURRENT_TIMESTAMP - fact.start_translating_time &gt; (fact.due_time - fact.start_translating_time)/3 AND fact.due_time &lt; CURRENT_TIMESTAMP + interval &#39;30 minutes&#39;) </span>
+<span class="s2">            )&quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> 
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_monitorFileRefresher</span><span class="p">()</span>
+                <span class="k">return</span></div>
+
+<div class="viewcode-block" id="MailAgent.delete_sos"><a class="viewcode-back" href="../../docs/app.mailAgent.html#app.mailAgent.MailAgent.delete_sos">[문서]</a>    <span class="k">def</span> <span class="nf">delete_sos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">isCheck</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># Expired deadline</span>
+        <span class="c1"># Using ongoing_worker_id and client_user_id, and update statistics after commit</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">translator_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">client_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">query_expired_deadline</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT ongoing_worker_id, client_user_id, id</span>
+<span class="s2">            FROM CICERON.F_REQUESTS</span>
+<span class="s2">            WHERE isSos = true AND status_id = 1 and ongoing_worker_id is not null AND CURRENT_TIMESTAMP &gt; due_time &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_expired_deadline</span><span class="p">)</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">12</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="mi">4</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">translator_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">client_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_monitorFileRefresher</span><span class="p">()</span>
+                <span class="k">return</span>
+
+        <span class="c1"># No translators</span>
+        <span class="n">query_no_translators</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT client_user_id, id</span>
+<span class="s2">            FROM CICERON.F_REQUESTS</span>
+<span class="s2">            WHERE isSos = true AND status_id = 0 AND CURRENT_TIMESTAMP &gt; due_time &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_no_translators</span><span class="p">)</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">send_noti_suite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gcm_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">13</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">client_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_monitorFileRefresher</span><span class="p">()</span>
+                <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;UPDATE CICERON.F_REQUESTS SET status_id = -1</span>
+<span class="s2">                             WHERE status_id in (0,1) AND isSos = true AND CURRENT_TIMESTAMP &gt;= registered_time + interval &#39;360 minutes&#39;&quot;&quot;&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="n">translator_list</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">update_user_record</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">translator_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="n">client_list</span><span class="p">:</span>     <span class="n">lib</span><span class="o">.</span><span class="n">update_user_record</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="n">client_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_monitorFileRefresher</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/tmp/mailer.log&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_unitMailSender</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_name</span><span class="p">,</span> <span class="n">user_email</span><span class="p">,</span> <span class="n">noti_type</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">language_id</span><span class="p">,</span> <span class="n">optional_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">mail_template</span><span class="o">.</span><span class="n">mail_format</span><span class="p">()</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">HOST</span> <span class="o">=</span> <span class="s1">&#39;http://ciceron.me&#39;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PURPOSE&#39;</span><span class="p">,</span> <span class="s1">&#39;TEST&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;PROD&#39;</span><span class="p">:</span>
+            <span class="n">HOST</span> <span class="o">=</span> <span class="s1">&#39;http://ciceron.me&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">HOST</span> <span class="o">=</span> <span class="s1">&#39;http://ciceron.xyz&#39;</span>
+
+        <span class="k">if</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">translator_new_ticket</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/stoa/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+    
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">translator_check_expected_time</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/translating/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">,</span>
+                 <span class="s2">&quot;expected&quot;</span><span class="p">:</span> <span class="n">optional_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;expected&#39;</span><span class="p">)}</span>
+                <span class="c1"># datetime.now() + timedelta(seconds=(due_time - start_translating_time)/3)</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">translator_complete</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/activity/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+                
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">translator_exceeded_due</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/stoa/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">translator_extended_due</span><span class="p">(</span><span class="n">langauge_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/translating/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">,</span>
+                 <span class="s2">&quot;new_due&quot;</span><span class="p">:</span> <span class="n">optional_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;new_due&#39;</span><span class="p">)}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">translator_no_answer_expected_time</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/stoa/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_take_ticket</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/processingrequests/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">,</span>
+                 <span class="s1">&#39;hero&#39;</span><span class="p">:</span> <span class="n">optional_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hero&#39;</span><span class="p">)}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_check_expected_time</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/processingrequests/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">9</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_giveup_ticket</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/stoa/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">,</span>
+                 <span class="s2">&quot;hero&quot;</span><span class="p">:</span> <span class="n">optional_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hero&#39;</span><span class="p">)}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_no_answer_expected_time_go_to_stoa</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/stoa/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">11</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_complete</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span><span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/donerequests/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">,</span>
+                 <span class="s2">&quot;hero&quot;</span><span class="p">:</span> <span class="n">optional_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hero&#39;</span><span class="p">)}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">12</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_incomplete</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/processingrequests/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">13</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_no_hero</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/processingrequests/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">request_id</span><span class="p">}</span>
+
+        <span class="k">elif</span> <span class="n">noti_type</span> <span class="o">==</span> <span class="mi">15</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">client_no_hero</span><span class="p">(</span><span class="n">language_id</span><span class="p">)</span> <span class="o">%</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">HOST</span><span class="p">,</span>
+                 <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_name</span><span class="p">,</span>
+                 <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">HOST</span> <span class="o">+</span> <span class="s1">&#39;/stoa&#39;</span><span class="p">)}</span>
+
+        <span class="n">lib</span><span class="o">.</span><span class="n">send_mail</span><span class="p">(</span><span class="n">user_email</span><span class="p">,</span> <span class="s2">&quot;Here is your news, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">user_name</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Request ID: </span><span class="si">%d</span><span class="s2"> | Mail to: </span><span class="si">%s</span><span class="s2"> | Notification type ID: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">user_email</span><span class="p">,</span> <span class="n">noti_type</span><span class="p">))</span>
+
+<div class="viewcode-block" id="MailAgent.parallel_send_email"><a class="viewcode-back" href="../../docs/app.mailAgent.html#app.mailAgent.MailAgent.parallel_send_email">[문서]</a>    <span class="k">def</span> <span class="nf">parallel_send_email</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT </span>
+<span class="s2">            user_id, user_email, user_name, noti_type_id, noti_type, request_id, context, registered_time, expected_time, submitted_time, start_translating_time, due_time, points, target_user_id, target_user_email, target_user_name, target_profile_pic_path, ts, is_read, user_profile_pic_path, status_id</span>
+<span class="s2">            FROM CICERON.V_NOTIFICATION </span>
+<span class="s2">                WHERE is_read = false AND is_mail_sent = false AND CURRENT_TIMESTAMP &gt; ts + interval &#39;3 minutes&#39;</span>
+<span class="s2">            ORDER BY ts&quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">process_pool</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rs</span><span class="p">):</span>
+            <span class="n">user_id</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">query_mother_lang</span> <span class="o">=</span> <span class="s2">&quot;SELECT mother_language_id FROM CICERON.D_USERS WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_mother_lang</span><span class="p">,</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">)</span> <span class="p">)</span>
+            <span class="n">mother_lang_id</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">proc</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_unitMailSender</span><span class="p">,</span>
+                           <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">mother_lang_id</span><span class="p">),</span>
+                           <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;optional_info&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                       <span class="s2">&quot;expected&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">-</span> <span class="n">item</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span><span class="o">/</span><span class="mi">3</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">item</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                                       <span class="s2">&quot;new_due&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span>
+                                       <span class="s2">&quot;hero&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span>
+                                      <span class="p">}</span>
+                                  <span class="p">}</span>
+                           <span class="p">)</span>
+    
+            <span class="n">process_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span>
+
+            <span class="c1">#parallel_send_email(item[2], item[1], item[3], item[5], mother_lang_id,</span>
+            <span class="c1">#               optional_info={</span>
+            <span class="c1">#                           &quot;expected&quot;: string2Date(item[10]) + (string2Date(item[11]) - string2Date(item[10]))/3 if item[10] != None and item[11] != None else None,</span>
+            <span class="c1">#                           &quot;new_due&quot;: string2Date(item[11]) if item[11] != None else None,</span>
+            <span class="c1">#                           &quot;hero&quot;: str(item[15]) if item[15] != None else None</span>
+            <span class="c1">#                          }</span>
+            <span class="c1">#               )</span>
+    
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">%</span> <span class="mi">5</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">or</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">process_pool</span><span class="p">:</span>
+                    <span class="n">i</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">process_pool</span><span class="p">:</span>
+                    <span class="n">i</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                <span class="n">process_pool</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;UPDATE CICERON.F_NOTIFICATION SET is_mail_sent = true WHERE is_read = false AND CURRENT_TIMESTAMP &gt; ts + interval &#39;3 minutes&#39;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MailAgent.run"><a class="viewcode-back" href="../../docs/app.mailAgent.html#app.mailAgent.MailAgent.run">[문서]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">isCheck</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">publicize</span><span class="p">(</span><span class="n">isCheck</span><span class="o">=</span><span class="n">isCheck</span><span class="p">)</span>
+        <span class="c1">#self.ask_expected_time(isCheck=isCheck)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete_sos</span><span class="p">(</span><span class="n">isCheck</span><span class="o">=</span><span class="n">isCheck</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">isCheck</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parallel_send_email</span><span class="p">()</span></div></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">DATABASE</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PURPOSE&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;PROD&#39;</span><span class="p">:</span>
+        <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=</span><span class="si">%s</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=</span><span class="si">%s</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_str_to_bool</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert string to bool (in argparse context).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Need bool; got </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;true&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}[</span><span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Translation agent&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--dbpass&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;dbpass&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;DB password&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--check&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;check&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">_str_to_bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Just for check&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--apikey&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;apikey&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;GCM API key&#39;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">dbInfo</span> <span class="o">=</span> <span class="n">DATABASE</span> <span class="o">%</span> <span class="n">args</span><span class="o">.</span><span class="n">dbpass</span>
+    <span class="n">mailAgent</span> <span class="o">=</span> <span class="n">MailAgent</span><span class="p">(</span><span class="n">dbInfo</span><span class="p">,</span> <span class="n">GCMKey</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">apikey</span><span class="p">)</span>
+    <span class="n">mailAgent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">isCheck</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">check</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

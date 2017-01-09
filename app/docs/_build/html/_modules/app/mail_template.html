@@ -1,0 +1,498 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.mail_template &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.mail_template</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<div class="viewcode-block" id="mail_format"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format">[문서]</a><span class="k">class</span> <span class="nc">mail_format</span><span class="p">:</span>
+
+    <span class="n">translator_new_ticket_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;히어로 </span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 새로운 번역 티켓이 등록되었습니다! &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;스토아&lt;/a&gt;에 한 번 들려 티켓을 확인해 보세요&lt;br&gt;</span>
+<span class="s2">                 히어로 </span><span class="si">%(user)s</span><span class="s2">님의 능력을 필요로 하는 티켓들이 스토아에 기다리고 있습니다! 당신의 능력을 보여주세요.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">translator_new_ticket_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 A new translation ticket has been posted!&lt;br&gt;</span>
+<span class="s2">                 Please visit the &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;STOA&lt;/a&gt; to review the request and help someone out with your coveted language skills.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Thanks,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.translator_new_ticket"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.translator_new_ticket">[문서]</a>    <span class="k">def</span> <span class="nf">translator_new_ticket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_new_ticket_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_new_ticket_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">translator_check_expected_time_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;히어로 </span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 오늘도 티켓을 번역해주심에 감사드립니다!&lt;br&gt;</span>
+<span class="s2">                 지금 이 순간에도 의뢰인께서는 히어로님의 능력을 간절히 기다리고 있습니다.&lt;br&gt;</span>
+<span class="s2">                 기다리는 고객님을 조금이나마 안심시켜주는 차원에서, 번역 가능한지, 가능하면 언제쯤 완료할 수 있을지 답변 부탁드립니다.&lt;br&gt;</span>
+<span class="s2">                 잠시만 짬을 내어 의뢰물을 검토해보시고 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;여기&lt;/a&gt;에 들러 답해주세요. 잠깐이면 됩니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#DC143C&#39;&gt;&lt;h3&gt;주의!&lt;/h3&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;h4&gt;늦어도 </span><span class="si">%(expected)s</span><span class="s2">까지는 답변을 부탁드립니다. 그 때까지 답변이 없으면 이 티켓은 다른 히어로에게 부탁하게 됩니다. 만약 감당할 수 없을 정도로 어려운 티켓이라면 빨리 말씀해주세요. 빠르면 빠를수록 좋습니다 어렵게 생각하지 않으셔도 됩니다!&lt;/h4&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">translator_check_expected_time_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Thank you so much for agreeing to help someone out with your language assets.&lt;br&gt;</span>
+<span class="s2">                 Just to keep your client rest assured, please let us know when you expect to finish the translation by simply visiting &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;here&lt;/a&gt;!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#DC143C&#39;&gt;&lt;h3&gt;ATTENTION!&lt;/h3&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;h4&gt;But, if we don&#39;t hear from you by </span><span class="si">%(expected)s</span><span class="s2">, we may have to transfer the ticket to another appropriate Hero. No pressure, though. If you don&#39;t think you can finish the job, the sooner we know, the better! It&#39;s all for the best. No hard feelings, we promise.&lt;/h4&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Thanks,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.translator_check_expected_time"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.translator_check_expected_time">[문서]</a>    <span class="k">def</span> <span class="nf">translator_check_expected_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_check_expected_time_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_check_expected_time_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">translator_complete_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 당신의 능력을 빛내주셔서 감사합니다. 히어로님의 번역 덕분에 의뢰인께서 한시름 덜었을 것이라 믿습니다.&lt;br&gt;</span>
+<span class="s2">                 프로필 페이지에서 적립금을 확인하실 수 있고, 작업내력 페이지에서 피드백을 확인할 수 있습니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 지금 이 순간에도 당신의 능력을 필요로하는 티켓들이 스토아에서 가디라고 있습니다.&lt;br&gt;</span>
+<span class="s2">                 히어로님의 능력을 기다립니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">translator_complete_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Thank you for saving someone - both figuratively and literally - with the translation.&lt;br&gt;</span>
+<span class="s2">                 You&#39;re now able to review the client rating and final payment on your profile page.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 We hope to continue working with you to build the world where nothing gets lost in translation.&lt;br&gt;</span>
+<span class="s2">                 See you again soon!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Best regards,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.translator_complete"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.translator_complete">[문서]</a>    <span class="k">def</span> <span class="nf">translator_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_complete_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_complete_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">translator_exceeded_due_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;히어로 </span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 히어로님께서 번역을 맡은 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이 티켓&lt;/a&gt;이 의뢰인께서 설정한 마감 시간을 넘겼습니다.&lt;br&gt;</span>
+<span class="s2">                 혹시 마감 시한이 넘지 않았는데 이 메일을 받아보시게 된다면 저희이게 &lt;a href=&#39;mailto:webmaster@ciceron.me?Subject=False%20alarm</span><span class="si">%20r</span><span class="s2">eport&#39; target=&#39;_blank&#39;&gt;연락&lt;/a&gt; 부탁드리겠습니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">translator_exceeded_due_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 We are terribly sorry to let you know that the access to &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;your ticket&lt;/a&gt;your ticket&lt;/a&gt; has been expired because the deadline has been passed.&lt;br&gt;</span>
+<span class="s2">                 Please reach out to us if you think there has been an error.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Regretfully,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.translator_exceeded_due"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.translator_exceeded_due">[문서]</a>    <span class="k">def</span> <span class="nf">translator_exceeded_due</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_exceeded_due_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_exceeded_due_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">translator_extended_due_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;히어로 </span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이 티켓&lt;/a&gt;의 마감시한은 넘겼지만, 의뢰인께서 기한을 </span><span class="si">%(new_due)s</span><span class="s2">까지 연장해주셨습니다.&lt;br&gt;</span>
+<span class="s2">                 혹시 새로운 마감 기한에 대하여 의문점이 있으면 언제든지 저희에게 &lt;a href=&#39;mailto:webmaster@ciceron.me?Subject=False%20alarm</span><span class="si">%20r</span><span class="s2">eport&#39; target=&#39;_blank&#39;&gt;연락&lt;/a&gt; 부탁드립니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">translator_extended_due_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Good news! Even though you missed the deadline, the client has just extended &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;your ticket&lt;/a&gt; until %(new_due).&lt;br&gt;</span>
+<span class="s2">                 Please reach out to us if you have any problems meeting the new deadline.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Good luck,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.translator_extended_due"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.translator_extended_due">[문서]</a>    <span class="k">def</span> <span class="nf">translator_extended_due</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_extended_due_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_extended_due_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">translator_no_answer_expected_time_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;히어로 </span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 예상 마감시한을 답변해주지 않으셔서 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이 티켓&lt;/a&gt;은 다른 히어로에게 기회가 가게 되었습니다.&lt;br&gt;</span>
+<span class="s2">                 하지만 낙심하지 않으셔도 됩니다. &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;스토아&lt;/a&gt;에 가 보시면 더 많은 티켓들이 히어로님의 능력을 기다리고 있습니다!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">translator_no_answer_expected_time_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear hero </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 We regret to inform you that another Hero will work on &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;your last ticket&lt;/a&gt; because you haven&#39;t tipped us on the expected completion date.&lt;br&gt;</span>
+<span class="s2">                 Even though this ticket has passed, there are more on our &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;STOA&lt;/a&gt;. Let&#39;s help more people out!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Best regards,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.translator_no_answer_expected_time"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.translator_no_answer_expected_time">[문서]</a>    <span class="k">def</span> <span class="nf">translator_no_answer_expected_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_no_answer_expected_time_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">translator_no_answer_expected_time_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_take_ticket_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 히어로 &lt;b&gt;</span><span class="si">%(hero)s</span><span class="s2">&lt;/b&gt;&amp;nbsp;님께서 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이 티켓&lt;/a&gt;을 번역해주시기로 했습니다!&lt;br&gt;</span>
+<span class="s2">                 여러분들의 만족을 위하여 히어로들은 하나하나 꼼곰하게 검토하여 선발했습니다. 저희 히어로들은 단지 한 언어를 다른 언어로 옮겨주는 차원을 넘어, 내용을 읽고 문맥을 파악하여 해당 언어에 가장 알맞은 표현을 찾아낼 줄 아는 사람들입니다.&lt;br&gt;</span>
+<span class="s2">                 저희 히어로를 믿고 기다려 주세요!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_take_ticket_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 &lt;b&gt;Good news!&lt;/b&gt; &lt;b&gt;</span><span class="si">%(hero)s</span><span class="s2">&lt;/b&gt;&amp;nbsp;has been assigned as the Hero for &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;your ticket&lt;/a&gt;!&lt;br&gt;</span>
+<span class="s2">                 We have meticulously hand-picked qualified Heroes to help out with your translation needs. They not only know how to covert one language to another, but also understand the underlying context of each content.&lt;br&gt;</span>
+<span class="s2">                 So, rest assured, and wait for your Hero to complete the job!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Best regards,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_take_ticket"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_take_ticket">[문서]</a>    <span class="k">def</span> <span class="nf">client_take_ticket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_take_ticket_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_take_ticket_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_check_expected_time_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 히어로님께서 예상 완료 시간을 답해주셨습니다!&lt;br&gt;</span>
+<span class="s2">                 자세한 정보는 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이곳&lt;/a&gt;에서 확인해보실 수 있습니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;b&gt;참고:/b&gt; 예상 완료시간은 어디까지나 &lt;b&gt;참고용&lt;/b&gt;입니다. 시스템은 의뢰인님께서 설정해주신 &lt;b&gt;마감 시간&lt;/b&gt;을 기준으로 작동합니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_check_expected_time_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Your Hero has just updated the expected completion date for your ticket!&lt;br&gt;</span>
+<span class="s2">                 You may visit &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;here&lt;/a&gt; for more information.&lt;br&gt;</span>
+<span class="s2">                 &lt;b&gt;Attention:&lt;/b&gt; The &#39;expected compltetion date&#39; is just only for a &lt;b&gt;reference&lt;/b&gt;. CICERON system works &lt;b&gt;based on the deadline you set&lt;/b&gt;.</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Best regards,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_check_expected_time"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_check_expected_time">[문서]</a>    <span class="k">def</span> <span class="nf">client_check_expected_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_check_expected_time_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_check_expected_time_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_giveup_ticket_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 히어로 &lt;b&gt;</span><span class="si">%(hero)s</span><span class="s2">&lt;/b&gt;님께서 의뢰인님의 티켓은 기한 내에 번역이 어려울거라 답해주셨습니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;여기&lt;/a&gt;에 가셔서 티켓을 다른 히어로에게 부탁할 지, 아니면 의뢰를 중단할 지 결정해주시기 바랍니다.&lt;br&gt;</span>
+<span class="s2">                 완벽한 번역만을 제공하겠다는 저희 히어로들의 마음 때문에, 히어로 자신이 감당하지 못하는 수준의 티켓에 대해서는 이렇게 번역불가 의사를 표할 수도 있습니다. 양해 부탁드립니다.&lt;br&gt;</span>
+<span class="s2">                 이유는 여러가지일 수 있습니다. 시간이 부족하다고 느꼈을수도, 혹은 자신에게 더 맞는 의뢰를 찾았을수도 있습니다.&lt;br&gt;</span>
+<span class="s2">                 이유불문, 불편을 끼쳐드려 죄송합니다. 문의 사항 있으면 주저하지 말고 저희에게 연락 부탁드립니다!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_giveup_ticket_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Oops...&lt;br&gt;</span>
+<span class="s2">                 Your Hero &lt;b&gt;</span><span class="si">%(hero)s</span><span class="s2">&lt;/b&gt;&amp;nbsp;regretfully responded that your ticket cannot be completed.&lt;br&gt;</span>
+<span class="s2">                 You may unfold &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;your ticket&lt;/a&gt; and decide what to do. You may assign to another qualified Hero or opt out of the request.&lt;br&gt;</span>
+<span class="s2">                 Please bear in mind that our Heros sometimes decide to let go of a ticket, because they are committed to producing only the finest translation works. They may feel that there isn&#39;t enough time or that another Hero might be more appropriate for a certain project.&lt;br&gt;</span>
+<span class="s2">                 In any case, we&#39;re so sorry for the hassle. Please let us know if you have any questions!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Regretfully,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_giveup_ticket"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_giveup_ticket">[문서]</a>    <span class="k">def</span> <span class="nf">client_giveup_ticket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_giveup_ticket_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_giveup_ticket_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_no_answer_expected_time_go_to_stoa_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 저희 시스템은 각 티켓의 마감 시한을 감지하여 티켓의 상태를 수정합니다. 그 중 하나로, 티켓 번역 의사를 표해주신 시점부터 마감 시한까지의 1/3이 되는 지점에 다다랐음에도 번역 완료 예상 시간을 답해주지 않으면 티켓을 스토아에 다시 공개하여 다른 히어로에게 기회를 주고 있습니다.&lt;br&gt;</span>
+<span class="s2">                 안타깝게도, &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;당신의 티켓&lt;/a&gt;도 이 사유에 따라 스토아에 다시 공개되었습니다.&lt;br&gt;</span>
+<span class="s2">                 그래도 걱정하진 마세요. 이 티켓에 더욱 적합한 히어로가 다시 의뢰인님을 찾아올 것입니다.&lt;br&gt;</span>
+<span class="s2">                 문의 사항 있으시면 주저하지 말고 저희에게 연락 부탁드립니다!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_no_answer_expected_time_go_to_stoa_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 As you may know, we routinely check to ensure expedited completion of all tickets. We normally do this by the 1/3 point of your designated deadline.&lt;br&gt;</span>
+<span class="s2">                 Unfortunately, however, your Hero has opted not to tip us on the expected completion date this time. So, we have decided to transfer &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;your ticket&lt;/a&gt; back to the STOA.&lt;br&gt;</span>
+<span class="s2">                 Don&#39;t worry though! Your ticket will be assigned to another, possible more capable, Hero.&lt;br&gt;</span>
+<span class="s2">                 Please reach out to us if you have any questions!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Always at your service,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_no_answer_expected_time_go_to_stoa"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_no_answer_expected_time_go_to_stoa">[문서]</a>    <span class="k">def</span> <span class="nf">client_no_answer_expected_time_go_to_stoa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_no_answer_expected_time_go_to_stoa_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_no_answer_expected_time_go_to_stoa_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_complete_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 오래 기다리셨습니다!&lt;br&gt;</span>
+<span class="s2">                 히어로 </span><span class="si">%(hero)s</span><span class="s2">님께서 방금 번역을 완료하셨습니다!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이곳&lt;/a&gt;에서 결과물을 확인하시고 평가를 할 수 있습니다. &lt;br&gt;</span>
+<span class="s2">                 혹시 티켓 의뢰의 전 과정에서 불편한 점이 있으셨으면 주저하지 말고 저희에게 연락 부탁드립니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Thanks,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_complete_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Awesome news!&lt;br&gt;</span>
+<span class="s2">                 Your Hero </span><span class="si">%(hero)s</span><span class="s2"> has just submitted the translation. Your ticket is now completed.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Please visit &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;here&lt;/a&gt; and rate your Hero. We&#39;re open to hearing anything you have to say about the experience.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Thanks,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_complete"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_complete">[문서]</a>    <span class="k">def</span> <span class="nf">client_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_complete_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_complete_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_incomplete_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님께,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 티켓을 번역해주시기로 한 히어로님께서 안타깝게도 기한 내에 결과물을 제출하지 못했다는 소식을 전해드려게 되었습니다.&lt;br&gt;</span>
+<span class="s2">                 부디 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이곳에&lt;/a&gt; 잠시 방문하시어 기한을 연장할 지, 혹은 티켓을 취소할 지 결정해주시기 바랍니다.&lt;br&gt;</span>
+<span class="s2">                 대부분의 티켓은 기한 내에 처리가 됩니다. 다만, 어떻게든 자연스럽게 문장을 만들기 위하여 정성을 기울이느라 시간이 늦어질 수는 있습니다.&lt;br&gt;</span>
+<span class="s2">                 다시 한 번 죄송하다는 말씀 드립니다. 다음 의뢰시에는 좋은 기억을 가져다 드릴 수 있도록 노력하겠습니다!</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_incomplete_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 We are really sorry to let you know that your Hero has missed the deadline for your ticket.&lt;br&gt;</span>
+<span class="s2">                 Please visit &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;here&lt;/a&gt; to either extend the deadline for your Hero or cancel the request entirely.&lt;br&gt;</span>
+<span class="s2">                 Please bear in mind that your Hero has likely completed most of the work. Sometimes a little more time is all that is needed to churn out the most appropriate, contextually-fitting translation.&lt;br&gt;</span>
+<span class="s2">                 Once again, we&#39;re so sorry for the hassle. We&#39;ll do our best to improve your experience.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Regretfully,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_incomplete"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_incomplete">[문서]</a>    <span class="k">def</span> <span class="nf">client_incomplete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_incomplete_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_incomplete_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_no_hero_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 어느 히어로도 당신의 티켓을 선택해주지 않으셨습니다.&lt;br&gt;</span>
+<span class="s2">                 잠시 시간을 내어 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이곳&lt;/a&gt;을 방문해 주셔서 취소 및 연장 여부를 결정해주시기 바랍니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 저희 히어로들은 문장 호응에 맞는 매끄러운 번역을 위하여 많은 노력과 시간이 들어가기 때문에, 모든 히어로가 번역중이라면 이후 올라오는 티켓은 미처 발견하지 못할 수 있습니다.&lt;br&gt;</span>
+<span class="s2">                 작은 의문이라도 저희에게 주저하지 말고 문의 부탁드립니다. 항상 발전하는 모습 보여드리려 노력하겠습니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_no_hero_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Oh oh...&lt;br&gt;</span>
+<span class="s2">                 We&#39;ve waited, pinged, and shook things up a little more. But, no Hero has decided to pick up your ticket.&lt;br&gt;</span>
+<span class="s2">                 Please visit &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;here&lt;/a&gt; and decide what to do about your ticket.&lt;br&gt;</span>
+<span class="s2">                 You may opt out, repost in the STOA, or change the price of your ticket.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Please understand that our Heroes are committed to producing only the most appropriate, contextually-correct translations. They may sometimes decide not to pick up a ticket, because they feel that such a commitment cannot be met under certain conditions. It&#39;s all for the best, we promise.&lt;br&gt;</span>
+<span class="s2">                 In any case, please reach out to us if you have any questions about the process. We&#39;ll be more than glad to help enhance your experience!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Best regards,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_no_hero"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_no_hero">[문서]</a>    <span class="k">def</span> <span class="nf">client_no_hero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_no_hero_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_no_hero_en</span></div>
+
+    <span class="c1">##################################################################################################################################################</span>
+
+    <span class="n">client_paidback_kr</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;</span><span class="si">%(user)s</span><span class="s2">님,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 신청하신 포인트 환급이 완료되었습니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;이곳&lt;/a&gt;에 방문하시어 포인트 환급 상태를 확인해주시기 바랍니다. (그리고 당신의 은행 계좌도요!)&lt;br&gt;</span>
+<span class="s2">                 문의사항 있으시면 주저말고 연락 부탁드립니다.&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 감사합니다,&lt;br&gt;</span>
+<span class="s2">                 씨세론 팀&quot;&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="n">client_paidback_en</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&lt;img src=&#39;</span><span class="si">%(host)s</span><span class="s2">/api/access_file/img/logo.png&#39;&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;span style=&#39;color:#5F9EA0&#39;&gt;&lt;h1&gt;Dear </span><span class="si">%(user)s</span><span class="s2">,&lt;/h1&gt;&lt;/span&gt;&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 We&#39;re glad to inform you that your points have been restored back to your account.&lt;br&gt;</span>
+<span class="s2">                 Please visit &lt;a href=&#39;</span><span class="si">%(link)s</span><span class="s2">&#39; target=&#39;_blank&#39;&gt;here&lt;/a&gt; to review the account status.&lt;br&gt;</span>
+<span class="s2">                 Let us know if you have any questions!&lt;br&gt;</span>
+<span class="s2">                 &lt;br&gt;</span>
+<span class="s2">                 Best regards,&lt;br&gt;</span>
+<span class="s2">                 The CICERON team&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="mail_format.client_paid_back"><a class="viewcode-back" href="../../docs/app.mail_template.html#app.mail_template.mail_format.client_paid_back">[문서]</a>    <span class="k">def</span> <span class="nf">client_paid_back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_paidback_kr</span>
+        <span class="k">elif</span> <span class="n">language_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_paidback_en</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

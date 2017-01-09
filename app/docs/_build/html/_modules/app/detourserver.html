@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.detourserver &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.detourserver</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">json</span><span class="p">,</span> <span class="n">make_response</span><span class="p">,</span> <span class="n">render_template</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">from</span> <span class="nn">flask.ext.cors</span> <span class="k">import</span> <span class="n">CORS</span>
+<span class="kn">from</span> <span class="nn">flask.ext.session</span> <span class="k">import</span> <span class="n">Session</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Process</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">ciceron_lib</span> <span class="k">import</span> <span class="n">parse_request</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.ciceron_lib</span> <span class="k">import</span> <span class="n">parse_request</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">translator</span> <span class="k">import</span> <span class="n">Translator</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.translator</span> <span class="k">import</span> <span class="n">Translator</span>
+
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PURPOSE&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;PROD&#39;</span><span class="p">:</span>
+    <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!&quot;</span>
+
+<span class="n">VERSION</span> <span class="o">=</span> <span class="s1">&#39;1.1&#39;</span>
+<span class="n">DEBUG</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">GCM_API_KEY</span> <span class="o">=</span> <span class="s1">&#39;AIzaSyD-S4_2g1SRp4jucHpdLSBBq6xWhOsHcSI&#39;</span>
+
+<span class="n">SESSION_TYPE</span> <span class="o">=</span> <span class="s1">&#39;redis&#39;</span>
+<span class="n">SESSION_COOKIE_NAME</span> <span class="o">=</span> <span class="s2">&quot;sexycookie&quot;</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="s1">&#39;Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv&#39;</span>
+<span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">from_object</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">project_number</span> <span class="o">=</span> <span class="mi">145456889576</span>
+
+<span class="n">Session</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+<span class="n">cors</span> <span class="o">=</span> <span class="n">CORS</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">resources</span><span class="o">=</span><span class="p">{</span><span class="s2">r&quot;/*&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;origins&quot;</span><span class="p">:</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="s2">&quot;supports_credentials&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">}})</span>
+
+<span class="n">translator</span> <span class="o">=</span> <span class="n">Translator</span><span class="p">(</span><span class="n">developerKey</span><span class="o">=</span><span class="n">GCM_API_KEY</span><span class="p">)</span>
+
+<div class="viewcode-block" id="connect_db"><a class="viewcode-back" href="../../docs/app.detourserver.html#app.detourserver.connect_db">[문서]</a><span class="k">def</span> <span class="nf">connect_db</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;DATABASE&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="cut_sentences"><a class="viewcode-back" href="../../docs/app.detourserver.html#app.detourserver.cut_sentences">[문서]</a><span class="k">def</span> <span class="nf">cut_sentences</span><span class="p">(</span><span class="n">sentences</span><span class="p">):</span>
+    <span class="n">sentences_array</span> <span class="o">=</span> <span class="n">sentences</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">ready_to_translate_array</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">sentences_array</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2000</span><span class="p">:</span>
+            <span class="n">new_lines</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">new_line</span> <span class="ow">in</span> <span class="n">new_lines</span><span class="p">:</span>
+                <span class="n">ready_to_translate_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_line</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ready_to_translate_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ready_to_translate_array</span></div>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="index"><a class="viewcode-back" href="../../docs/app.detourserver.html#app.detourserver.index">[문서]</a><span class="k">def</span> <span class="nf">index</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;layout.html&#39;</span><span class="p">,</span> <span class="n">translateText</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/translate&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="translate"><a class="viewcode-back" href="../../docs/app.detourserver.html#app.detourserver.translate">[문서]</a><span class="k">def</span> <span class="nf">translate</span><span class="p">():</span>
+    <span class="n">client_ip</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;REMOTE_ADDR&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">client_ip</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;52.196.144.144&#39;</span><span class="p">,</span> <span class="s1">&#39;52.68.145.181&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">jsonify</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="s1">&#39;Unauthorized&#39;</span><span class="p">),</span> <span class="mi">401</span><span class="p">)</span>
+
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">parse_request</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">user_email</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;user_email&#39;</span><span class="p">]</span>
+    <span class="n">sentence</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;sentence&#39;</span><span class="p">]</span>
+    <span class="n">source_lang_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;source_lang_id&#39;</span><span class="p">])</span>
+    <span class="n">target_lang_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;target_lang_id&#39;</span><span class="p">])</span>
+    <span class="n">where</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;where&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Check a user is member or not</span>
+    <span class="k">if</span> <span class="n">user_email</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;admin@sexycookie.com&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">user_email</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">jsonify</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="s1">&#39;Forbidden&#39;</span><span class="p">),</span> <span class="mi">403</span><span class="p">)</span>
+
+    <span class="c1"># Real work</span>
+    <span class="n">is_ok</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">doWork</span><span class="p">(</span><span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">sentence</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_ok</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">jsonify</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">is_ok</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">where</span> <span class="o">!=</span> <span class="s1">&#39;web&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">jsonify</span><span class="p">(</span><span class="o">**</span><span class="n">result</span><span class="p">),</span> <span class="mi">200</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">is_ok</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">where</span> <span class="o">==</span> <span class="s1">&#39;web&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;layout.html&#39;</span><span class="p">,</span> <span class="n">translatedText</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;google&#39;</span><span class="p">])</span></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">gevent.wsgi</span> <span class="k">import</span> <span class="n">WSGIServer</span>
+    <span class="n">http_server</span> <span class="o">=</span> <span class="n">WSGIServer</span><span class="p">((</span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span> <span class="n">app</span><span class="p">)</span>
+    <span class="n">http_server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+    <span class="c1"># Should be masked!</span>
+    <span class="c1">#app.run(host=&quot;0.0.0.0&quot;, port=80)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

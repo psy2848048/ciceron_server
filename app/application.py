@@ -14,18 +14,50 @@ import io, sys
 sys.path.append( os.path.dirname(os.path.abspath(os.path.dirname(__file__))) )
 
 import psycopg2
-from i18nHandler import I18nHandler
-from detourserverConnector import Connector
-from ciceron_lib import *
-from requestwarehouse import Warehousing
-from groupRequest import GroupRequest
-from requestResell import RequestResell
-from payment import Payment
-from localizer import LocalizerAPI
-
 from flask_cors import CORS
 from flask_session import Session
 from flask_cache import Cache
+
+try:
+    from i18nHandler import I18nHandler
+except:
+    from .i18nHandler import I18nHandler
+
+try:
+    from detourserverConnector import Connector
+except:
+    from .detourserverConnector import Connector
+
+try:
+    from ciceron_lib import *
+except:
+    from .ciceron_lib import *
+
+try:
+    from requestwarehouse import Warehousing
+except:
+    from .requestwarehouse import Warehousing
+
+try:
+    from groupRequest import GroupRequest
+except:
+    from .groupRequest import GroupRequest
+
+try:
+    from requestResell import RequestResell
+except:
+    from .requestResell import RequestResell
+
+try:
+    from payment import Payment
+except:
+    from .payment import Payment
+
+try:
+    from localizer import LocalizerAPI
+except:
+    from .localizer import LocalizerAPI
+
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
