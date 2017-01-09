@@ -1,0 +1,1071 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.i18nHandler &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.i18nHandler</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">xmltodict</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">from</span> <span class="nn">nslocalized</span> <span class="k">import</span> <span class="n">StringTable</span>
+<span class="kn">import</span> <span class="nn">nltk.data</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">ciceron_lib</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">ciceron_lib</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="I18nHandler"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler">[문서]</a><span class="k">class</span> <span class="nc">I18nHandler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sentence_detector</span> <span class="o">=</span> <span class="n">nltk</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;tokenizers/punkt/english.pickle&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getCountryNameById</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang_id</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;SELECT text FROM CICERON.D_LANGUAGES WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">lang_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;!null!&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getCountryCodeById</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang_id</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;SELECT google_code FROM CICERON.D_LANGUAGES WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">lang_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;!null!&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getIdByCountryName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_name</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;SELECT id FROM CICERON.D_LANGUAGES WHERE text = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">country_name</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getIdByCountryCode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_code</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;SELECT id FROM CICERON.D_LANGUAGES WHERE google_code = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">country_code</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getLangCodesByRequestId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT original_lang_id, target_lang_id</span>
+<span class="s2">              FROM CICERON.F_REQUESTS</span>
+<span class="s2">              WHERE id = </span><span class="si">%s</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># 각 UX별 서버 작업</span>
+    <span class="c1"># 1. 새로 받아올 때</span>
+    <span class="c1">#   1) Parsing / MD5 Hashing (Done)</span>
+    <span class="c1">#   2) Dict to DB</span>
+    <span class="c1">#   3) History 검색 / 초벌번역 진행</span>
+    <span class="c1">#</span>
+    <span class="c1"># 2. 번역가에게 보여줄 때</span>
+    <span class="c1">#   1) DB to dict</span>
+    <span class="c1">#   2) Dict to web JSON</span>
+    <span class="c1">#</span>
+    <span class="c1"># 3. 의뢰인이 Variable 통으로 날릴 때</span>
+    <span class="c1">#   1) F_I18N_TEXT_MAPPINGS / D_I18N_VARIABLE_NAMES / F_I18N_VALUES 레코드 삭제</span>
+    <span class="c1">#</span>
+    <span class="c1"># 4. 의뢰인이 Variable 이름 수정할 때</span>
+    <span class="c1">#   1) D_I18N_VARIABLE_NAMES 업데이트</span>
+    <span class="c1">#</span>
+    <span class="c1"># 5. 번역가가 번역 입력할 때</span>
+    <span class="c1">#   1) History 검색 -&gt; 중복자료 있으면 ID 사용, 없으면 새로 ID 땀</span>
+    <span class="c1">#</span>
+    <span class="c1"># 6. 번역가가 문단견해 / 문장 코멘트 입력</span>
+    <span class="c1">#   1) 문단 / 문장번호 받아서 테이블에 입력 (기존 라이브러리 활용)</span>
+
+    <span class="c1"># 필요한 메소드</span>
+    <span class="c1"># 1. 각 형식 Parsing</span>
+    <span class="c1">#   1) 문단/문장분해</span>
+    <span class="c1">#   2) DB입력</span>
+    <span class="c1"># 2. MD5 hasher</span>
+    <span class="c1"># 3. 번역 History 검색</span>
+    <span class="c1">#   1) 의뢰의 원문언어, 타겟언어 가져옴</span>
+    <span class="c1">#   2) 원문 MD5 검색 -&gt; Text ID 가져옴, Hit counter +1</span>
+    <span class="c1">#   3) Text ID를 이용하여 해당 Text ID를 사용했던 Mapping ID 모두 가져옴</span>
+    <span class="c1">#   4) 의뢰 언어의 Mapping ID들과, 그것의 Request id를 이용하여 원문언어 타겟언어 일치하는 Request ID 필터링하여 Mapping ID 수 줄이기 (번역이 완료된 의뢰 중 검색)</span>
+    <span class="c1">#   5) 주어진 Mapping ID 이용하여 text id 추출, 그리고 text 추출</span>
+    <span class="c1">#   6) text가 없으면 번역기 갔다오고 ID 새로 따서 삽입, is_curated = false</span>
+    <span class="c1"># 4. Variable 삭제</span>
+    <span class="c1">#   1) 해당 ID 삭제</span>
+    <span class="c1">#   2) Variable과 연결된 텍스트 모두 삭제</span>
+    <span class="c1"># 5. Variable 이름 번경</span>
+    <span class="c1"># 6. 번역 입력: 3번의 1)~5) 수행 후 텍스트 검색되면 해당 text 제공 is_curated=True, 검색 안되면 새 text ID 딴 후 새 Mapping 넣음, is_curated=False</span>
+    <span class="c1"># 7. 각종 코멘트 입력</span>
+
+    <span class="k">def</span> <span class="nf">__getMD5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">hash_maker</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+        <span class="n">hash_maker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">hash_maker</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__getTextId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">hashed_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getMD5</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">query_textSearch</span> <span class="o">=</span> <span class="s2">&quot;SELECT id FROM CICERON.D_I18N_TEXTS WHERE md5_checksum = </span><span class="si">%s</span><span class="s2"> ORDER BY hit_count LIMIT 1&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_textSearch</span><span class="p">,</span> <span class="p">(</span><span class="n">hashed_text</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__historyChecker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="c1"># MD5를 이용하여 원문 ID 검색</span>
+        <span class="n">is_exist</span><span class="p">,</span> <span class="n">source_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getTextId</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_exist</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># 해당 Text_id를 사용하는 TEXT_MAPPING 추출</span>
+        <span class="n">query_getTextMapping</span> <span class="o">=</span> <span class="s2">&quot;SELECT DISTINCT id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE text_id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getTextMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">source_text_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1">###### Source: source_lang_id / Target: target_lang_id ###</span>
+        <span class="c1"># source가 주어진 text_id였을 때 target_id 추출</span>
+        <span class="n">source_nothing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">source_mapping_lists</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="p">])</span>
+        <span class="n">query_getAllTargetMappings</span> <span class="o">=</span> <span class="s2">&quot;SELECT DISTINCT target_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE source_text_mapping_id in (</span><span class="si">{0}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">source_mapping_lists</span><span class="p">)</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getAllTargetMappings</span><span class="p">)</span>
+        <span class="n">res2</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res2</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">source_nothing</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Mapping 찾기</span>
+        <span class="k">if</span> <span class="n">source_nothing</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">target_mapping_id_lists</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res2</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="p">])</span>
+            <span class="n">query_getTargetTextId</span> <span class="o">=</span> <span class="s2">&quot;SELECT DISTINCT text_id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE id in (</span><span class="si">{0}</span><span class="s2">) AND lang_id = </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_mapping_id_lists</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">)</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getTargetTextId</span><span class="p">)</span>
+            <span class="n">res3</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">res3</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">source_nothing</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Hit수 높은 텍스트 1 선정</span>
+        <span class="k">if</span> <span class="n">source_nothing</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">target_text_id_lists</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res3</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="p">])</span>
+            <span class="n">query_getTargetText</span> <span class="o">=</span> <span class="s2">&quot;SELECT id, text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in (</span><span class="si">{0}</span><span class="s2">) ORDER BY hit_count DESC LIMIT 1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_text_id_lists</span><span class="p">)</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getTargetText</span><span class="p">)</span>
+            <span class="n">res4</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">targetSide_textId</span> <span class="o">=</span> <span class="n">res4</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">targetSide_text</span> <span class="o">=</span> <span class="n">res4</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">targetSide_hitCount</span> <span class="o">=</span> <span class="n">res4</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="c1">#########################################################</span>
+
+        <span class="c1">###### Source: target_lang_id / Target: source_lang_id ###</span>
+        <span class="c1"># source가 주어진 text_id였을 때 source_id 추출</span>
+        <span class="n">target_nothing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">target_mapping_lists</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="p">])</span>
+        <span class="n">query_getAllSourceMappings</span> <span class="o">=</span> <span class="s2">&quot;SELECT DISTINCT source_text_mapping_id FROM CICERON.F_I18N_VALUES WHERE target_text_mapping_id in (</span><span class="si">{0}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_mapping_lists</span><span class="p">)</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getAllSourceMappings</span><span class="p">)</span>
+        <span class="n">res5</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res5</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res5</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">target_nothing</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Mapping 찾기</span>
+        <span class="k">if</span> <span class="n">target_nothing</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">source_mapping_id_lists</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res5</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="p">])</span>
+            <span class="n">query_getSourceTextId</span> <span class="o">=</span> <span class="s2">&quot;SELECT DISTINCT text_id FROM CICERON.F_I18N_TEXT_MAPPINGS WHERE id in (</span><span class="si">{0}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">source_mapping_id_lists</span><span class="p">)</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getSourceTextId</span><span class="p">)</span>
+            <span class="n">res6</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">res6</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res6</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">target_nothing</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Hit수 높은 텍스트 1 선정</span>
+        <span class="k">if</span> <span class="n">target_nothing</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">source_text_id_lists</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res6</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="p">])</span>
+            <span class="n">query_getSourceText</span> <span class="o">=</span> <span class="s2">&quot;SELECT id, text, hit_count FROM CICERON.D_I18N_TEXTS WHERE id in (</span><span class="si">{0}</span><span class="s2">) ORDER BY hit_count DESC LIMIT 1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">source_text_id_lists</span><span class="p">)</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getSourceText</span><span class="p">)</span>
+            <span class="n">res7</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">sourceSide_textId</span> <span class="o">=</span> <span class="n">res7</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">sourceSide_text</span> <span class="o">=</span> <span class="n">res7</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">sourceSide_hitCount</span> <span class="o">=</span> <span class="n">res7</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="c1">########################################################</span>
+
+        <span class="c1"># 두 후보 중 택1</span>
+        <span class="n">curated_text_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">curated_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target_nothing</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">source_nothing</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">target_nothing</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">source_nothing</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">curated_text_id</span> <span class="o">=</span> <span class="n">targetSide_textId</span>
+            <span class="n">curated_text</span> <span class="o">=</span> <span class="n">targetSide_text</span>
+        <span class="k">elif</span> <span class="n">target_nothing</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">source_nothing</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">curated_text_id</span> <span class="o">=</span> <span class="n">sourceSide_textId</span>
+            <span class="n">curated_text</span> <span class="o">=</span> <span class="n">sourceSide_text</span>
+        <span class="k">elif</span> <span class="n">sourceSide_hitCount</span> <span class="o">&lt;=</span> <span class="n">targetSide_hitCount</span><span class="p">:</span>
+            <span class="n">curated_text_id</span> <span class="o">=</span> <span class="n">sourceSide_textId</span>
+            <span class="n">curated_text</span> <span class="o">=</span> <span class="n">sourceSide_text</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">curated_text_id</span> <span class="o">=</span> <span class="n">targetSide_textId</span>
+            <span class="n">curated_text</span> <span class="o">=</span> <span class="n">targetSide_text</span>
+
+        <span class="c1"># 최종 후보 단어는 카운트 +1</span>
+        <span class="n">query_hitUp</span> <span class="o">=</span> <span class="s2">&quot;UPDATE CICERON.D_I18N_TEXTS SET hit_count = hit_count + 1 WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_hitUp</span><span class="p">,</span> <span class="p">(</span><span class="n">curated_text_id</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">curated_text</span><span class="p">,</span> <span class="n">curated_text_id</span>
+
+    <span class="k">def</span> <span class="nf">__insertUnitText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">md5_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getMD5</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">is_duplicated</span><span class="p">,</span> <span class="n">duplicated_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getTextId</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_duplicated</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">query_newText</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    INSERT INTO CICERON.D_I18N_TEXTS</span>
+<span class="s2">                        (id, text, md5_checksum, hit_count)</span>
+<span class="s2">                    VALUES</span>
+<span class="s2">                        (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, 0)</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+                <span class="n">text_id</span> <span class="o">=</span> <span class="n">ciceron_lib</span><span class="o">.</span><span class="n">get_new_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;D_I18N_TEXTS&quot;</span><span class="p">)</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_newText</span><span class="p">,</span> <span class="p">(</span><span class="n">text_id</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">md5_text</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">is_duplicated</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">text_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">duplicated_text_id</span>
+
+    <span class="k">def</span> <span class="nf">__updateUnitText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">text_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">md5_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getMD5</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">query_updateText</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.D_I18N_TEXTS</span>
+<span class="s2">            SET text = </span><span class="si">%s</span><span class="s2">, md5_checksum = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_updateText</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">md5_text</span><span class="p">,</span> <span class="n">text_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__updateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">query_updateVariable</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.D_I18N_VARIABLE_NAMES</span>
+<span class="s2">            SET text = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_updateVariable</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__insertVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">variable_id</span> <span class="o">=</span> <span class="n">ciceron_lib</span><span class="o">.</span><span class="n">get_new_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;D_I18N_VARIABLE_NAMES&quot;</span><span class="p">)</span>
+        <span class="n">query_newVariable</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO CICERON.D_I18N_VARIABLE_NAMES</span>
+<span class="s2">                (id, text)</span>
+<span class="s2">            VALUES</span>
+<span class="s2">                (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_newVariable</span><span class="p">,</span> <span class="p">(</span><span class="n">variable_id</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">variable_id</span>
+
+    <span class="k">def</span> <span class="nf">__insertMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">lang_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">text_id</span><span class="p">,</span> <span class="n">is_curated</span><span class="p">):</span>
+        <span class="n">mapping_id</span> <span class="o">=</span> <span class="n">ciceron_lib</span><span class="o">.</span><span class="n">get_new_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;F_I18N_TEXT_MAPPINGS&quot;</span><span class="p">)</span>
+        <span class="n">query_newMapping</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO CICERON.F_I18N_TEXT_MAPPINGS</span>
+<span class="s2">                (id, variable_id, lang_id, paragraph_seq, sentence_seq, text_id, is_curated, is_init_translated)</span>
+<span class="s2">            VALUES</span>
+<span class="s2">                (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, false)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_newMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">mapping_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">lang_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">text_id</span><span class="p">,</span> <span class="n">is_curated</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mapping_id</span>
+
+    <span class="k">def</span> <span class="nf">__getMappingIdFromVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">lang_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">):</span>
+        <span class="n">query_getMapping</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT id FROM CICERON.F_I18N_TEXT_MAPPINGS</span>
+<span class="s2">            WHERE variable_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND paragraph_seq = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND sentence_seq = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND lang_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">variable_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">lang_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__updateMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">mapping_id</span><span class="p">,</span> <span class="n">new_text_id</span><span class="p">):</span>
+        <span class="n">query_updateMapping</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.F_I18N_TEXT_MAPPINGS</span>
+<span class="s2">                SET text_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_updateMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">new_text_id</span><span class="p">,</span> <span class="n">mapping_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">tracevack</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__insertValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">source_text_mapping_id</span><span class="p">,</span> <span class="n">target_text_mapping_id</span><span class="p">):</span>
+        <span class="n">value_id</span> <span class="o">=</span> <span class="n">ciceron_lib</span><span class="o">.</span><span class="n">get_new_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;F_I18N_VALUES&quot;</span><span class="p">)</span>
+        <span class="n">query_newValue</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO CICERON.F_I18N_VALUES</span>
+<span class="s2">                (id, request_id, variable_id, source_text_mapping_id, target_text_mapping_id)</span>
+<span class="s2">            VALUES</span>
+<span class="s2">                (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_newValue</span><span class="p">,</span> <span class="p">(</span><span class="n">value_id</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">source_text_mapping_id</span><span class="p">,</span> <span class="n">target_text_mapping_id</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">value_id</span>
+
+    <span class="k">def</span> <span class="nf">_deleteVariableAndText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">):</span>
+        <span class="n">query_deleteVariable</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM CICERON.D_I18N_VARIABLE_NAMES</span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_findMapping</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT source_text_mapping_id, target_text_mapping_id</span>
+<span class="s2">            FROM CICERON.F_I18N_VALUES</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND variable_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_deleteMapping</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM CICERON.F_I18N_TEXT_MAPPINGS</span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_deleteValue</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM CICERON.F_I18N_VALUES</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND variable_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_findMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_deleteValue</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+                    <span class="n">source_text_mapping_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">target_text_mapping_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_deleteMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">source_text_mapping_id</span><span class="p">,</span> <span class="p">))</span>
+                    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_deleteMapping</span><span class="p">,</span> <span class="p">(</span><span class="n">target_text_mapping_id</span><span class="p">,</span> <span class="p">))</span>
+
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_deleteVariable</span><span class="p">,</span> <span class="p">(</span><span class="n">variable_id</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_writeOneRecordToDB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">partial_text</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">source_lang_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target_lang_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getLangCodesByRequestId</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="c1"># 원문은 똑같은 텍스트 있나 살펴보는 정도</span>
+        <span class="n">is_exist_source</span><span class="p">,</span> <span class="n">source_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getTextId</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">partial_text</span><span class="p">)</span>
+        <span class="c1"># 원문 텍스트 이용하여 기존 번역 있는지 검색</span>
+        <span class="n">is_exist_target</span><span class="p">,</span> <span class="n">target_curated_text</span><span class="p">,</span> <span class="n">target_curated_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__historyChecker</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">partial_text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_exist_source</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="c1"># 원문 부분은 기존 데이터 없을 시 원문 문장 삽입</span>
+            <span class="n">is_unitText_inserted</span><span class="p">,</span> <span class="n">source_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertUnitText</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">partial_text</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_unitText_inserted</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span>
+
+        <span class="k">if</span> <span class="n">is_exist_target</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="c1"># 번역 결과 부분은 기존 데이터 없으면 빈 줄 삽입</span>
+            <span class="n">is_dummy_exist</span><span class="p">,</span> <span class="n">target_curated_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getTextId</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_dummy_exist</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">is_unitText_inserted</span><span class="p">,</span> <span class="n">target_curated_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertUnitText</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">is_unitText_inserted</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span>
+
+        <span class="n">is_source_mapping_inserted</span><span class="p">,</span> <span class="n">source_mapping_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertMapping</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">source_text_id</span><span class="p">,</span> <span class="n">is_exist_source</span><span class="p">)</span>
+        <span class="n">is_target_mapping_inserted</span><span class="p">,</span> <span class="n">target_mapping_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertMapping</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">target_curated_text_id</span><span class="p">,</span> <span class="n">is_exist_target</span><span class="p">)</span>
+
+        <span class="n">is_value_inserted</span><span class="p">,</span> <span class="n">value_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertValue</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">source_mapping_id</span><span class="p">,</span> <span class="n">target_mapping_id</span><span class="p">)</span>
+
+        <span class="k">if</span>      <span class="n">is_source_mapping_inserted</span> <span class="o">==</span> <span class="kc">True</span> \
+            <span class="ow">and</span> <span class="n">is_target_mapping_inserted</span> <span class="o">==</span> <span class="kc">True</span> \
+            <span class="ow">and</span> <span class="n">is_value_inserted</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">value_id</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_dictToDb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">dictData</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">whole_text</span> <span class="ow">in</span> <span class="n">dictData</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">whole_text_temp</span> <span class="o">=</span> <span class="n">whole_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">splited_text</span> <span class="o">=</span> <span class="n">whole_text_temp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="n">is_variable_inserted</span><span class="p">,</span> <span class="n">variable_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertVariable</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_variable_inserted</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="ne">Exception</span>
+
+            <span class="k">for</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">paragraph</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">splited_text</span><span class="p">):</span>
+                <span class="n">parsed_sentences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sentence_detector</span><span class="o">.</span><span class="n">tokenize</span><span class="p">(</span><span class="n">paragraph</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+                <span class="k">for</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parsed_sentences</span><span class="p">):</span>
+                    <span class="n">is_sentence_inserted</span><span class="p">,</span> <span class="n">value_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writeOneRecordToDB</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">sentence</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="o">=</span><span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="o">=</span><span class="n">target_lang_id</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">is_sentence_inserted</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span>
+
+        <span class="c1"># 입력 모두 끝나면 Commit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_dbToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">query_db</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT f_values.request_id,                   -- 0</span>
+<span class="s2">                   variable.id as variable_id,            -- 1</span>
+<span class="s2">                   variable.text as variable,             -- 2</span>
+<span class="s2">                   source_mapping.paragraph_seq,          -- 3</span>
+<span class="s2">                   source_mapping.sentence_seq,           -- 4</span>
+<span class="s2">                   source_text.text as source_sentence,   -- 5</span>
+<span class="s2">                   target_text.text as target_sentence,   -- 6</span>
+<span class="s2">                   variable.comment_string as comment     -- 7</span>
+
+<span class="s2">            FROM CICERON.F_I18N_VALUES f_values</span>
+<span class="s2">            JOIN CICERON.D_I18N_VARIABLE_NAMES variable ON f_values.variable_id = variable.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS source_mapping ON f_values.source_text_mapping_id = source_mapping.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS target_mapping ON f_values.target_text_mapping_id = target_mapping.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.D_I18N_TEXTS source_text ON source_mapping.text_id = source_text.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.D_I18N_TEXTS target_text ON target_mapping.text_id = target_text.id</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            ORDER BY variable_id, paragraph_seq, sentence_seq </span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_db</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="n">source_obj</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">target_obj</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="n">cur_variable</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">cur_paragraph_seq</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">source_paragraph_per_variable</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">target_paragraph_per_variable</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">variable</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">paragraph_seq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">sentence_seq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">source_sentence</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+            <span class="n">target_sentence</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+
+            <span class="c1">#</span>
+            <span class="k">if</span> <span class="n">cur_variable</span> <span class="o">!=</span> <span class="n">variable</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">source_obj</span><span class="p">[</span> <span class="n">cur_variable</span> <span class="p">]</span> <span class="o">=</span> <span class="n">source_paragraph_per_variable</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">target_obj</span><span class="p">[</span> <span class="n">cur_variable</span> <span class="p">]</span> <span class="o">=</span> <span class="n">target_paragraph_per_variable</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">cur_variable</span> <span class="o">=</span> <span class="n">variable</span>
+
+                <span class="n">source_paragraph_per_variable</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="n">target_paragraph_per_variable</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="k">elif</span> <span class="n">cur_variable</span> <span class="o">!=</span> <span class="n">variable</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cur_variable</span> <span class="o">=</span> <span class="n">variable</span>
+
+            <span class="c1">#</span>
+            <span class="k">if</span> <span class="n">cur_paragraph_seq</span> <span class="o">!=</span> <span class="n">paragraph_seq</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">paragraph_seq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">source_paragraph_per_variable</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+                    <span class="n">target_paragraph_per_variable</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+                <span class="n">cur_paragraph_seq</span> <span class="o">=</span> <span class="n">paragraph_seq</span>
+
+            <span class="k">if</span> <span class="n">source_sentence</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">sentence_seq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">source_paragraph_per_variable</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">source_sentence</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">source_paragraph_per_variable</span> <span class="o">+=</span> <span class="n">source_sentence</span>
+
+            <span class="k">if</span> <span class="n">target_sentence</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">sentence_seq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">target_paragraph_per_variable</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">target_sentence</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">target_paragraph_per_variable</span> <span class="o">+=</span> <span class="n">target_sentence</span>
+
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">source_obj</span><span class="p">[</span> <span class="n">cur_variable</span> <span class="p">]</span> <span class="o">=</span> <span class="n">source_paragraph_per_variable</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">target_obj</span><span class="p">[</span> <span class="n">cur_variable</span> <span class="p">]</span> <span class="o">=</span> <span class="n">target_paragraph_per_variable</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">source_obj</span><span class="p">,</span> <span class="n">target_obj</span>
+
+    <span class="k">def</span> <span class="nf">_dbToJsonResponse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">is_restricted</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">query_db</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT f_values.request_id,                   -- 0</span>
+<span class="s2">                   variable.id as variable_id,            -- 1</span>
+<span class="s2">                   variable.text as variable,             -- 2</span>
+<span class="s2">                   source_mapping.paragraph_seq,          -- 3</span>
+<span class="s2">                   source_mapping.sentence_seq,           -- 4</span>
+<span class="s2">                   source_text.text as source_sentence,   -- 5</span>
+<span class="s2">                   target_text.text as target_sentence,   -- 6</span>
+<span class="s2">                   variable.comment_string as comment     -- 7</span>
+
+<span class="s2">            FROM CICERON.F_I18N_VALUES f_values</span>
+<span class="s2">            JOIN CICERON.D_I18N_VARIABLE_NAMES variable ON f_values.variable_id = variable.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS source_mapping ON f_values.source_text_mapping_id = source_mapping.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.F_I18N_TEXT_MAPPINGS target_mapping ON f_values.target_text_mapping_id = target_mapping.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.D_I18N_TEXTS source_text ON source_mapping.text_id = source_text.id</span>
+<span class="s2">            LEFT OUTER JOIN CICERON.D_I18N_TEXTS target_text ON target_mapping.text_id = target_text.id</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            ORDER BY variable_id, paragraph_seq, sentence_seq </span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_db</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="n">result_obj</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="n">cur_variable</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">cur_variable_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cur_paragraph_seq</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">cur_comment_string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">paragraph_per_variable</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">variable_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">variable</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">paragraph_seq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">sentence_seq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">source_sentence</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+            <span class="n">target_sentence</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+            <span class="n">comment_string</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">cur_variable</span> <span class="o">!=</span> <span class="n">variable</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result_obj</span><span class="p">[</span> <span class="n">cur_variable</span> <span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;variable_id&quot;</span><span class="p">:</span> <span class="n">cur_variable_id</span><span class="p">,</span>
+                        <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="n">cur_comment_string</span><span class="p">,</span>
+                        <span class="s2">&quot;texts&quot;</span><span class="p">:</span> <span class="n">paragraph_per_variable</span>
+                        <span class="p">}</span>
+
+                <span class="n">cur_variable</span> <span class="o">=</span> <span class="n">variable</span>
+                <span class="n">cur_variable_id</span> <span class="o">=</span> <span class="n">variable_id</span>
+                <span class="n">cur_comment_string</span> <span class="o">=</span> <span class="n">comment_string</span>
+
+                <span class="n">paragraph_per_variable</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">elif</span> <span class="n">cur_variable</span> <span class="o">!=</span> <span class="n">variable</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cur_variable</span> <span class="o">=</span> <span class="n">variable</span>
+                <span class="n">cur_variable_id</span> <span class="o">=</span> <span class="n">variable_id</span>
+
+            <span class="n">unit_row</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="n">unit_row</span><span class="p">[</span><span class="s1">&#39;paragraph_seq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">paragraph_seq</span>
+            <span class="n">unit_row</span><span class="p">[</span><span class="s1">&#39;sentence_seq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentence_seq</span>
+            <span class="n">unit_row</span><span class="p">[</span><span class="s1">&#39;sentence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_sentence</span>
+            <span class="k">if</span> <span class="n">is_restricted</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">unit_row</span><span class="p">[</span><span class="s2">&quot;translations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_sentence</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">unit_row</span><span class="p">[</span><span class="s2">&quot;translations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">paragraph_per_variable</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unit_row</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">result_obj</span><span class="p">[</span> <span class="n">cur_variable</span> <span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;variable_id&quot;</span><span class="p">:</span> <span class="n">variable_id</span><span class="p">,</span>
+                        <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="n">comment_string</span><span class="p">,</span>
+                        <span class="s2">&quot;texts&quot;</span><span class="p">:</span> <span class="n">paragraph_per_variable</span>
+                        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">result_obj</span>
+
+    <span class="k">def</span> <span class="nf">_jQueryToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jsonText</span><span class="p">,</span> <span class="n">code</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonText</span><span class="p">,</span> <span class="n">object_pairs_hook</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="p">[</span><span class="n">code</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_jsonToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jsonText</span><span class="p">,</span> <span class="n">code</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonText</span><span class="p">,</span> <span class="n">object_pairs_hook</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">obj</span><span class="p">[</span><span class="n">code</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">obj</span><span class="p">[</span><span class="n">code</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">_iosToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iosText</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">iosText</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">StringTable</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">target</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_androidToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">andrText</span><span class="p">):</span>
+        <span class="n">parsedData</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">andrText</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">parsedData</span><span class="p">[</span><span class="s1">&#39;resources&#39;</span><span class="p">][</span><span class="s1">&#39;string&#39;</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;@value&#39;</span><span class="p">]</span> <span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;#text&#39;</span><span class="p">]</span>
+
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;@value&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">elif</span> <span class="s1">&#39;#text&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                    <span class="n">result</span><span class="p">[</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;@value&#39;</span><span class="p">]</span> <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_unityToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unityText</span><span class="p">,</span> <span class="n">source_lang_key</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">unityText</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">f2</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f2</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">lang_key_idx</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx2</span><span class="p">,</span> <span class="n">lang_key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">lang_key</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="n">source_lang_key</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Detected in </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx2</span><span class="p">))</span>
+                        <span class="n">lang_key_idx</span> <span class="o">=</span> <span class="n">idx2</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default 0&quot;</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+        <span class="n">f2</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_xamarinToDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xamText</span><span class="p">):</span>
+        <span class="n">parsedData</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xamText</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">parsedData</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;@name&#39;</span><span class="p">]</span> <span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;@name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">elif</span> <span class="s1">&#39;value&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">or</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">result</span><span class="p">[</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;@name&#39;</span><span class="p">]</span> <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_dictToIOs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iosDict</span><span class="p">):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">iosDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> = </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">text</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;Localizable.strings&#39;</span><span class="p">,</span> <span class="n">output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_dictToAndroid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">andrDict</span><span class="p">):</span>
+        <span class="n">wrappeddict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;resources&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;resources&#39;</span><span class="p">][</span><span class="s1">&#39;string&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">andrDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;@value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;#text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+
+            <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;resources&#39;</span><span class="p">][</span><span class="s1">&#39;string&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+        <span class="n">xmlResult</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="n">wrappeddict</span><span class="p">,</span> <span class="n">pretty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;string.xml&#39;</span><span class="p">,</span> <span class="n">xmlResult</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_dictToUnity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">unityDict</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;KEY&#39;</span><span class="p">,</span> <span class="n">language</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">unityDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">key</span><span class="p">,</span> <span class="n">text</span><span class="p">])</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="n">unityResult</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;Localization.csv&#39;</span><span class="p">,</span> <span class="n">unityResult</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_dictToXamarin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang_code</span><span class="p">,</span> <span class="n">xamDict</span><span class="p">):</span>
+        <span class="n">wrappeddict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">][</span><span class="s1">&#39;resheader&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                  <span class="p">{</span><span class="s1">&#39;@name&#39;</span><span class="p">:</span> <span class="s1">&#39;resmimetype&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;text/microsoft-resx&#39;</span><span class="p">}</span>
+                <span class="p">,</span> <span class="p">{</span><span class="s1">&#39;@name&#39;</span><span class="p">:</span> <span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;2.0&#39;</span><span class="p">}</span>
+                <span class="p">,</span> <span class="p">{</span><span class="s1">&#39;@name&#39;</span><span class="p">:</span> <span class="s1">&#39;reader&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours&#39;</span><span class="p">}</span>
+                <span class="p">,</span> <span class="p">{</span><span class="s1">&#39;@name&#39;</span><span class="p">:</span> <span class="s1">&#39;writer&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=FillYours&#39;</span><span class="p">}</span>
+                <span class="p">]</span>
+
+        <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">xamDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;@name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;@xml:space&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;preserve&#39;</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+            <span class="n">wrappeddict</span><span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+        <span class="n">xamResult</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="n">wrappeddict</span><span class="p">,</span> <span class="n">pretty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;AppResources.</span><span class="si">%s</span><span class="s1">.resx&#39;</span> <span class="o">%</span> <span class="n">lang_code</span><span class="p">,</span> <span class="n">xamResult</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_dictToJson</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang_code</span><span class="p">,</span> <span class="n">jsonDict</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">lang_code</span><span class="p">]</span> <span class="o">=</span> <span class="n">jsonDict</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;i18n.json&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_updateComment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">comment</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.D_I18N_VARIABLE_NAMES</span>
+<span class="s2">              SET comment_string = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">comment</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="ne">Exception</span>
+
+<div class="viewcode-block" id="I18nHandler.jsonResponse"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.jsonResponse">[문서]</a>    <span class="k">def</span> <span class="nf">jsonResponse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">is_restricted</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># For web response</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbToJsonResponse</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">is_restricted</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="I18nHandler.androidToDb"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.androidToDb">[문서]</a>    <span class="k">def</span> <span class="nf">androidToDb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">xml_text</span><span class="p">):</span>
+        <span class="n">dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_androidToDict</span><span class="p">(</span><span class="n">xml_text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictToDb</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">dict_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="I18nHandler.jsonToDb"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.jsonToDb">[문서]</a>    <span class="k">def</span> <span class="nf">jsonToDb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_key</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">json_text</span><span class="p">):</span>
+        <span class="n">dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jsonToDict</span><span class="p">(</span><span class="n">json_text</span><span class="p">,</span> <span class="n">source_lang_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictToDb</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">dict_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="I18nHandler.iosToDb"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.iosToDb">[문서]</a>    <span class="k">def</span> <span class="nf">iosToDb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">ios_text</span><span class="p">):</span>
+        <span class="n">dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iosToDict</span><span class="p">(</span><span class="n">ios_text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictToDb</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">dict_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="I18nHandler.xamarinToDb"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.xamarinToDb">[문서]</a>    <span class="k">def</span> <span class="nf">xamarinToDb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">xamText</span><span class="p">):</span>
+        <span class="n">dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xamarinToDict</span><span class="p">(</span><span class="n">xamText</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictToDb</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">dict_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="I18nHandler.unityToDb"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.unityToDb">[문서]</a>    <span class="k">def</span> <span class="nf">unityToDb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_key</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">unityText</span><span class="p">):</span>
+        <span class="n">dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unityToDict</span><span class="p">(</span><span class="n">unityText</span><span class="p">,</span> <span class="n">source_lang_key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictToDb</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">dict_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="I18nHandler.updateVariableName"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.updateVariableName">[문서]</a>    <span class="k">def</span> <span class="nf">updateVariableName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">is_updated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__updateVariable</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_updated</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="I18nHandler.insertVariable"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.insertVariable">[문서]</a>    <span class="k">def</span> <span class="nf">insertVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">is_inserted_variable</span><span class="p">,</span> <span class="n">variable_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertVariable</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+        <span class="n">is_inserted_text</span><span class="p">,</span> <span class="n">value_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writeOneRecordToDB</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_inserted_variable</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">is_inserted_text</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">value_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="I18nHandler.deleteVariable"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.deleteVariable">[문서]</a>    <span class="k">def</span> <span class="nf">deleteVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">is_deleted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deleteVariableAndText</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_deleted</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">is_deleted</span></div>
+
+<div class="viewcode-block" id="I18nHandler.updateTranslation"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.updateTranslation">[문서]</a>    <span class="k">def</span> <span class="nf">updateTranslation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">new_text</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getLangCodesByRequestId</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">is_mapping_exist</span><span class="p">,</span> <span class="n">mapping_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getMappingIdFromVariable</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">)</span>
+        <span class="n">is_exist</span><span class="p">,</span> <span class="n">curated_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getTextId</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">new_text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_exist</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">is_unitText_inserted</span><span class="p">,</span> <span class="n">new_text_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__insertUnitText</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">new_text</span><span class="p">)</span>
+            <span class="n">is_mapping_updated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__updateMapping</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">mapping_id</span><span class="p">,</span> <span class="n">new_text_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_mapping_updated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__updateMapping</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">mapping_id</span><span class="p">,</span> <span class="n">curated_text_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_mapping_updated</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="ne">Exception</span></div>
+
+<div class="viewcode-block" id="I18nHandler.updateComment"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.updateComment">[문서]</a>    <span class="k">def</span> <span class="nf">updateComment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">comment</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_updateComment</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">variable_id</span><span class="p">,</span> <span class="n">comment</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="I18nHandler.exportIOs"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.exportIOs">[문서]</a>    <span class="k">def</span> <span class="nf">exportIOs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">source_dict_data</span><span class="p">,</span> <span class="n">target_dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbToDict</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">ios_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dictToIOs</span><span class="p">(</span><span class="n">target_dict_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">ios_binary</span></div>
+
+<div class="viewcode-block" id="I18nHandler.exportAndroid"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.exportAndroid">[문서]</a>    <span class="k">def</span> <span class="nf">exportAndroid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">source_dict_data</span><span class="p">,</span> <span class="n">target_dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbToDict</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">android_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dictToAndroid</span><span class="p">(</span><span class="n">target_dict_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">android_binary</span></div>
+
+<div class="viewcode-block" id="I18nHandler.exportUnity"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.exportUnity">[문서]</a>    <span class="k">def</span> <span class="nf">exportUnity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">source_dict_data</span><span class="p">,</span> <span class="n">target_dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbToDict</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getLangCodesByRequestId</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">target_lang</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getCountryCodeById</span><span class="p">(</span><span class="n">target_lang_id</span><span class="p">)</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">unity_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dictToUnity</span><span class="p">(</span><span class="n">target_lang</span><span class="p">,</span> <span class="n">target_dict_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">unity_binary</span></div>
+
+<div class="viewcode-block" id="I18nHandler.exportJson"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.exportJson">[문서]</a>    <span class="k">def</span> <span class="nf">exportJson</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">source_dict_data</span><span class="p">,</span> <span class="n">target_dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbToDict</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getLangCodesByRequestId</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">target_lang</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getCountryCodeById</span><span class="p">(</span><span class="n">target_lang_id</span><span class="p">)</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">json_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dictToJson</span><span class="p">(</span><span class="n">target_lang</span><span class="p">,</span> <span class="n">target_dict_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">json_binary</span></div>
+
+<div class="viewcode-block" id="I18nHandler.exportXamarin"><a class="viewcode-back" href="../../docs/app.i18nHandler.html#app.i18nHandler.I18nHandler.exportXamarin">[문서]</a>    <span class="k">def</span> <span class="nf">exportXamarin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">source_dict_data</span><span class="p">,</span> <span class="n">target_dict_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbToDict</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getLangCodesByRequestId</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="n">target_lang</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getCountryCodeById</span><span class="p">(</span><span class="n">target_lang_id</span><span class="p">)</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">xamarin_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dictToXamarin</span><span class="p">(</span><span class="n">target_lang</span><span class="p">,</span> <span class="n">target_dict_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">xamarin_binary</span></div></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">psycopg2</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PURPOSE&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;PROD&#39;</span><span class="p">:</span>
+        <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!&quot;</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DATABASE</span><span class="p">)</span>
+
+    <span class="n">i18nObj</span> <span class="o">=</span> <span class="n">I18nHandler</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+
+    <span class="c1"># 불러오고 각 포멧으로 Export하는 테스트</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+    <span class="n">dictData</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/peer_gynt/xmlReady.csv&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">csvReader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">csvReader</span><span class="p">:</span>
+        <span class="n">dictData</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">filename</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">i18nObj</span><span class="o">.</span><span class="n">_dictToAndroid</span><span class="p">(</span><span class="n">dictData</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/peer_gynt/string.xml&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">filename</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">i18nObj</span><span class="o">.</span><span class="n">_dictToJson</span><span class="p">(</span><span class="s1">&#39;ko&#39;</span><span class="p">,</span> <span class="n">dictData</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/peer_gynt/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">filename</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">i18nObj</span><span class="o">.</span><span class="n">_dictToUnity</span><span class="p">(</span><span class="s1">&#39;Korean&#39;</span><span class="p">,</span> <span class="n">dictData</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/peer_gynt/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">filename</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">i18nObj</span><span class="o">.</span><span class="n">_dictToIOs</span><span class="p">(</span><span class="n">dictData</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/peer_gynt/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">filename</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">i18nObj</span><span class="o">.</span><span class="n">_dictToXamarin</span><span class="p">(</span><span class="s1">&#39;ko&#39;</span><span class="p">,</span> <span class="n">dictData</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/peer_gynt/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1">#filename_json, json_binary = i18nObj.exportJson(678)</span>
+    <span class="c1">#filename_unity, unity_binary = i18nObj.exportUnity(678)</span>
+    <span class="c1">#filename_xamarin, xamarin_binary = i18nObj.exportXamarin(678)</span>
+    <span class="c1">#filename_android, android_binary = i18nObj.exportAndroid(678)</span>
+    <span class="c1">#filename_ios, ios_binary = i18nObj.exportIOs(678)</span>
+
+    <span class="c1">#f0 = open(&#39;testdata/%s&#39; % filename_json, &#39;w&#39;)</span>
+    <span class="c1">#f1 = open(&#39;testdata/%s&#39; % filename_unity, &#39;w&#39;)</span>
+    <span class="c1">#f2 = open(&#39;testdata/%s&#39; % filename_xamarin, &#39;w&#39;)</span>
+    <span class="c1">#f3 = open(&#39;testdata/%s&#39; % &quot;string2.xml&quot;, &#39;w&#39;)</span>
+    <span class="c1">#f4 = open(&#39;testdata/%s&#39; % filename_ios, &#39;w&#39;)</span>
+
+    <span class="c1">#f0.write(json_binary)</span>
+    <span class="c1">#f1.write(unity_binary)</span>
+    <span class="c1">#f2.write(xamarin_binary)</span>
+    <span class="c1">#f3.write(android_binary)</span>
+    <span class="c1">#f4.write(ios_binary)</span>
+
+    <span class="c1">#f0.close()</span>
+    <span class="c1">#f1.close()</span>
+    <span class="c1">#f2.close()</span>
+    <span class="c1">#f3.close()</span>
+    <span class="c1">#f4.close()</span>
+
+    <span class="c1"># CRUD 테스트</span>
+    <span class="c1">#i18nObj.updateText(678, 2781, 0, 0, u&#39;음향 is 뭔들&#39;)</span>
+    <span class="c1">#i18nObj.updateVariableName(678, 2772, &#39;credit0001&#39;)</span>
+    <span class="c1">#i18nObj.insertVariable(678, &#39;credit_opening&#39;)</span>
+    <span class="c1">#i18nObj.deleteVariable(678, 2781)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -8,8 +8,26 @@ import lxml.html
 import tarfile
 import zipfile
 import traceback
+from flask import request, send_file
+
+try:
+    from . import ciceron_lib
+except:
+    import ciceron_lib
 
 class Localizer(object):
+    """
+        Localizer Module
+
+          1) Hard coded된 Front-end 압축 파일을 받아 angular 등에서 널리 지원하는 template 형으로 변환해준다. (e.g. {{ index001 }} )
+          2) Hard-coded된 텍스트를 추출하여 i18n.json 파일을 만든다.
+
+          :file_name:
+            파일 이름
+          :file_bin:
+            사용자가 업로드한 압축 파일 바이너리, 객체 내 open() 메소드가 있어야 한다. (zip, tar, tar.gz, tar.bz2 지원)
+
+    """
 
     def __init__(self, file_name, file_bin):
         self.old_file_bin = None
@@ -91,7 +109,7 @@ class Localizer(object):
         return json.dumps(return_dict, indent=4)
 
     def compressFileOrganizer(self, filename, binary):
-        self.zip_obj.writestr(filename, buffer(binary))
+        self.zip_obj.writestr(filename, bytearray(binary.encode()))
 
     def run(self, target_lang):
         for filename in self.file_list:
@@ -117,6 +135,32 @@ class Localizer(object):
         self.zip_obj.close()
 
         return self.binary_obj.getvalue()
+
+
+ENDPOINTS = ['/api/v1', '/api/v2']
+
+
+class LocalizerAPI(object):
+    def __init__(self, app):
+        self.app = app
+        self.add_api(self.app)
+
+    def add_api(self, app):
+        for endpoint in ENDPOINTS:
+            self.app.add_url_rule('{}/user/localizer'.format(endpoint), view_func=self.localizer, methods=["POST"])
+
+    @ciceron_lib.login_required
+    def localizer(self):
+        parameters = ciceron_lib.parse_request(request)
+        file_binary = request.files['binary']
+        file_name = file_binary.filename
+        target_lang = parameters['target_lang']
+
+        localizer = Localizer(file_name, file_binary)
+        return_binary = localizer.run(target_lang)
+
+        return send_file(io.BytesIO(return_binary), attachment_filename="{}_localized.zip".format(file_name))
+
 
 if __name__ == "__main__":
     localizer = None

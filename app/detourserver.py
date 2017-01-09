@@ -69,7 +69,7 @@ def translate():
 
     # Check a user is member or not
     if user_email not in ['admin@sexycookie.com']:
-        print user_email
+        print(user_email)
         return make_response(json.jsonify(
             message='Forbidden'), 403)
 

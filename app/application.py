@@ -21,6 +21,7 @@ from requestwarehouse import Warehousing
 from groupRequest import GroupRequest
 from requestResell import RequestResell
 from payment import Payment
+from localizer import LocalizerAPI
 
 from flask_cors import CORS
 from flask_session import Session
@@ -87,6 +88,8 @@ Session(app)
 
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+
+LocalizerAPI(app)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])

@@ -1,0 +1,281 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.groupRequest &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.groupRequest</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.ciceron_lib</span> <span class="k">import</span> <span class="o">*</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">ciceron_lib</span> <span class="k">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="GroupRequest"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest">[문서]</a><span class="k">class</span> <span class="nc">GroupRequest</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
+
+    <span class="k">def</span> <span class="nf">__getNumberOfGroupMember</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT number_of_member_in_group FROM CICERON.F_REQUESTS</span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"> AND is_splitTrans = true</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cusor</span><span class="o">.</span><span class="n">exeucte</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__checkParticipatedMemberInRequest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT user_id, is_paid, payment_platform, transaction_id </span>
+<span class="s2">            FROM CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND is_paid = true</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span> <span class="nf">__checkUnpaidMemberInRequest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT user_id, is_paid, payment_platform, transaction_id </span>
+<span class="s2">            FROM CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND is_paid = false</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span> <span class="nf">__checkNumberOfParticipatedMemberInRequest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT count(*) FROM CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND is_paid = true</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_checkNumberOfGroupMembers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT number_of_member_in_group FROM CICERON.F_REQUESTS</span>
+<span class="s2">            WHERE id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="GroupRequest.getGroupRequestList"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.getGroupRequestList">[문서]</a>    <span class="k">def</span> <span class="nf">getGroupRequestList</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT * FROM CICERON.V_REQUESTS</span>
+<span class="s2">            WHERE is_groupRequest = true AND is_paid = true</span>
+<span class="s2">              AND number_of_member_in_group &gt; requested_member</span>
+<span class="s2">            ORDER BY registered_time</span>
+<span class="s2">            LIMIT 20 OFFSET </span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">%</span> <span class="p">((</span> <span class="nb">int</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="GroupRequest.getOneGroupRequest"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.getOneGroupRequest">[문서]</a>    <span class="k">def</span> <span class="nf">getOneGroupRequest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT * FROM CICERON.V_REQUESTS</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND is_groupRequest = true AND is_paid = true</span>
+<span class="s2">              AND number_of_member_in_group &gt; requested_member</span>
+<span class="s2">            ORDER BY registered_time</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="GroupRequest.checkGroupMembers"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.checkGroupMembers">[문서]</a>    <span class="k">def</span> <span class="nf">checkGroupMembers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__checkParticipatedMemberInRequest</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="GroupRequest.checkUnpaidMembers"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.checkUnpaidMembers">[문서]</a>    <span class="k">def</span> <span class="nf">checkUnpaidMembers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__checkUnpaidMemberInRequest</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="GroupRequest.addUserToGroup"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.addUserToGroup">[문서]</a>    <span class="k">def</span> <span class="nf">addUserToGroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">ciceron_lib</span><span class="o">.</span><span class="n">get_new_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;F_GROUP_REQUESTS_USERS&quot;</span><span class="p">)</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            (id, request_id, user_id, is_paid)</span>
+<span class="s2">            VALUES</span>
+<span class="s2">            (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, false)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GroupRequest.updatePaymentInfo"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.updatePaymentInfo">[문서]</a>    <span class="k">def</span> <span class="nf">updatePaymentInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">payment_platform</span><span class="p">,</span> <span class="n">transaction_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            SET is_paid = true,</span>
+<span class="s2">                payment_platform = </span><span class="si">%s</span><span class="s2">,</span>
+<span class="s2">                transaction_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND user_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">payment_platform</span><span class="p">,</span> <span class="n">transaction_id</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GroupRequest.deleteUserFromGroup"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.deleteUserFromGroup">[문서]</a>    <span class="k">def</span> <span class="nf">deleteUserFromGroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND user_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">tracaback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GroupRequest.assignToGroup"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.assignToGroup">[문서]</a>    <span class="k">def</span> <span class="nf">assignToGroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">group_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            SET complete_client_group_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND user_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="p">))</span></div>
+
+<div class="viewcode-block" id="GroupRequest.insertTitle"><a class="viewcode-back" href="../../docs/app.groupRequest.html#app.groupRequest.GroupRequest.insertTitle">[문서]</a>    <span class="k">def</span> <span class="nf">insertTitle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">title_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.F_GROUP_REQUESTS_USERS</span>
+<span class="s2">            SET complete_client_title_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">              AND user_id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">title_id</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="p">))</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

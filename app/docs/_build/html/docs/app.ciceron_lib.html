@@ -1,0 +1,450 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.ciceron_lib module &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../genindex.html" />
+    <link rel="search" title="검색" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-app.ciceron_lib">
+<span id="app-ciceron-lib-module"></span><h1>app.ciceron_lib module<a class="headerlink" href="#module-app.ciceron_lib" title="제목 주소">¶</a></h1>
+<dl class="function">
+<dt id="app.ciceron_lib.admin_required">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">admin_required</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#admin_required"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.admin_required" title="정의 주소">¶</a></dt>
+<dd><p>Admin으로 로그인되어 있는지 체크한다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.apiURLOrganizer">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">apiURLOrganizer</code><span class="sig-paren">(</span><em>api_base</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#apiURLOrganizer"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.apiURLOrganizer" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.approve_negoPoint">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">approve_negoPoint</code><span class="sig-paren">(</span><em>conn</em>, <em>request_id</em>, <em>translator_id</em>, <em>user_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#approve_negoPoint"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.approve_negoPoint" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.calculateChecksum">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">calculateChecksum</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#calculateChecksum"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.calculateChecksum" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.clientAuthChecker">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">clientAuthChecker</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>request_id</em>, <em>status_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#clientAuthChecker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.clientAuthChecker" title="정의 주소">¶</a></dt>
+<dd><p>실제 자신이 의뢰한 티켓인지 살펴봄</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.commonPromotionCodeChecker">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">commonPromotionCodeChecker</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#commonPromotionCodeChecker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.commonPromotionCodeChecker" title="정의 주소">¶</a></dt>
+<dd><p>공용 프로모션 코드 validator이다.
+코드는 유효한지, 유효한 코드지만 이미 사용한 코드인지 등등을 체크한다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.commonPromotionCodeExecutor">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">commonPromotionCodeExecutor</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#commonPromotionCodeExecutor"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.commonPromotionCodeExecutor" title="정의 주소">¶</a></dt>
+<dd><p>프로모션 코드를 적용한다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.complete_groups">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">complete_groups</code><span class="sig-paren">(</span><em>conn</em>, <em>parameters</em>, <em>table</em>, <em>method</em>, <em>url_group_id=None</em>, <em>since=None</em>, <em>page=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#complete_groups"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.complete_groups" title="정의 주소">¶</a></dt>
+<dd><p>그룹 조회, 생성, 그룹명 수정, 및 삭제 라이브러리
+기능은 똑같지만 번역가와 의뢰인계정이 쓰는 테이블 이름이 다르기에 라이브러리화 시키고 테이블 이름을 받아 동일한 로직을 사용할 수 있도록 구성하였다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.crossdomain">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">crossdomain</code><span class="sig-paren">(</span><em>f</em>, <em>origin='*'</em>, <em>methods=None</em>, <em>headers=None</em>, <em>max_age=21600</em>, <em>attach_to_all=True</em>, <em>automatic_options=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#crossdomain"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.crossdomain" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.ddosCheckAndWriteLog">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">ddosCheckAndWriteLog</code><span class="sig-paren">(</span><em>conn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#ddosCheckAndWriteLog"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.ddosCheckAndWriteLog" title="정의 주소">¶</a></dt>
+<dd><p>API 실행 전, 해당 IP에서 1초에 100번 이상 실행되면 30분동안 접속 차단한다.
+그리고 차단하지 않은 IP는 임시 테이블에 로그를 남겨 나중에 분석 자료로 이용한다.</p>
+<p>그리고 현재 로그를 쌓는 곳은 임시테이블이고, 30분에 한 번씩 Agent가 돌아 로그를 영구보관소로 옮긴다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.exception_detector">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">exception_detector</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#exception_detector"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.exception_detector" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.getProfile">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">getProfile</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>rate=1</em>, <em>price=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#getProfile"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.getProfile" title="정의 주소">¶</a></dt>
+<dd><p>프로파일 조회
+D_USERS와 그 밖에 필요한 정보들을 JSON 형태로 보여줌</p>
+<p>옛날 기획에 뱃지도 보여주자 했는데 현재는 중단된 상태.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.getRoutingAddressAndAlertType">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">getRoutingAddressAndAlertType</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>request_id</em>, <em>noti_type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#getRoutingAddressAndAlertType"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.getRoutingAddressAndAlertType" title="정의 주소">¶</a></dt>
+<dd><p>노티에서 링크를 제공할 때, request의 상태를 파악하여 좀 더 똑똑하게 링크를 주기 위함이다.</p>
+<p>테스트 시스템인지, 프로덕션 시스템인지..
+티켓이 기간 만료인지, 삭제인지, 그 밖인지
+유저가 번역가인지 아닌지
+등등을 고려하여 라우팅 주소를 만든다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_device_id">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_device_id</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_device_id"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_device_id" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_facebook_user_id">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_facebook_user_id</code><span class="sig-paren">(</span><em>conn</em>, <em>text_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_facebook_user_id"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_facebook_user_id" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_group_id_from_user_and_text">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_group_id_from_user_and_text</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>text</em>, <em>table</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_group_id_from_user_and_text"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_group_id_from_user_and_text" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_hashed_password">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_hashed_password</code><span class="sig-paren">(</span><em>password</em>, <em>salt=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_hashed_password"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_hashed_password" title="정의 주소">¶</a></dt>
+<dd><p>비밀번호 hashing 라이브러리. Salt 넣으면 그것도 반영하여 만들어줌</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_id_from_text">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_id_from_text</code><span class="sig-paren">(</span><em>conn</em>, <em>text</em>, <em>table</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_id_from_text"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_id_from_text" title="정의 주소">¶</a></dt>
+<dd><p>text와 테이블 이름을 넣으면 입력한 text의 ID를 찾아줌</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_new_id">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_new_id</code><span class="sig-paren">(</span><em>conn</em>, <em>table</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_new_id"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_new_id" title="정의 주소">¶</a></dt>
+<dd><p>테이블에서 사용하는 sequece에서 새 ID를 따줌.
+이 기능을 사용하려면 seqeunce 이름을 SEQ_&lt;table_name&gt;으로 해야 함 (ex CICERON.SEQ_F_REQUESTS)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_noti_data">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_noti_data</code><span class="sig-paren">(</span><em>conn</em>, <em>noti_type</em>, <em>user_id</em>, <em>request_id</em>, <em>optional_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_noti_data"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_noti_data" title="정의 주소">¶</a></dt>
+<dd><p>노티 데이터를 제공한다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_path_from_id">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_path_from_id</code><span class="sig-paren">(</span><em>conn</em>, <em>id_num</em>, <em>table</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_path_from_id"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_path_from_id" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_text_from_id">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_text_from_id</code><span class="sig-paren">(</span><em>conn</em>, <em>id_num</em>, <em>table</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_text_from_id"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_text_from_id" title="정의 주소">¶</a></dt>
+<dd><p>ID를 넣으면 해당 테이블의 text를 찾아줌</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_total_amount">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_total_amount</code><span class="sig-paren">(</span><em>conn</em>, <em>request_id</em>, <em>user_id</em>, <em>is_additional='false'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_total_amount"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_total_amount" title="정의 주소">¶</a></dt>
+<dd><p>네고 기능때문에 points 자체로는 총액이 되지 않기 때문에 nego_price와 더해줘야 한다.
+이 때, 총합을 계산하는 라이브러리</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_user_email">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_user_email</code><span class="sig-paren">(</span><em>conn</em>, <em>num_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_user_email"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_user_email" title="정의 주소">¶</a></dt>
+<dd><p>User ID를 넣으면 email을 찾아주는 함수인데 얼마나 사용할진 모르겠음</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_user_id">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_user_id</code><span class="sig-paren">(</span><em>conn</em>, <em>text_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_user_id"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_user_id" title="정의 주소">¶</a></dt>
+<dd><p>이메이을 넣으면 해당 사용자의 ID를 찾아줌
+email은 indexing 해놨기때문에 성능상의 큰 문제는 없을것임</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.get_user_name">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">get_user_name</code><span class="sig-paren">(</span><em>conn</em>, <em>num_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#get_user_name"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.get_user_name" title="정의 주소">¶</a></dt>
+<dd><p>User ID를 넣으면 유저 이름을 찾아줌. 주로 이메일 날릴때 Dear xxx를 채우기 위하여 새용</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.individualPromotionCodeChecker">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">individualPromotionCodeChecker</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#individualPromotionCodeChecker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.individualPromotionCodeChecker" title="정의 주소">¶</a></dt>
+<dd><p>개인 프로모션 코드 validator이다.
+그 밖의 기능은 위와 같다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.individualPromotionCodeExecutor">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">individualPromotionCodeExecutor</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#individualPromotionCodeExecutor"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.individualPromotionCodeExecutor" title="정의 주소">¶</a></dt>
+<dd><p>개인용 프로모션 코드 적용기이다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.json_from_V_REQUESTS">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">json_from_V_REQUESTS</code><span class="sig-paren">(</span><em>conn</em>, <em>rs</em>, <em>purpose='newsfeed'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#json_from_V_REQUESTS"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.json_from_V_REQUESTS" title="정의 주소">¶</a></dt>
+<dd><p>의뢰에 관련된 모든 정보를 JSON 형태로 보여줌. 권한이랑 포인트 등등 때문에 적잖이 로직이 복잡하다.</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>return_rate: 기본 0.7. 번역가는 개별적으로 환급 비율을 따로 설정할 수 있다.</li>
+</ol>
+<blockquote>
+<div>의뢰인이 가격을 10이라고 설정했어도, 번역가에게는 받아갈 돈 7로 표시하기 위하여 쿼리질을 한다.</div></blockquote>
+<ol class="arabic simple" start="2">
+<li>CICERON.V_QUEUE_LISTS 에서 해당 티켓에 네고를 건 사용자 프로필들을 조회해온다.</li>
+<li>글자수 및 단어수 계산</li>
+<li>그 밖에.. 번역가와 의뢰인, 단문 번역과 일반 번역, 그리고 번역 status에 따라 보여주고 가려야 할 내용 통제를 로직으로 수행한다.</li>
+</ol>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.login_required">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">login_required</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#login_required"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.login_required" title="정의 주소">¶</a></dt>
+<dd><p>DDOS 공격 검출기로 해당 IP가 블랙 리스트에 올라갔는지, 그리고 블랙 리스트에 올려야 하는지 살펴본다.
+아무 이상이 없다면 로그인이 되어 있는지 세션 설정값을 본다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.orderNoGenerator">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">orderNoGenerator</code><span class="sig-paren">(</span><em>conn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#orderNoGenerator"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.orderNoGenerator" title="정의 주소">¶</a></dt>
+<dd><p>Iamport 방식으로 결제할 때에는 주문번호를 만들어 주지 않기 때문에 우리가 직접 만들어야 한다.
+주문번호 형식은 YYYYMMDDxxxx (ex 20160716abcd) 방식으로 한다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.parameter_to_bool">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">parameter_to_bool</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#parameter_to_bool"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.parameter_to_bool" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.parse_request">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">parse_request</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#parse_request"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.parse_request" title="정의 주소">¶</a></dt>
+<dd><p>application/json, application/x-wwwurlencode, multipart/form-data 같은 다양한 형식에서도
+POST request를 python dict 형태로 나타낼 수 있게 만들어주는 라이브러리이다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.payment_postprocess">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">payment_postprocess</code><span class="sig-paren">(</span><em>conn</em>, <em>pay_by</em>, <em>pay_via</em>, <em>request_id</em>, <em>user_id</em>, <em>is_success</em>, <em>amount</em>, <em>use_point=0</em>, <em>promo_type='null'</em>, <em>promo_code='null'</em>, <em>is_additional='false'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#payment_postprocess"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.payment_postprocess" title="정의 주소">¶</a></dt>
+<dd><dl class="docutils">
+<dt>로직</dt>
+<dd><ol class="first last arabic simple">
+<li>지불로 처리힌다.</li>
+<li>지불 정보 한 줄 INSERT한다.</li>
+<li>프로모션 코드 사용처리한다.</li>
+</ol>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.payment_start">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">payment_start</code><span class="sig-paren">(</span><em>conn</em>, <em>pay_by</em>, <em>pay_via</em>, <em>request_id</em>, <em>total_amount</em>, <em>user_id</em>, <em>host_ip</em>, <em>use_point=0</em>, <em>promo_type='null'</em>, <em>promo_code='null'</em>, <em>is_additional='false'</em>, <em>payload=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#payment_start"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.payment_start" title="정의 주소">¶</a></dt>
+<dd><p>결제 함수이다. 자세한 설명은 아래에 계속...</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.pick_random_translator">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">pick_random_translator</code><span class="sig-paren">(</span><em>conn</em>, <em>number</em>, <em>from_lang</em>, <em>to_lang</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#pick_random_translator"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.pick_random_translator" title="정의 주소">¶</a></dt>
+<dd><p>해당 언어쌍을 번역할 수 있는 번역가를 랜덤으로 number명만큼 추출하여 준다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.random_string_gen">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">random_string_gen</code><span class="sig-paren">(</span><em>size=6</em>, <em>chars=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#random_string_gen"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.random_string_gen" title="정의 주소">¶</a></dt>
+<dd><p>무작위 string 만들어줌. 길이 조절도 가능함</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.save_request">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">save_request</code><span class="sig-paren">(</span><em>conn</em>, <em>parameters</em>, <em>str_request_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#save_request"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.save_request" title="정의 주소">¶</a></dt>
+<dd><p>번역을 완료하면서 마지막 코멘트, 글의 톤 등을 저장하는 데 쓰이는 라이브러리이다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.send_mail">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">send_mail</code><span class="sig-paren">(</span><em>mail_to</em>, <em>subject</em>, <em>message</em>, <em>mail_from='no-reply&#64;ciceron.me'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#send_mail"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.send_mail" title="정의 주소">¶</a></dt>
+<dd><p>주어진 mesasge를 메일로 날려주는 라이브러리이다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.send_noti_lite">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">send_noti_lite</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>noti_type_id</em>, <em>target_user_id</em>, <em>request_id</em>, <em>optional_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#send_noti_lite"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.send_noti_lite" title="정의 주소">¶</a></dt>
+<dd><p>노티 전송 라이트 버전이다. 미완성으로 보인다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.send_noti_suite">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">send_noti_suite</code><span class="sig-paren">(</span><em>gcm_server</em>, <em>conn</em>, <em>user_id</em>, <em>noti_type_id</em>, <em>target_user_id</em>, <em>request_id</em>, <em>optional_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#send_noti_suite"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.send_noti_suite" title="정의 주소">¶</a></dt>
+<dd><p>파라미터를 받아와
+노티 테이블에 넣고
+어떤 메시지를 줄 지 가져온다음 푸시 알람 및 메일까지 날려주는 종합 노티 라이브러리 함수이다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.send_push">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">send_push</code><span class="sig-paren">(</span><em>conn</em>, <em>gcm_obj</em>, <em>user_ids</em>, <em>message</em>, <em>collapse_key=None</em>, <em>delay_while_idle=None</em>, <em>time_to_live=None</em>, <em>restricted_package_name=None</em>, <em>dry_run=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#send_push"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.send_push" title="정의 주소">¶</a></dt>
+<dd><p>푸시 알람 날려주는 API이다. 근데 잘 안먹힌다. 이유는 모르겠다. 경험자가 필요하다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.signUpQuick">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">signUpQuick</code><span class="sig-paren">(</span><em>conn</em>, <em>email</em>, <em>hashed_password</em>, <em>name</em>, <em>mother_language_id</em>, <em>nationality_id=None</em>, <em>residence_id=None</em>, <em>external_service_provider=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#signUpQuick"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.signUpQuick" title="정의 주소">¶</a></dt>
+<dd><p>회원 가입 함수이다.
+회원 테이블에 정보 밀어넣고, 그 밖에 비밀번호, 적립금 및 포인트를 넣는다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.store_notiTable">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">store_notiTable</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>noti_type_id</em>, <em>target_user_id</em>, <em>request_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#store_notiTable"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.store_notiTable" title="정의 주소">¶</a></dt>
+<dd><p>노테를 테이블에 쌓아준다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.strict_translator_checker">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">strict_translator_checker</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>request_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#strict_translator_checker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.strict_translator_checker" title="정의 주소">¶</a></dt>
+<dd><dl class="docutils">
+<dt>번역가가 해당 의뢰를 번역할 수 있는지 체크</dt>
+<dd><ol class="first last arabic simple">
+<li>해당 의뢰의 언어쌍 조사</li>
+<li>모국어와 구사가능언어를 수집하여 두 언어 모두 구사가능 언어인지 살펴봄.</li>
+</ol>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.string2Date">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">string2Date</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#string2Date"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.string2Date" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="app.ciceron_lib.super_user">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">super_user</code><em class="property"> = ['pjh0308&#64;gmail.com', 'happyhj&#64;gmail.com', 'admin&#64;ciceron.me']</em><a class="headerlink" href="#app.ciceron_lib.super_user" title="정의 주소">¶</a></dt>
+<dd><p>매우 자주 사용하게 될 라이브러리 함수
+get_user_id(): 이메일 주소를 넣으면 user_id를 받을 수 있음.
+get_new_id(): 해당 테이블에서 사용하는 sequence
+parameter_to_bool(): parameter가 boolean 타입이면 True/False로 parsing해줌</p>
+<p>&#64;login_required: 세션을 먼저 감지하여 로그인이 되어 있는지 살펴본다.
+strict_translator_checker: 해당 티켓에 로그인한 번역가가 번역 가능한지 언어 체크
+translationAuthChecker: 로그인한 번역가가 해당 티켓의 번역가인지 알아봄
+clientAuthChecker: 로그인한 의뢰인이 해당 티켓의 의뢰인인지 알려줌</p>
+<p>json_from_V_REQUESTS: 쿼리한 결과를 python dict로 만들어줌.
+update_user_record: 유저 통계 업데이트
+parse_request: request를 parsing하여 dictionary로 만들어줌. www-urlencode이든, form-data이튼, application/json이든 모두 감별함</p>
+<p>string2Data: 문자열 날짜/시간 데이터를 Datetime object로 만들어줌</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.translationAuthChecker">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">translationAuthChecker</code><span class="sig-paren">(</span><em>conn</em>, <em>user_id</em>, <em>request_id</em>, <em>status_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#translationAuthChecker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.translationAuthChecker" title="정의 주소">¶</a></dt>
+<dd><p>실제 해당 번역가 유저가 번역하고 있는 의뢰인지 살펴봄</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.translator_checker">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">translator_checker</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#translator_checker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.translator_checker" title="정의 주소">¶</a></dt>
+<dd><p>번역가 권한이 있는 유저인지 체크한다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.translator_checker_plain">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">translator_checker_plain</code><span class="sig-paren">(</span><em>conn</em>, <em>email</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#translator_checker_plain"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.translator_checker_plain" title="정의 주소">¶</a></dt>
+<dd><p>위와 같은 일을 하나, 이건 decorator가 아니다.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="app.ciceron_lib.update_user_record">
+<code class="descclassname">app.ciceron_lib.</code><code class="descname">update_user_record</code><span class="sig-paren">(</span><em>conn</em>, <em>client_id=None</em>, <em>translator_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/ciceron_lib.html#update_user_record"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.ciceron_lib.update_user_record" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>현재 문서</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/docs/app.ciceron_lib.rst.txt"
+            rel="nofollow">소스 코드를 보려면</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/docs/app.ciceron_lib.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

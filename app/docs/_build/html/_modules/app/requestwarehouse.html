@@ -1,0 +1,427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.requestwarehouse &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.requestwarehouse</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">nltk.data</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.translator</span> <span class="k">import</span> <span class="n">Translator</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">translator</span> <span class="k">import</span> <span class="n">Translator</span>
+
+
+<div class="viewcode-block" id="Warehousing"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing">[문서]</a><span class="k">class</span> <span class="nc">Warehousing</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sentence_detector</span> <span class="o">=</span> <span class="n">nltk</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;tokenizers/punkt/english.pickle&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__parseParagragh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strings</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">strings</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__parseSentence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strings</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sentence_detector</span><span class="o">.</span><span class="n">tokenize</span><span class="p">(</span><span class="n">strings</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_unitOriginalDataInsert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">new_translation_id</span><span class="p">,</span> <span class="n">original_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;INSERT INTO CICERON.D_REQUEST_TEXTS</span>
+<span class="s2">                       (id, paragraph_seq, sentence_seq, path, text, is_sent_to_machine, hit, translation_id, original_lang_id, target_lang_id)</span>
+<span class="s2">                   VALUES</span>
+<span class="s2">                       (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, false, 0, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">) &quot;&quot;&quot;</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">new_translation_id</span><span class="p">,</span> <span class="n">original_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Warehousing.store"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.store">[문서]</a>    <span class="k">def</span> <span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">whole_texts</span><span class="p">,</span> <span class="n">new_translation_id</span><span class="p">,</span> <span class="n">original_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">):</span>
+        <span class="n">paragraphs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parseParagragh</span><span class="p">(</span><span class="n">whole_texts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">paragraph</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">paragraphs</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">sentences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parseSentence</span><span class="p">(</span><span class="n">paragraph</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sentences</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_unitOriginalDataInsert</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_seq</span><span class="p">,</span> <span class="n">sentence_seq</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">sentence</span><span class="p">,</span> <span class="n">new_translation_id</span><span class="p">,</span> <span class="n">original_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Warehousing.parseSentence"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.parseSentence">[문서]</a>    <span class="k">def</span> <span class="nf">parseSentence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strings</span><span class="p">):</span>
+        <span class="n">sentences</span> <span class="o">=</span> <span class="n">strings</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="n">sentences</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sentence_detector</span><span class="o">.</span><span class="n">tokenize</span><span class="p">(</span><span class="n">sentence</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">_restore_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query_getRequestText</span> <span class="o">=</span> <span class="s2">&quot;SELECT text_id, translatedText_id FROM CICERON.F_REQUESTS WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getRequestText</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">request_text_id</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">translated_text_id</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;requested_text&#39;</span><span class="p">:</span>
+            <span class="n">query_text</span> <span class="o">=</span> <span class="s2">&quot;SELECT paragraph_seq, sentence_seq, text FROM CICERON.D_REQUEST_TEXTS WHERE id = </span><span class="si">%s</span><span class="s2"> ORDER BY paragraph_seq, sentence_seq&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_text</span><span class="p">,</span> <span class="p">(</span><span class="n">request_text_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;translated_text&#39;</span><span class="p">:</span>
+            <span class="n">query_text</span> <span class="o">=</span> <span class="s2">&quot;SELECT paragraph_seq, sentence_seq, text FROM CICERON.D_TRANSLATED_TEXT WHERE id = </span><span class="si">%s</span><span class="s2"> ORDER BY paragraph_seq, sentence_seq&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_text</span><span class="p">,</span> <span class="p">(</span><span class="n">translated_text_id</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="n">fetched_array</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="n">cur_paragraph_id</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">result_string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fetched_array</span><span class="p">):</span>
+            <span class="n">paragraph_id</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">sentence_id</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">paragraph_id</span> <span class="o">!=</span> <span class="n">cur_paragraph_id</span><span class="p">:</span>
+                <span class="n">cur_paragraph_id</span> <span class="o">=</span> <span class="n">paragraph_id</span>
+                <span class="n">result_string</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">text</span>
+            <span class="k">elif</span> <span class="n">paragraph_id</span> <span class="o">==</span> <span class="n">cur_paragraph_id</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result_string</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">text</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result_string</span> <span class="o">+=</span> <span class="n">text</span>
+
+        <span class="k">return</span> <span class="n">result_string</span>
+
+    <span class="k">def</span> <span class="nf">_restore_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query_getRequestText</span> <span class="o">=</span> <span class="s2">&quot;SELECT text_id, translatedText_id FROM CICERON.F_REQUESTS WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getRequestText</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">request_text_id</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">translated_text_id</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="c1"># -1: Dummy</span>
+
+        <span class="n">inter_array_request</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">inter_array_translation</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;requested_text&#39;</span> <span class="ow">or</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">query_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT texts.paragraph_seq, texts.sentence_seq, texts.text, comm.comment_string</span>
+<span class="s2">                FROM CICERON.F_REQUESTS req</span>
+<span class="s2">                JOIN CICERON.D_REQUEST_TEXTS texts</span>
+<span class="s2">                  ON req.text_id = texts.id</span>
+<span class="s2">                LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm</span>
+<span class="s2">                  ON req.id = comm.request_id</span>
+<span class="s2">                    AND texts.paragraph_seq = comm.paragraph_seq                             </span>
+<span class="s2">                    AND texts.sentence_seq = comm.sentence_seq                            </span>
+<span class="s2">                WHERE req.id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">                ORDER BY texts.paragraph_seq, texts.sentence_seq </span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_text</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">inter_array_request</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;translated_text&#39;</span> <span class="ow">or</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">query_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT texts.paragraph_seq, texts.sentence_seq, texts.text, comm.comment_string</span>
+<span class="s2">                FROM CICERON.F_REQUESTS req</span>
+<span class="s2">                JOIN CICERON.D_TRANSLATED_TEXT texts</span>
+<span class="s2">                  ON req.translatedText_id = texts.id</span>
+<span class="s2">                LEFT OUTER JOIN CICERON.COMMENT_SENTENCE comm</span>
+<span class="s2">                  ON req.id = comm.request_id</span>
+<span class="s2">                    AND texts.paragraph_seq = comm.paragraph_seq                             </span>
+<span class="s2">                    AND texts.sentence_seq = comm.sentence_seq                            </span>
+<span class="s2">                WHERE req.id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">                ORDER BY texts.paragraph_seq, texts.sentence_seq</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_text</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">inter_array_translation</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="n">inter_array</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">inter_array_request</span><span class="p">,</span> <span class="n">inter_array_translation</span><span class="p">))</span>
+
+        <span class="n">query_paragraphComment</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT texts.paragraph_seq, texts.text, comm.comment_string</span>
+<span class="s2">                FROM CICERON.F_REQUESTS req</span>
+<span class="s2">                JOIN CICERON.D_TRANSLATED_TEXT texts</span>
+<span class="s2">                  ON req.translatedText_id = texts.id</span>
+<span class="s2">                LEFT OUTER JOIN CICERON.COMMENT_PARAGRAPH comm</span>
+<span class="s2">                  ON req.id = comm.request_id</span>
+<span class="s2">                    AND texts.paragraph_seq = comm.paragraph_seq AND texts.sentence_seq = 1</span>
+<span class="s2">                WHERE req.id = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">                ORDER BY texts.paragraph_seq</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_paragraphComment</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">paragaphcomment_array</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="n">result_array</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cur_paragraph_no</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inter_array</span><span class="p">):</span>
+            <span class="n">paragraph_seq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">sentence_seq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">original_text</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">translated_text</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">sentence_comment</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">cur_paragraph_no</span> <span class="o">!=</span> <span class="n">paragraph_seq</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">result_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+                <span class="n">item</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">item</span><span class="p">[</span><span class="s1">&#39;paragraph_seq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">paragraph_seq</span>
+                <span class="n">item</span><span class="p">[</span><span class="s1">&#39;paragraph_comment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">paragaphcomment_array</span><span class="p">[</span> <span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">item</span><span class="p">[</span><span class="s1">&#39;sentences&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="n">cur_paragraph_no</span> <span class="o">=</span> <span class="n">paragraph_seq</span>
+
+            <span class="n">sentence_item</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">sentence_item</span><span class="p">[</span><span class="s1">&#39;sentence_seq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentence_seq</span>
+            <span class="n">sentence_item</span><span class="p">[</span><span class="s1">&#39;original_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">original_text</span>
+            <span class="n">sentence_item</span><span class="p">[</span><span class="s1">&#39;translated_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">translated_text</span>
+            <span class="n">sentence_item</span><span class="p">[</span><span class="s1">&#39;sentence_comment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sentence_comment</span>
+
+            <span class="n">item</span><span class="p">[</span><span class="s1">&#39;sentences&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sentence_item</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inter_array</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">result_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result_array</span>
+
+<div class="viewcode-block" id="Warehousing.restoreRequestByString"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.restoreRequestByString">[문서]</a>    <span class="k">def</span> <span class="nf">restoreRequestByString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_string</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="s1">&#39;requested_text&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Warehousing.restoreTranslationByString"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.restoreTranslationByString">[문서]</a>    <span class="k">def</span> <span class="nf">restoreTranslationByString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_string</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="s1">&#39;translated_text&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Warehousing.restoreArray"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.restoreArray">[문서]</a>    <span class="k">def</span> <span class="nf">restoreArray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_array</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Warehousing.updateTranslationOneLine"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.updateTranslationOneLine">[문서]</a>    <span class="k">def</span> <span class="nf">updateTranslationOneLine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">query_getRequestText</span> <span class="o">=</span> <span class="s2">&quot;SELECT translatedText_id FROM CICERON.F_REQUESTS WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getRequestText</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">translated_text_id</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="n">translated_text_id</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">query_update</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                UPDATE CICERON.D_TRANSLATED_TEXT</span>
+<span class="s2">                  SET text = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">                  WHERE id=</span><span class="si">%s</span><span class="s2"> AND paragraph_seq=</span><span class="si">%s</span><span class="s2"> AND sentence_seq=</span><span class="si">%s</span><span class="s2">&quot;&quot;&quot;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_update</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">translated_text_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Warehousing.getTranslationOneLine"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.getTranslationOneLine">[문서]</a>    <span class="k">def</span> <span class="nf">getTranslationOneLine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query_getRequestText</span> <span class="o">=</span> <span class="s2">&quot;SELECT translatedText_id FROM CICERON.F_REQUESTS WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_getRequestText</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">translated_text_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="n">translated_text_id</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">query_update</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT text</span>
+<span class="s2">              FROM CICERON.D_TRANSLATED_TEXT</span>
+<span class="s2">              WHERE id=</span><span class="si">%s</span><span class="s2"> AND paragraph_seq=</span><span class="si">%s</span><span class="s2"> AND sentence_seq=</span><span class="si">%s</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_update</span><span class="p">,</span> <span class="p">(</span><span class="n">translated_text_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="n">return_text</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">return_text</span></div>
+
+<div class="viewcode-block" id="Warehousing.updateSentenceComment"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.updateSentenceComment">[문서]</a>    <span class="k">def</span> <span class="nf">updateSentenceComment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">comment_string</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query_count</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT count(*) FROM CICERON.COMMENT_SENTENCE</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND paragraph_seq = </span><span class="si">%s</span><span class="s2"> AND sentence_seq = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_insert</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO CICERON.COMMENT_SENTENCE</span>
+<span class="s2">              (request_id, paragraph_seq, sentence_seq, comment_string)</span>
+<span class="s2">            VALUES (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_update</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.COMMENT_SENTENCE</span>
+<span class="s2">              SET comment_string = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND paragraph_seq = </span><span class="si">%s</span><span class="s2"> AND sentence_seq = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_count</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_insert</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">comment_string</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_update</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">comment_string</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Warehousing.updateParagraphComment"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.updateParagraphComment">[문서]</a>    <span class="k">def</span> <span class="nf">updateParagraphComment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">comment_string</span><span class="p">):</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query_count</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT count(*) FROM CICERON.COMMENT_PARAGRAPH</span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND paragraph_seq = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_insert</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO CICERON.COMMENT_PARAGRAPH</span>
+<span class="s2">              (request_id, paragraph_seq, comment_string)</span>
+<span class="s2">            VALUES (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">query_update</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE CICERON.COMMENT_PARAGRAPH</span>
+<span class="s2">              SET comment_string = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">            WHERE request_id = </span><span class="si">%s</span><span class="s2"> AND paragraph_seq = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_count</span><span class="p">,</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_insert</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">comment_string</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query_update</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">comment_string</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Warehousing.initTest"><a class="viewcode-back" href="../../docs/app.requestwarehouse.html#app.requestwarehouse.Warehousing.initTest">[문서]</a>    <span class="k">def</span> <span class="nf">initTest</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Test purpose</span>
+
+    <span class="k">def</span> <span class="nf">_unitOriginalDataInsert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">new_translation_id</span><span class="p">,</span> <span class="n">original_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> | </span><span class="si">%s</span><span class="s2"> | </span><span class="si">%s</span><span class="s2"> | </span><span class="si">%s</span><span class="s2"> | </span><span class="si">%s</span><span class="s2"> | </span><span class="si">%s</span><span class="s2"> | </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">paragraph_id</span><span class="p">,</span> <span class="n">sentence_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">original_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">))</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">Warehousing</span><span class="o">.</span><span class="n">initTest</span><span class="p">(</span><span class="s1">&#39;_unitOriginalDataInsert&#39;</span><span class="p">,</span> <span class="n">_unitOriginalDataInsert</span><span class="p">)</span>
+    <span class="n">warehousing</span> <span class="o">=</span> <span class="n">Warehousing</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+    <span class="c1">#warehousing.__unitOriginalDataInsert = __unitOriginalDataInsert</span>
+
+    <span class="n">request_id</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;fake/path&quot;</span>
+    <span class="n">whole_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;논문의 평균 분량은 분야마다 다 다르다. 수학 같은 경우는 정말 A4용지 반 장 분량(…)의 논문이라고 하더라도 그 내용이 어떠한가에 따라서 세계를 발칵 뒤집는 불후의 논문이 될 수도 있다.[2] 사회과학은 그보다는 좀 더 길어진다. 대개의 심리학 논문은 20~30장 선에서 어지간하면 글이 끝나고, 정치학은 비슷하거나 그보다는 좀 더 긴 편이다. 논문의 방대함으로는 (연구주제에 따라서는) 행정학이 유명한데, 이 분야는 나랏님 하시는 일을 다루는지라 일단 데이터 양부터가 장난이 아니다. 오죽하면 행정학자들끼리 &quot;우리는 학회를 한번 갔다오면 왜 연구실에 전화번호부 두께의 학회지가 너댓 편씩 쌓이지?&quot;(…) 같은 농담을 주고받을 정도이니...[3]</span>
+<span class="s2">그 외에도 논문 분량이 당연히 백여 페이지를 한참 넘을 것으로 기대되는 분야들은 꽤 있다. 단, 학술지 논문에 비해 우리 위키러들이 정말로 궁금할 학위논문의 경우 분량이 그 5~10배 가량 육박하는 경우가 많으니 참고. 일부 박사논문은 납본되는 걸 보면 정말로 책 한 권이 나온다.(...)  좀 심하게 말하면, 어떤 학술적인 글을 쓰는데 분량을 신경쓰는 것은 레포트 쓰는 학부생들의 수준에서 바라보는 시각일 수 있다. (굳이 좋게 평하자면, 최소한의 논문다운 논문을 쓰기 위한 휴리스틱이다.) 학계에서 논문의 가치는 그 논문의 양이 얼마나 방대한지는 전혀 상관없다. 일부 사회과학 분야 논문들은 가설을 한번에 30개 이상씩(!) 검증하기도 하나, 그런 논문이 가설 하나 검증하는 논문, 아니 아무도 신경쓰지 않은 문제를 최초로 제기하느라 가설은 아예 검증하지도 못하고 제안하기만 한 논문보다 우월하다고 취급되지는 않는다.</span>
+<span class="s2">가설을 많이 검증한다고 해도 그 검증과정이나 논리적 차원에서 결함이나 비약이 있다면 가차없이 탈탈 털릴 뿐이다. 원론적으로, 인문학이나 예술분야라고 해도 자신의 독창적 생각을 타인에게 설득력 있게 전달하는 과정이 중요하게 취급되는 것은 당연하다.  공연히 분량을 늘린답시고 논문에서 논거를 질질 끌거나 쓸데없는 데이터를 넣거나 하면 당연히 또 탈탈 털린다. 애초에 학계라는 곳은 타인의 언급을 인용하는 것조차도 논리적 전개에 불필요해 보인다 싶으면 가차없이 불벼락을 내리는 바닥이다.[4] 필요한 말을 안 써서 까이기도 하지만, 쓸데없는 말이 너무 많다고 까이기도 하니, 논문을 준비하는 연구자는 이래저래 피곤하다. 게다가 교수들도 긴 글 읽기는 싫어하는 경우가 많다.(…)[5] &quot;&quot;&quot;</span>
+
+    <span class="n">warehousing</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">request_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">whole_text</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.translator &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.translator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+
+<span class="kn">from</span> <span class="nn">googleapiclient.discovery</span> <span class="k">import</span> <span class="n">build</span>
+<span class="kn">from</span> <span class="nn">microsofttranslator</span> <span class="k">import</span> <span class="n">Translator</span> <span class="k">as</span> <span class="n">Bing_Translator</span>
+<span class="kn">from</span> <span class="nn">yandex_translate</span> <span class="k">import</span> <span class="n">YandexTranslate</span>
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">quote</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">urllib</span> <span class="k">import</span> <span class="n">quote</span>
+
+
+<div class="viewcode-block" id="Translator"><a class="viewcode-back" href="../../docs/app.translator.html#app.translator.Translator">[문서]</a><span class="k">class</span> <span class="nc">Translator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">developerKey</span><span class="o">=</span><span class="s1">&#39;AIzaSyD-S4_2g1SRp4jucHpdLSBBq6xWhOsHcSI&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">googleAPI</span> <span class="o">=</span> <span class="n">build</span><span class="p">(</span><span class="s1">&#39;translate&#39;</span><span class="p">,</span> <span class="s1">&#39;v2&#39;</span><span class="p">,</span>
+                                <span class="n">developerKey</span><span class="o">=</span><span class="n">developerKey</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yandexAPI</span> <span class="o">=</span> <span class="n">YandexTranslate</span><span class="p">(</span><span class="s1">&#39;trnsl.1.1.20160423T052231Z.a28f67a8074f04f8.0a0282fad14a1dfd13d21ed6ab55f0a0a61c2d3f&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bingAPI</span> <span class="o">=</span> <span class="n">Bing_Translator</span><span class="p">(</span><span class="s1">&#39;welcome_ciceron&#39;</span><span class="p">,</span> <span class="s1">&#39;VL9isREJUILWMCLE2hr75xVaePRof6kuGkCM+r9oTb0=&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_googleTranslate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_lang</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">,</span> <span class="n">sentences</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">source_lang</span> <span class="o">==</span> <span class="s1">&#39;ko&#39;</span> <span class="ow">and</span> <span class="n">target_lang</span> <span class="o">==</span> <span class="s1">&#39;en&#39;</span><span class="p">)</span> <span class="ow">or</span> \
+           <span class="p">(</span><span class="n">source_lang</span> <span class="o">==</span> <span class="s1">&#39;en&#39;</span> <span class="ow">and</span> <span class="n">target_lang</span> <span class="o">==</span> <span class="s1">&#39;ko&#39;</span><span class="p">):</span>
+            <span class="n">result_google_jp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">googleAPI</span><span class="o">.</span><span class="n">translations</span><span class="p">()</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
+                                                    <span class="n">source</span><span class="o">=</span><span class="n">source_lang</span><span class="p">,</span>
+                                                    <span class="n">target</span><span class="o">=</span><span class="s1">&#39;ja&#39;</span><span class="p">,</span>
+                                                         <span class="n">q</span><span class="o">=</span><span class="n">sentences</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result_google_jp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;translations&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">inter_text</span> <span class="o">=</span> <span class="n">result_google_jp</span><span class="p">[</span><span class="s1">&#39;translations&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;translatedText&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="n">result_google</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">googleAPI</span><span class="o">.</span><span class="n">translations</span><span class="p">()</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
+                                                    <span class="n">source</span><span class="o">=</span><span class="s1">&#39;ja&#39;</span><span class="p">,</span>
+                                                    <span class="n">target</span><span class="o">=</span><span class="n">target_lang</span><span class="p">,</span>
+                                                         <span class="n">q</span><span class="o">=</span><span class="n">inter_text</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result_google</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;translations&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result_text</span> <span class="o">=</span> <span class="n">result_google</span><span class="p">[</span><span class="s1">&#39;translations&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;translatedText&#39;</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">result_text</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result_google</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">googleAPI</span><span class="o">.</span><span class="n">translations</span><span class="p">()</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
+                                                    <span class="n">source</span><span class="o">=</span><span class="n">source_lang</span><span class="p">,</span>
+                                                    <span class="n">target</span><span class="o">=</span><span class="n">target_lang</span><span class="p">,</span>
+                                                         <span class="n">q</span><span class="o">=</span><span class="n">sentences</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result_google</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;translations&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result_text</span> <span class="o">=</span> <span class="n">result_google</span><span class="p">[</span><span class="s1">&#39;translations&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;translatedText&#39;</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">result_text</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_bingTranslate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_lang</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">,</span> <span class="n">sentences</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result_bing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bingAPI</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">sentences</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result_bing</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_yandexTranslate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_lang</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">,</span> <span class="n">sentences</span><span class="p">):</span>
+        <span class="n">lang_FromTo</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">source_lang</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">)</span>
+        <span class="n">result_yandex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yandexAPI</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">sentences</span><span class="p">,</span> <span class="n">lang_FromTo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result_yandex</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result_yandex</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Translator.getCountryCode"><a class="viewcode-back" href="../../docs/app.translator.html#app.translator.Translator.getCountryCode">[문서]</a>    <span class="k">def</span> <span class="nf">getCountryCode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PURPOSE&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;PROD&#39;</span><span class="p">:</span>
+            <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!&quot;</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DATABASE</span><span class="p">)</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;SELECT google_code, yandex_code, bing_code FROM CICERON.D_LANGUAGES</span>
+<span class="s2">                      WHERE id = </span><span class="si">%s</span><span class="s2"> &quot;&quot;&quot;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="n">country_id</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;google&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;yandex&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;bing&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="mi">2</span><span class="p">]}</span></div>
+
+<div class="viewcode-block" id="Translator.doWork"><a class="viewcode-back" href="../../docs/app.translator.html#app.translator.Translator.doWork">[문서]</a>    <span class="k">def</span> <span class="nf">doWork</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_lang_id</span><span class="p">,</span> <span class="n">target_lang_id</span><span class="p">,</span> <span class="n">sentences</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sentences</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
+            <span class="n">result_text</span> <span class="o">=</span> <span class="s2">&quot;한 문장에 1000글자가 넘어가면 초벌 번역이 불가능합니다. / It is imposiible to initial-translate if the length of the sentence is over 1000 characters.&quot;</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;google&#39;</span><span class="p">:</span> <span class="n">result_text</span><span class="p">,</span> <span class="s1">&#39;bing&#39;</span><span class="p">:</span> <span class="n">result_text</span><span class="p">,</span> <span class="s1">&#39;yandex&#39;</span><span class="p">:</span> <span class="n">result_text</span><span class="p">}</span>
+
+        <span class="n">is_sourceId_OK</span><span class="p">,</span> <span class="n">source_langCodeDict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getCountryCode</span><span class="p">(</span><span class="n">source_lang_id</span><span class="p">)</span>
+        <span class="n">is_targetId_OK</span><span class="p">,</span> <span class="n">target_langCodeDict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getCountryCode</span><span class="p">(</span><span class="n">target_lang_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_sourceId_OK</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">is_targetId_OK</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">fail_translation</span> <span class="o">=</span> <span class="s2">&quot;초벌 번역 처리가 불가능한 언어입니다. / Unsupported language.&quot;</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;google&#39;</span><span class="p">:</span> <span class="n">fail_translation</span><span class="p">,</span> <span class="s1">&#39;bing&#39;</span><span class="p">:</span> <span class="n">fail_translation</span><span class="p">,</span> <span class="s1">&#39;yandex&#39;</span><span class="p">:</span> <span class="n">fail_translation</span><span class="p">}</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result_google</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_googleTranslate</span><span class="p">(</span><span class="n">source_langCodeDict</span><span class="p">[</span><span class="s1">&#39;google&#39;</span><span class="p">],</span> <span class="n">target_langCodeDict</span><span class="p">[</span><span class="s1">&#39;google&#39;</span><span class="p">],</span> <span class="n">sentences</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="n">result_google</span> <span class="o">=</span> <span class="s2">&quot;초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence.&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result_bing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bingTranslate</span><span class="p">(</span><span class="n">source_langCodeDict</span><span class="p">[</span><span class="s1">&#39;bing&#39;</span><span class="p">],</span> <span class="n">target_langCodeDict</span><span class="p">[</span><span class="s1">&#39;bing&#39;</span><span class="p">],</span> <span class="n">sentences</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="n">result_bing</span> <span class="o">=</span> <span class="s2">&quot;초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence.&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result_yandex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yandexTranslate</span><span class="p">(</span><span class="n">source_langCodeDict</span><span class="p">[</span><span class="s1">&#39;yandex&#39;</span><span class="p">],</span> <span class="n">target_langCodeDict</span><span class="p">[</span><span class="s1">&#39;yandex&#39;</span><span class="p">],</span> <span class="n">sentences</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="n">result_yandex</span> <span class="o">=</span> <span class="s2">&quot;초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence.&quot;</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;google&#39;</span><span class="p">:</span> <span class="n">result_google</span><span class="p">,</span> <span class="s1">&#39;bing&#39;</span><span class="p">:</span> <span class="n">result_bing</span><span class="p">,</span> <span class="s1">&#39;yandex&#39;</span><span class="p">:</span> <span class="n">result_yandex</span><span class="p">}</span></div></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">translator</span> <span class="o">=</span> <span class="n">Translator</span><span class="p">()</span>
+    <span class="n">requests</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;논문의 평균 분량은 분야마다 다 다르다. 수학 같은 경우는 정말 A4용지 반 장 분량(…)의 논문이라고 하더라도 그 내용이 어떠한가에 따라서 세계를 발칵 뒤집는 불후의 논문이 될 수도 있다.[2] 사회과학은 그보다는 좀 더 길어진다. 대개의 심리학 논문은 20~30장 선에서 어지간하면 글이 끝나고, 정치학은 비슷하거나 그보다는 좀 더 긴 편이다. 논문의 방대함으로는 (연구주제에 따라서는) 행정학이 유명한데, 이 분야는 나랏님 하시는 일을 다루는지라 일단 데이터 양부터가 장난이 아니다. 오죽하면 행정학자들끼리 &quot;우리는 학회를 한번 갔다오면 왜 연구실에 전화번호부 두께의 학회지가 너댓 편씩 쌓이지?&quot;(…) 같은 농담을 주고받을 정도이니...[3] 그 외에도 논문 분량이 당연히 백여 페이지를 한참 넘을 것으로 기대되는 분야들은 꽤 있다. 단, 학술지 논문에 비해 우리 위키러들이 정말로 궁금할 학위논문의 경우 분량이 그 5~10배 가량 육박하는 경우가 많으니 참고. 일부 박사논문은 납본되는 걸 보면 정말로 책 한 권이 나온다.(...)  좀 심하게 말하면, 어떤 학술적인 글을 쓰는데 분량을 신경쓰는 것은 레포트 쓰는 학부생들의 수준에서 바라보는 시각일 수 있다. (굳이 좋게 평하자면, 최소한의 논문다운 논문을 쓰기 위한 휴리스틱이다.) 학계에서 논문의 가치는 그 논문의 양이 얼마나 방대한지는 전혀 상관없다. 일부 사회과학 분야 논문들은 가설을 한번에 30개 이상씩(!) 검증하기도 하나, 그런 논문이 가설 하나 검증하는 논문, 아니 아무도 신경쓰지 않은 문제를 최초로 제기하느라 가설은 아예 검증하지도 못하고 제안하기만 한 논문보다 우월하다고 취급되지는 않는다. 가설을 많이 검증한다고 해도 그 검증과정이나 논리적 차원에서 결함이나 비약이 있다면 가차없이 탈탈 털릴 뿐이다. 원론적으로, 인문학이나 예술분야라고 해도 자신의 독창적 생각을 타인에게 설득력 있게 전달하는 과정이 중요하게 취급되는 것은 당연하다.  공연히 분량을 늘린답시고 논문에서 논거를 질질 끌거나 쓸데없는 데이터를 넣거나 하면 당연히 또 탈탈 털린다. 애초에 학계라는 곳은 타인의 언급을 인용하는 것조차도 논리적 전개에 불필요해 보인다 싶으면 가차없이 불벼락을 내리는 바닥이다.[4] 필요한 말을 안 써서 까이기도 하지만, 쓸데없는 말이 너무 많다고 까이기도 하니, 논문을 준비하는 연구자는 이래저래 피곤하다. 게다가 교수들도 긴 글 읽기는 싫어하는 경우가 많다.(…)[5] &quot;&quot;&quot;</span>
+    <span class="n">is_ok</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">doWork</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">requests</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

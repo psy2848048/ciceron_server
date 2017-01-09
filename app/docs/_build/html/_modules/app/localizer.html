@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.localizer &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../../genindex.html" />
+    <link rel="search" title="검색" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.localizer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">from</span> <span class="nn">lxml</span> <span class="k">import</span> <span class="n">etree</span>
+<span class="kn">import</span> <span class="nn">lxml.html</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">send_file</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">ciceron_lib</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">ciceron_lib</span>
+
+<div class="viewcode-block" id="Localizer"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.Localizer">[문서]</a><span class="k">class</span> <span class="nc">Localizer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Localizer Module</span>
+
+<span class="sd">          1) Hard coded된 Front-end 압축 파일을 받아 angular 등에서 널리 지원하는 template 형으로 변환해준다. (e.g. {{ index001 }} )</span>
+<span class="sd">          2) Hard-coded된 텍스트를 추출하여 i18n.json 파일을 만든다.</span>
+
+<span class="sd">          :file_name:</span>
+<span class="sd">            파일 이름</span>
+<span class="sd">          :file_bin:</span>
+<span class="sd">            사용자가 업로드한 압축 파일 바이너리, 객체 내 open() 메소드가 있어야 한다. (zip, tar, tar.gz, tar.bz2 지원)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">file_bin</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_file_bin</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">file_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.tar.gz&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">file_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.tar.bz2&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">old_file_bin</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarFile</span><span class="p">(</span><span class="n">file_bin</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_file_bin</span><span class="o">.</span><span class="n">getnames</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">file_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.zip&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">old_file_bin</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">file_bin</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_file_bin</span><span class="o">.</span><span class="n">namelist</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Compressed tar file of Zip are supported!&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_value</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">binary_obj</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zip_obj</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_obj</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">html_extensions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;asp&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;aspx&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;html&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;htm&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;xhtml&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;jsp&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;jspx&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;do&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;php&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;php4&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;php3&quot;</span>
+          <span class="p">,</span> <span class="s2">&quot;html5&quot;</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_findKeyByBalue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">value_args</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value_dic</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_value</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value_args</span> <span class="o">==</span> <span class="n">value_dic</span> <span class="ow">and</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">key</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Localizer.textExtractor"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.Localizer.textExtractor">[문서]</a>    <span class="k">def</span> <span class="nf">textExtractor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">htmlString</span><span class="p">):</span>
+        <span class="n">utf8_parser</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">HTMLParser</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="c1">#utf8_parser = etree.HTMLParser()</span>
+        <span class="c1"># &lt;br&gt; 태그를 제거하지 않으면 이 태그 이후의 텍스트를 텍스트로 인식하지 못하고</span>
+        <span class="c1"># URL식으로 인코딩을 하기 때문에 일찍 처리해야 한다.</span>
+        <span class="n">replaced_html_string</span> <span class="o">=</span> <span class="n">htmlString</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span>\
+                <span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;br/&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;br /&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="c1">#replaced_html_string = unicode(htmlString)</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">replaced_html_string</span><span class="p">),</span> <span class="n">utf8_parser</span><span class="p">)</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">iter</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">tag</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;script&#39;</span> <span class="ow">or</span> <span class="n">tag</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;style&#39;</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;built-in function Comment&gt;&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">unit_string</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">text</span>
+            <span class="k">if</span> <span class="n">unit_string</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">unit_string</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">unit_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">unit_string</span> <span class="o">=</span> <span class="n">unit_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">can_find</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_findKeyByBalue</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unit_string</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">can_find</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="n">tag</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">unit_string</span><span class="p">,</span> <span class="s2">&quot;{{ </span><span class="si">%s</span><span class="s2"> }}&quot;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">can_find</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">unit_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">unit_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">):</span>
+                    <span class="n">real_filename</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s%03d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">real_filename</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">json_value</span><span class="p">[</span> <span class="n">key</span> <span class="p">]</span> <span class="o">=</span> <span class="n">unit_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="n">tag</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">unit_string</span><span class="p">,</span> <span class="s2">&quot;{{ </span><span class="si">%s</span><span class="s2"> }}&quot;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+        <span class="k">return</span> <span class="n">lxml</span><span class="o">.</span><span class="n">html</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">root</span><span class="o">.</span><span class="n">getroot</span><span class="p">(),</span> <span class="n">pretty_print</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;html&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Localizer.jsonWriter"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.Localizer.jsonWriter">[문서]</a>    <span class="k">def</span> <span class="nf">jsonWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">):</span>
+        <span class="n">return_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">return_dict</span><span class="p">[</span> <span class="n">target_lang</span> <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_value</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">return_dict</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Localizer.compressFileOrganizer"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.Localizer.compressFileOrganizer">[문서]</a>    <span class="k">def</span> <span class="nf">compressFileOrganizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">binary</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zip_obj</span><span class="o">.</span><span class="n">writestr</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">binary</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="Localizer.run"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.Localizer.run">[문서]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_lang</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_list</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">file_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_file_bin</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+            <span class="c1"># 인코딩 처리</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">file_binary</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_binary</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">file_binary</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_binary</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+                    <span class="n">file_binary</span> <span class="o">=</span> <span class="n">file_binary</span>
+
+            <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">html_extensions</span><span class="p">:</span>
+                <span class="n">file_binary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">textExtractor</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">file_binary</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compressFileOrganizer</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">file_binary</span><span class="p">)</span>
+
+        <span class="n">jsonText</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jsonWriter</span><span class="p">(</span><span class="n">target_lang</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">jsonText</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compressFileOrganizer</span><span class="p">(</span><span class="s1">&#39;i18n.json&#39;</span><span class="p">,</span> <span class="n">jsonText</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zip_obj</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_obj</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div></div>
+
+
+<span class="n">ENDPOINTS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/api/v1&#39;</span><span class="p">,</span> <span class="s1">&#39;/api/v2&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="LocalizerAPI"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.LocalizerAPI">[문서]</a><span class="k">class</span> <span class="nc">LocalizerAPI</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_api</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LocalizerAPI.add_api"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.LocalizerAPI.add_api">[문서]</a>    <span class="k">def</span> <span class="nf">add_api</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">endpoint</span> <span class="ow">in</span> <span class="n">ENDPOINTS</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">add_url_rule</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/user/localizer&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">endpoint</span><span class="p">),</span> <span class="n">view_func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">localizer</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span></div>
+
+    <span class="nd">@ciceron_lib</span><span class="o">.</span><span class="n">login_required</span>
+<div class="viewcode-block" id="LocalizerAPI.localizer"><a class="viewcode-back" href="../../docs/app.localizer.html#app.localizer.LocalizerAPI.localizer">[문서]</a>    <span class="k">def</span> <span class="nf">localizer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">ciceron_lib</span><span class="o">.</span><span class="n">parse_request</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">file_binary</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;binary&#39;</span><span class="p">]</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="n">file_binary</span><span class="o">.</span><span class="n">filename</span>
+        <span class="n">target_lang</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;target_lang&#39;</span><span class="p">]</span>
+
+        <span class="n">localizer</span> <span class="o">=</span> <span class="n">Localizer</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">file_binary</span><span class="p">)</span>
+        <span class="n">return_binary</span> <span class="o">=</span> <span class="n">localizer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">target_lang</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">send_file</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">return_binary</span><span class="p">),</span> <span class="n">attachment_filename</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_localized.zip&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_name</span><span class="p">))</span></div></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">localizer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">result_binary</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../test/testdata/ciceron_webclient.zip&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">localizer</span> <span class="o">=</span> <span class="n">Localizer</span><span class="p">(</span><span class="s1">&#39;ciceron_webclient.zip&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">result_binary</span> <span class="o">=</span> <span class="n">localizer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;en&#39;</span><span class="p">)</span>
+
+    <span class="n">result_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;ciceron_webclient_replaced.zip&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">result_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">result_binary</span><span class="p">)</span>
+    <span class="n">result_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">모듈 코드</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

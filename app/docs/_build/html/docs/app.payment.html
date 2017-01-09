@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.payment module &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../genindex.html" />
+    <link rel="search" title="검색" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-app.payment">
+<span id="app-payment-module"></span><h1>app.payment module<a class="headerlink" href="#module-app.payment" title="제목 주소">¶</a></h1>
+<dl class="class">
+<dt id="app.payment.Payment">
+<em class="property">class </em><code class="descclassname">app.payment.</code><code class="descname">Payment</code><span class="sig-paren">(</span><em>conn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment" title="정의 주소">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>결제모듈 담당</p>
+<dl class="method">
+<dt id="app.payment.Payment.alipayPayment">
+<code class="descname">alipayPayment</code><span class="sig-paren">(</span><em>is_prod_server</em>, <em>request_id</em>, <em>user_email</em>, <em>amount</em>, <em>point_for_use=0</em>, <em>promo_type=''</em>, <em>promo_code=''</em>, <em>is_additional=False</em>, <em>is_groupRequest=False</em>, <em>is_public=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.alipayPayment"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.alipayPayment" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.checkPoint">
+<code class="descname">checkPoint</code><span class="sig-paren">(</span><em>user_id</em>, <em>point_for_use</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.checkPoint"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.checkPoint" title="정의 주소">¶</a></dt>
+<dd><p>포인트 조회 함수</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.commonPromotionCodeChecker">
+<code class="descname">commonPromotionCodeChecker</code><span class="sig-paren">(</span><em>user_id</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.commonPromotionCodeChecker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.commonPromotionCodeChecker" title="정의 주소">¶</a></dt>
+<dd><p>공용 프로모션 코드 validator이다.
+코드는 유효한지, 유효한 코드지만 이미 사용한 코드인지 등등을 체크한다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.commonPromotionCodeExecutor">
+<code class="descname">commonPromotionCodeExecutor</code><span class="sig-paren">(</span><em>user_email</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.commonPromotionCodeExecutor"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.commonPromotionCodeExecutor" title="정의 주소">¶</a></dt>
+<dd><p>프로모션 코드를 적용한다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.iamportPayment">
+<code class="descname">iamportPayment</code><span class="sig-paren">(</span><em>is_prod_server</em>, <em>request_id</em>, <em>user_email</em>, <em>amount</em>, <em>point_for_use=0</em>, <em>promo_type=None</em>, <em>promo_code=None</em>, <em>is_additional=False</em>, <em>is_groupRequest=False</em>, <em>is_public=False</em>, <em>**payload</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.iamportPayment"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.iamportPayment" title="정의 주소">¶</a></dt>
+<dd><p>아임포트 No-ActiveX 결제 시스템이다.</p>
+<p>직접 카드번호 및 유효기간 등의 정보를 물러와서 결제를 바로 한다.
+그리고 이 자리에서 바로 결제를 하기 때문에 postprocessing 과정을 거쳐서 할 작업을 여기서 다 한다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.individualPromotionCodeChecker">
+<code class="descname">individualPromotionCodeChecker</code><span class="sig-paren">(</span><em>user_id</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.individualPromotionCodeChecker"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.individualPromotionCodeChecker" title="정의 주소">¶</a></dt>
+<dd><p>개인 프로모션 코드 validator이다.
+그 밖의 기능은 위와 같다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.individualPromotionCodeExecutor">
+<code class="descname">individualPromotionCodeExecutor</code><span class="sig-paren">(</span><em>user_email</em>, <em>code</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.individualPromotionCodeExecutor"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.individualPromotionCodeExecutor" title="정의 주소">¶</a></dt>
+<dd><p>개인용 프로모션 코드 적용기이다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.paypalPayment">
+<code class="descname">paypalPayment</code><span class="sig-paren">(</span><em>is_prod_server</em>, <em>request_id</em>, <em>user_email</em>, <em>amount</em>, <em>point_for_use=0</em>, <em>promo_type=''</em>, <em>promo_code=''</em>, <em>is_additional=False</em>, <em>is_groupRequest=False</em>, <em>is_public=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.paypalPayment"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.paypalPayment" title="정의 주소">¶</a></dt>
+<dd><p>페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
+결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.pointPayment">
+<code class="descname">pointPayment</code><span class="sig-paren">(</span><em>is_prod_server</em>, <em>request_id</em>, <em>user_email</em>, <em>amount</em>, <em>point_for_use=0</em>, <em>promo_type=''</em>, <em>promo_code=''</em>, <em>is_additional=False</em>, <em>is_groupRequest=False</em>, <em>is_public=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.pointPayment"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.pointPayment" title="정의 주소">¶</a></dt>
+<dd><p>페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
+결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.postProcess">
+<code class="descname">postProcess</code><span class="sig-paren">(</span><em>user_email=None</em>, <em>request_id=None</em>, <em>pay_via=None</em>, <em>pay_by=None</em>, <em>is_succeeded=None</em>, <em>amount=0</em>, <em>use_point=0</em>, <em>promo_type=None</em>, <em>promo_code=None</em>, <em>is_additional=None</em>, <em>is_groupRequest=None</em>, <em>is_public=None</em>, <em>paymentId=None</em>, <em>PayerID=None</em>, <em>ciceron_order_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.postProcess"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.postProcess" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.payment.Payment.refundByPoint">
+<code class="descname">refundByPoint</code><span class="sig-paren">(</span><em>user_id</em>, <em>points</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#Payment.refundByPoint"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.Payment.refundByPoint" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="app.payment.UTC">
+<em class="property">class </em><code class="descclassname">app.payment.</code><code class="descname">UTC</code><a class="reference internal" href="../_modules/app/payment.html#UTC"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.UTC" title="정의 주소">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/datetime.html#datetime.tzinfo" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">datetime.tzinfo</span></code></a></p>
+<dl class="method">
+<dt id="app.payment.UTC.dst">
+<code class="descname">dst</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#UTC.dst"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.UTC.dst" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.payment.UTC.tzname">
+<code class="descname">tzname</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#UTC.tzname"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.UTC.tzname" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.payment.UTC.utcoffset">
+<code class="descname">utcoffset</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/payment.html#UTC.utcoffset"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.payment.UTC.utcoffset" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>현재 문서</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/docs/app.payment.rst.txt"
+            rel="nofollow">소스 코드를 보려면</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/docs/app.payment.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

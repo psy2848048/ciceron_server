@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app.localizer module &#8212; CICERON 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/translations.js"></script>
+    <link rel="index" title="색인" href="../genindex.html" />
+    <link rel="search" title="검색" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-app.localizer">
+<span id="app-localizer-module"></span><h1>app.localizer module<a class="headerlink" href="#module-app.localizer" title="제목 주소">¶</a></h1>
+<dl class="class">
+<dt id="app.localizer.Localizer">
+<em class="property">class </em><code class="descclassname">app.localizer.</code><code class="descname">Localizer</code><span class="sig-paren">(</span><em>file_name</em>, <em>file_bin</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#Localizer"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.Localizer" title="정의 주소">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Localizer Module</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Hard coded된 Front-end 압축 파일을 받아 angular 등에서 널리 지원하는 template 형으로 변환해준다. (e.g. {{ index001 }} )</li>
+<li>Hard-coded된 텍스트를 추출하여 i18n.json 파일을 만든다.</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">file_name:</th><td class="field-body">파일 이름</td>
+</tr>
+<tr class="field-even field"><th class="field-name">file_bin:</th><td class="field-body">사용자가 업로드한 압축 파일 바이너리, 객체 내 open() 메소드가 있어야 한다. (zip, tar, tar.gz, tar.bz2 지원)</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+<dl class="method">
+<dt id="app.localizer.Localizer.compressFileOrganizer">
+<code class="descname">compressFileOrganizer</code><span class="sig-paren">(</span><em>filename</em>, <em>binary</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#Localizer.compressFileOrganizer"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.Localizer.compressFileOrganizer" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.localizer.Localizer.jsonWriter">
+<code class="descname">jsonWriter</code><span class="sig-paren">(</span><em>target_lang</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#Localizer.jsonWriter"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.Localizer.jsonWriter" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.localizer.Localizer.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>target_lang</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#Localizer.run"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.Localizer.run" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.localizer.Localizer.textExtractor">
+<code class="descname">textExtractor</code><span class="sig-paren">(</span><em>filename</em>, <em>htmlString</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#Localizer.textExtractor"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.Localizer.textExtractor" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="app.localizer.LocalizerAPI">
+<em class="property">class </em><code class="descclassname">app.localizer.</code><code class="descname">LocalizerAPI</code><span class="sig-paren">(</span><em>app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#LocalizerAPI"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.LocalizerAPI" title="정의 주소">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="app.localizer.LocalizerAPI.add_api">
+<code class="descname">add_api</code><span class="sig-paren">(</span><em>app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#LocalizerAPI.add_api"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.LocalizerAPI.add_api" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="app.localizer.LocalizerAPI.localizer">
+<code class="descname">localizer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app/localizer.html#LocalizerAPI.localizer"><span class="viewcode-link">[소스]</span></a><a class="headerlink" href="#app.localizer.LocalizerAPI.localizer" title="정의 주소">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>현재 문서</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/docs/app.localizer.rst.txt"
+            rel="nofollow">소스 코드를 보려면</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>빠른 검색</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="바로 가기" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, psy2848048.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/docs/app.localizer.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

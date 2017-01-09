@@ -6,11 +6,11 @@ from flask_session import Session
 from flask_cache import Cache
 from flask_oauth import OAuth
 
-from .i18nHandler import inject_api as i18nHandler_injectApi
-from .detourserverConnector import inject_api as detourserverConnector_injectApi
-from .requestwarehouse import inject_api as requestWarehouse_injectApi
-from .groupRequest import inject_api as groupRequest_injectApi
-from .requestResell import inject_api as requestResell_injectApi
+from .i18nHandler
+from .detourserverConnector 
+from .requestwarehouse import 
+from .groupRequest import
+from .requestResell import  
 from .ciceron_lib import *
 
 
