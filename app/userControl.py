@@ -41,6 +41,58 @@ class UserControl(object):
             # Description: Success to log in
             return 200, None
 
+    def signUp(self, email, hashed_password, name, mother_language_id
+            , nationality_id=None
+            , residence_id=None
+            , external_service_provider=[]):
+
+        # Duplicate check
+        cursor = self.conn.cursor()
+        cursor.execute("select id from CICERON.D_USERS where email = %s", (email, ))
+        check_data = cursor.fetchall()
+        if len(check_data) > 0:
+            # Status code 400 (BAD REQUEST)
+            # Description: Duplicate ID
+            return 412
+    
+        if '@' not in email:
+            return 417
+    
+        # Insert values to D_USERS
+        user_id = ciceron_lib.get_new_id(self.conn, "D_USERS")
+    
+        print("    New user id: {}".format(user_id) )
+        cursor.execute("""
+            INSERT INTO CICERON.D_USERS
+            VALUES (
+              %s,%s,%s,%s,%s,
+              %s,%s,%s,%s,%s,
+              %s,%s,%s,%s,%s,
+              %s,%s,%s,%s,CURRENT_TIMESTAMP
+            )""",
+                (
+              user_id, email, name, mother_language_id, False,
+              None, None, 0, 0, 0,
+              0, 0, 0, None, "nothing",
+              0, nationality_id, residence_id, 0.7)
+            )
+    
+        cursor.execute("INSERT INTO CICERON.PASSWORDS VALUES (%s,%s)",
+            (user_id, hashed_password))
+        # 번역가의 매출
+        cursor.execute("INSERT INTO CICERON.REVENUE VALUES (%s,%s)",
+            (user_id, 0))
+        # 의뢰인의 소지 포인트
+        cursor.execute("INSERT INTO CICERON.RETURN_POINT VALUES (%s,%s)",
+            (user_id, 0))
+    
+        #if 'facebook' in external_service_provider:
+        #    new_facebook_id = get_new_id(conn, "D_FACEBOOK_USERS")
+        #    cursor.execute("INSERT INTO CICERON.D_FACEBOOK_USERS VALUES (%s,%s,%s) ",
+        #            (new_facebook_id, email, user_id))
+
+        return 200
+
 
 class UserControlAPI(object):
     def __init__(self, app, endpoints):
@@ -226,6 +278,51 @@ class UserControlAPI(object):
             return make_response(json.jsonify(
                        message = "You've never logged in"
                    ), 403)
+
+    def signUp(self):
+        """
+        회원가입 함수
+          #. POST /api/signup
+          #. POST /api/v2/signup
+
+        **Parameters**
+          #. "email": String, 회원 E-mail
+          #. "password": sha256(password) 전송. Salt 적용 안 함.
+          #. "name": String, 이름
+          #. "mother_tongue_id": Int, 모국어 ID
+
+        **Response**
+          **200**
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "email": "blahblah@ciceron.me", // 로그인했던 유저 메일
+               }
+
+          **400**: 파라미터 빠뜨림
+
+          **412**: 중복가입
+
+          **417**: 올바른 이메일 형식이 아님
+        """
+        userControlObj = UserControl(g.db)
+
+        # Get parameter values
+        parameters = parse_request(request)
+        email = parameters['email']
+        hashed_password = parameters['password']
+        name = parameters['name']
+        if 'mother_language_id' in parameters:
+            mother_language_id = int(parameters['mother_language_id'])
+        else:
+            return make_response(json.jsonify(
+                message="Some parameters are missing"), 400)
+
+        nationality_id = int(parameters.get('nationality_id')) if parameters.get('nationality_id') != None else None
+        residence_id = int(parameters.get('residence_id')) if parameters.get('residence_id') != None else None
+
+        resp_code = userControlObj.signUp
 
 
 if __name__ == "__main__":
