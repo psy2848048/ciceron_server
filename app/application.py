@@ -121,7 +121,8 @@ Session(app)
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-LocalizerAPI(app)
+ENDPOINTS = ['/api', '/api/v2']
+LocalizerAPI(app, ENDPOINTS)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])

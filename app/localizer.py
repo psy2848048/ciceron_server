@@ -137,20 +137,30 @@ class Localizer(object):
         return self.binary_obj.getvalue()
 
 
-ENDPOINTS = ['/api/v1', '/api/v2']
-
-
 class LocalizerAPI(object):
-    def __init__(self, app):
+    def __init__(self, app, endpoints):
         self.app = app
+        self.endpoints = endpoints
         self.add_api(self.app)
 
     def add_api(self, app):
-        for endpoint in ENDPOINTS:
+        for endpoint in self.endpoints:
             self.app.add_url_rule('{}/user/localizer'.format(endpoint), view_func=self.localizer, methods=["POST"])
 
     @ciceron_lib.login_required
     def localizer(self):
+        """
+        POST /api/v1/user/localizer
+        POST /api/v2/user/localizer
+
+        Parameters
+          :'binary': 파일 binary
+          :'target_lang': 프론트엔트의 언어 파일 ISO code (eg. 'en', 'ko', 'ja', ...)
+
+        Response
+          :200: ZIP 압축 파일
+        """
+
         parameters = ciceron_lib.parse_request(request)
         file_binary = request.files['binary']
         file_name = file_binary.filename

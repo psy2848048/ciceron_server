@@ -12,6 +12,7 @@ from .requestwarehouse import
 from .groupRequest import
 from .requestResell import  
 from .ciceron_lib import *
+from .userControl import UserControlAPI
 
 
 if os.environ.get('PURPOSE') == 'PROD':
