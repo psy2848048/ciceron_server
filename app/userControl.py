@@ -51,10 +51,11 @@ class UserControlAPI(object):
 
     def add_api(self, app):
         for endpoint in self.endpoints:
-            self.app.add_url_rule('{}'.format(endpoint), view_func=self.loginCheck2, methods=["GET"])
-            self.app.add_url_rule('{}/login'.format(endpoint), view_func=self.login2, methods=["GET", "POST"])
+            self.app.add_url_rule('{}'.format(endpoint), view_func=self.loginCheck, methods=["GET"])
+            self.app.add_url_rule('{}/login'.format(endpoint), view_func=self.login, methods=["GET", "POST"])
+            self.app.add_url_rule('{}/logout'.format(endpoint), view_func=self.logout, methods=["GET"])
 
-    def loginCheck2(self):
+    def loginCheck(self):
         """
         해당 API
           #. GET /api
@@ -102,7 +103,7 @@ class UserControlAPI(object):
                 message="No user is logged in")
                 , 403)
 
-    def login2(self):
+    def login(self):
         """
         해당 API
           #. 토큰 따기
@@ -155,7 +156,6 @@ class UserControlAPI(object):
 
         userControlObj = UserControl(g.db)
         if request.method == "POST":
-            print(dict(session))
             # Parameter
             #     email:        E-mail ID
             #     password:     password
@@ -188,6 +188,44 @@ class UserControlAPI(object):
             salt = ciceron_lib.random_string_gen()
             session['salt'] = salt
             return make_response(json.jsonify(identifier=salt), 200)
+
+    def logout(self):
+        """
+        로그아웃 함수
+          #. GET /api/logout
+          #. GET /api/v2/logout
+
+        **Parameters**
+          Nothing
+
+        **Response**
+          **200**
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "email": "blahblah@ciceron.me", // 로그인했던 유저 메일
+               }
+
+          **403**
+            로그인한 적이 없을 때
+        """
+        if session['logged_in'] == True:
+            username_temp = session['useremail']
+            session.pop('logged_in', None)
+            session.pop('useremail', None)
+            # Status code 200 (OK)
+            # Logout success
+            return make_response(json.jsonify(
+                       message = "Logged out",
+                       email=username_temp
+                   ), 200)
+        else:
+            # Status code 403 (ERROR)
+            # Description: Not logged in yet
+            return make_response(json.jsonify(
+                       message = "You've never logged in"
+                   ), 403)
 
 
 if __name__ == "__main__":
