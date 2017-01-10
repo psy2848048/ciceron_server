@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-from flask import Flask, session, request, g, make_response
+from flask import Flask, request, g, make_response, json, session
 from datetime import datetime, timedelta
 import os
 import requests
@@ -19,7 +18,7 @@ class UserControl(object):
     def __init__(self, conn):
         self.conn = conn
 
-    def passwordCheck(self, email, password):
+    def passwordCheck(self, email, salt, hashed_password):
         cursor = self.conn.cursor()
 
         user_id = ciceron_lib.get_user_id(self.conn, email)
@@ -37,7 +36,7 @@ class UserControl(object):
             # Description: Not registered
             return 403, 'Not registered {}'.format(email)
 
-        elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == hashed_password:
+        elif len(rs) == 1 and ciceron_lib.get_hashed_password(str(rs[0][0]), salt) == hashed_password:
             # Status code 200 (OK)
             # Description: Success to log in
             return 200, None
@@ -57,24 +56,30 @@ class UserControlAPI(object):
 
     def loginCheck2(self):
         """
-        GET /api
-        GET /api/v2
+        해당 API
+          #. GET /api
+          #. GET /api/v2
 
         해당 세션의 상태를 보여준다.
         아래 return값은 session[var_name]으로 접근 가능하다
 
-        :Parameters: Nothing
+        **Parameters**
+          Nothing
     
-        :Response
-          :200
+        **Response**
+          **200**
             .. code-block:: json
-              {
-                "useremail": "blahblah@gmail.com" // 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
-                "isLoggedIn": true // 로그인 여부 True/False
-                "isTranslator" : false  //로그인한 유저의 번역가여부 True/False
-              }
-          :403
-            - 로그인되지 않았음
+               :linenos:
+
+               {
+                 "useremail": "blahblah@gmail.com", // 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
+                 "isLoggedIn": true, // 로그인 여부 True/False
+                 "isTranslator" : false  //로그인한 유저의 번역가여부 True/False
+               }
+
+          **403**
+            로그인되지 않았음
+
         """
         if 'useremail' in session:
             client_os = request.args.get('client_os', None)
@@ -99,37 +104,58 @@ class UserControlAPI(object):
 
     def login2(self):
         """
-        GET /api/login
-        GET /api/v2/login
+        해당 API
+          #. 토큰 따기
+            #. GET /api/login
+            #. GET /api/v2/login
 
-        POST /api/login
-        POST /api/v2/login
-    
+          #. 로그인하기
+            #. POST /api/login
+            #. POST /api/v2/login
+
         로그인 로직
-          1. GET /api/v2/login에 접속
-          2. 로그인 Salt를 받는다.
-          3. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
-          4. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
-    
+          #. GET /api/v2/login에 접속
+          #. 로그인 Salt를 받는다.
+          #. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
+          #. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
+
         GET /api/login or /api/v2/login
-          :Parameters: Nothing
-          :Response
-            :200
+          **Parameters**
+            Nothing
+
+          **Response**
+            **200**
               .. code-block:: json
-                {
-                  "logged_in": true, // 로그인 상태
-                  "useremail": "blahblah@ciceron.me" // 로그인한 유저 메일
-                  "isTranslator": true // 번역가 계정인지 아닌지 확인
-                }
-    
+                 :linenos:
+
+                 {
+                   "identifier": "a3Bd1g", // Password Salt
+                 }
+
         POST /api/login or /api/v2/login
-          :Parameters
-            "email": 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
-            "password": 3번 참조
+          **Parameters**
+            #. "email": 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
+            #. "password": 3번 참조
+
+          **Response**
+            **200** 로그인 성공
+              .. code-block:: json
+                 :linenos:
+
+                 {
+                   "logged_in": true, // 로그인 상태
+                   "useremail": "blahblah@ciceron.me", // 로그인한 유저 메일
+                   "isTranslator": true // 번역가 계정인지 아닌지 확인
+                 }
+
+            **403**: 로그인 실패
+
+            **501**: 1유저 2 패스워드 (있을 수 없는 동작)
         """
 
         userControlObj = UserControl(g.db)
         if request.method == "POST":
+            print(dict(session))
             # Parameter
             #     email:        E-mail ID
             #     password:     password
@@ -143,7 +169,7 @@ class UserControlAPI(object):
             #machine_id = parameters.get('machine_id', None)
             #client_os = parameters.get('client_os', None)
 
-            resp_code, err_msg = userControlObj.passwordCheck(email, hashed_password)
+            resp_code, err_msg = userControlObj.passwordCheck(email, session['salt'], hashed_password)
             if resp_code != 200:
                 return make_response(json.jsonify(message=err_msg), resp_code)
             else:

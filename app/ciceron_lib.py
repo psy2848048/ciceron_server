@@ -54,7 +54,6 @@ def random_string_gen(size=6, chars=None):
         chars = string.letters + string.digits
 
     gened_string = ''.join(random.choice(chars) for _ in range(size))
-    gened_string = gened_string.encode('utf-8')
     return gened_string
 
 #def check_and_update_reg_key(conn, os_name, registration_id):

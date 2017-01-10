@@ -30,6 +30,7 @@ class Localizer(object):
     """
 
     def __init__(self, file_name, file_bin):
+        self.session = session
         self.old_file_bin = None
         if file_name.endswith('.tar.gz') or file_name.endswith('.tar.bz2'):
             self.old_file_bin = tarfile.TarFile(file_bin, 'r')
