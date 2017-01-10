@@ -40,7 +40,7 @@ def get_hashed_password(password, salt=None):
     if salt is None:
         hash_maker.update(password)
     else:
-        hash_maker.update(salt.encode() + password + salt.encode())
+        hash_maker.update(salt.encode('utf-8') + password.encode('utf-8') + salt.encode('utf-8'))
 
     return hash_maker.hexdigest()
 

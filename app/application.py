@@ -103,12 +103,15 @@ HOST = ""
 if os.environ.get('PURPOSE') == 'PROD':
     HOST = 'http://ciceron.me'
     SESSION_COOKIE_DOMAIN = ".ciceron.me"
+    SESSION_COOKIE_PATH = "/"
     
-else:
+elif os.environ.get('PURPOSE') == 'DEV':
     HOST = 'http://ciceron.xyz'
     SESSION_COOKIE_DOMAIN = ".ciceron.xyz"
+    SESSION_COOKIE_PATH = "/"
 
-SESSION_COOKIE_PATH = "/"
+else:
+    HOST = 'http://localhost'
 
 # APP setting
 app = Flask(__name__)
