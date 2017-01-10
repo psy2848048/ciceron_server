@@ -58,6 +58,10 @@ try:
 except:
     from .localizer import LocalizerAPI
 
+try:
+    from userControl import UserControlAPI
+except:
+    from .userControl import UserControlAPI
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
@@ -123,6 +127,7 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 ENDPOINTS = ['/api', '/api/v2']
 LocalizerAPI(app, ENDPOINTS)
+UserControlAPI(app, ENDPOINTS)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
