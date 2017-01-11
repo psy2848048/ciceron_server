@@ -30,6 +30,13 @@ parse_request: request를 parsing하여 dictionary로 만들어줌. www-urlencod
 
 string2Data: 문자열 날짜/시간 데이터를 Datetime object로 만들어줌
 """
+HOST = ""
+if os.environ.get('PURPOSE') == 'PROD':
+    HOST = 'http://ciceron.me'
+elif os.environ.get('PURPOSE') == 'DEV':
+    HOST = 'http://ciceron.xyz'
+else:
+    HOST = 'http://localhost'
 
 def get_hashed_password(password, salt=None):
     """
@@ -38,7 +45,7 @@ def get_hashed_password(password, salt=None):
     hash_maker = hashlib.sha256()
 
     if salt is None:
-        hash_maker.update(password)
+        hash_maker.update(password.encode('utf-8'))
     else:
         hash_maker.update(salt.encode('utf-8') + password.encode('utf-8') + salt.encode('utf-8'))
 
@@ -1635,3 +1642,41 @@ def calculateChecksum(*args):
     for line in args:
         checksum_obj.update(line)
     return checksum_obj.hexdigest()
+
+def dbToDict(columns, ret):
+    result = []
+    if ret is None or len(ret) == 0:
+        return result
+
+    for row in ret:
+        item = { columns[idx]:col for idx, col in enumerate(row) }
+        result.append(item)
+
+    return result
+
+def pic_allowed_file(filename):
+    """
+    확장자를 보고 사진(그림)인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
+    ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'png', 'tiff'])
+    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS_PIC
+
+
+def doc_allowed_file(filename):
+    """
+    확장자를 보고 문서인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
+    ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
+    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS_DOC
+
+
+def sound_allowed_file(filename):
+    """
+    확장자를 보고 음성인지 아닌지 판별
+    :param string filename: 파일 이름
+    """
+    ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
+    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS_WAV
+

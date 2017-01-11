@@ -122,7 +122,7 @@ app.project_number = 145456889576
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-ENDPOINTS = ['/api', '/api/v2']
+ENDPOINTS = ['/api/v2']
 LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
 
@@ -205,39 +205,39 @@ def teardown_request(exception):
 #def get_facebook_token():
 #    return session.get('facebook_token')
 
-#@app.route('/api', methods=['GET'])
-##@exception_detector
-#@cache.cached(timeout=50, key_prefix='loginStatusCheck')
-#def loginCheck():
-#    """
-#    해당 세션의 상태를 보여준다.
-#    아래 return값은 session[var_name]으로 접근 가능하다
-#
-#    :returns JSON response
-#        useremail: 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
-#        isLoggedIn: 로그인 여부 True/False
-#        isTranslator: 로그인한 유저의 번역가여부 True/False
-#    """
-#    if 'useremail' in session:
-#        client_os = request.args.get('client_os', None)
-#        isTranslator = translator_checker_plain(g.db, session['useremail'])
-#        #if client_os is not None and registration_id is not None:
-#        #    check_and_update_reg_key(g.db, client_os, registration_id)
-#        #    g.db.coomit()
-#
-#        return make_response(json.jsonify(
-#            useremail=session['useremail'],
-#            isLoggedIn = True,
-#            isTranslator=isTranslator,
-#            message="User %s is logged in" % session['useremail'])
-#            , 200)
-#    else:
-#        return make_response(json.jsonify(
-#            useremail=None,
-#            isLoggedIn=False,
-#            isTranslator=False,
-#            message="No user is logged in")
-#            , 403)
+@app.route('/api', methods=['GET'])
+#@exception_detector
+@cache.cached(timeout=50, key_prefix='loginStatusCheck')
+def loginCheck_old():
+    """
+    해당 세션의 상태를 보여준다.
+    아래 return값은 session[var_name]으로 접근 가능하다
+
+    :returns JSON response
+        useremail: 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
+        isLoggedIn: 로그인 여부 True/False
+        isTranslator: 로그인한 유저의 번역가여부 True/False
+    """
+    if 'useremail' in session:
+        client_os = request.args.get('client_os', None)
+        isTranslator = translator_checker_plain(g.db, session['useremail'])
+        #if client_os is not None and registration_id is not None:
+        #    check_and_update_reg_key(g.db, client_os, registration_id)
+        #    g.db.coomit()
+
+        return make_response(json.jsonify(
+            useremail=session['useremail'],
+            isLoggedIn = True,
+            isTranslator=isTranslator,
+            message="User %s is logged in" % session['useremail'])
+            , 200)
+    else:
+        return make_response(json.jsonify(
+            useremail=None,
+            isLoggedIn=False,
+            isTranslator=False,
+            message="No user is logged in")
+            , 403)
 
 @app.route('/api/ping', methods=['GET'])
 def ping():
@@ -248,86 +248,86 @@ def ping():
     except:
         return make_response(json.jsonify(message="Disorder"), 500)
 
-#@app.route('/api/login', methods=['POST', 'GET'])
-##@exception_detector
-#def login():
-#    """
-#    로그인 함수
-#
-#    로그인 로직
-#        1. GET /api/login에 접속
-#        2. 로그인 Salt를 받는다.
-#        3. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
-#        4. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
-#
-#    GET
-#        No parameter
-#
-#    POST
-#        :param string email: 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
-#        :param string password: 3번 참조
-#    """
-#    if request.method == "POST":
-#        # Parameter
-#        #     email:        E-mail ID
-#        #     password:     password
-#        #     client_os:    := Android, iPhone, Blackberry, web.. (OPTIONAL)
-#        #     machine_id:   machine_id of client phone device (OPTIONAL)
-#
-#        # Get parameters
-#        parameters = parse_request(request)
-#        email = parameters['email']
-#        hashed_password = parameters['password']
-#        #machine_id = parameters.get('machine_id', None)
-#        #client_os = parameters.get('client_os', None)
-#        user_id = get_user_id(g.db, email)
-#
-#        # Get hashed_password using user_id for comparing
-#        cursor = g.db.cursor()
-#        cursor.execute("SELECT hashed_pass FROM CICERON.PASSWORDS WHERE user_id = %s", (user_id, ))
-#        rs = cursor.fetchall()
-#
-#        if len(rs) > 1:
-#            # Status code 500 (ERROR)
-#            # Description: Same e-mail address tried to be inserted into DB
-#            return make_response (json.jsonify(message='Constraint violation error!'), 501)
-#
-#        elif len(rs) == 0:
-#            # Status code 403 (ERROR)
-#            # Description: Not registered
-#            return make_response (json.jsonify(message='Not registered %s' % email), 403)
-#        
-#        elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == hashed_password:
-#            # Status code 200 (OK)
-#            # Description: Success to log in
-#            isTranslator = translator_checker_plain(g.db, email)
-#            session['logged_in'] = True
-#            session['useremail'] = email
-#            session['isTranslator'] = isTranslator
-#            session.pop('salt', None)
-#        
-#            #if client_os is not None and registration_id is not None:
-#            #    check_and_update_reg_key(g.db, client_os, registration_id)
-#        
-#            return make_response(json.jsonify(
-#                message='Logged in',
-#                isTranslator=isTranslator,
-#                email=email)
-#                , 200)
-#
-#        else:
-#            # Status code 406 (ERROR)
-#            # Description: Password incorrect
-#            return make_response(json.jsonify(
-#                message='Please check the password'
-#                ), 403)
-#
-#        return
-#
-#    else:
-#        salt = random_string_gen()
-#        session['salt'] = salt
-#        return make_response(json.jsonify(identifier=salt), 200)
+@app.route('/api/login', methods=['POST', 'GET'])
+#@exception_detector
+def login_old():
+    """
+    로그인 함수
+
+    로그인 로직
+        1. GET /api/login에 접속
+        2. 로그인 Salt를 받는다.
+        3. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
+        4. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
+
+    GET
+        No parameter
+
+    POST
+        :param string email: 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
+        :param string password: 3번 참조
+    """
+    if request.method == "POST":
+        # Parameter
+        #     email:        E-mail ID
+        #     password:     password
+        #     client_os:    := Android, iPhone, Blackberry, web.. (OPTIONAL)
+        #     machine_id:   machine_id of client phone device (OPTIONAL)
+
+        # Get parameters
+        parameters = parse_request(request)
+        email = parameters['email']
+        hashed_password = parameters['password']
+        #machine_id = parameters.get('machine_id', None)
+        #client_os = parameters.get('client_os', None)
+        user_id = get_user_id(g.db, email)
+
+        # Get hashed_password using user_id for comparing
+        cursor = g.db.cursor()
+        cursor.execute("SELECT hashed_pass FROM CICERON.PASSWORDS WHERE user_id = %s", (user_id, ))
+        rs = cursor.fetchall()
+
+        if len(rs) > 1:
+            # Status code 500 (ERROR)
+            # Description: Same e-mail address tried to be inserted into DB
+            return make_response (json.jsonify(message='Constraint violation error!'), 501)
+
+        elif len(rs) == 0:
+            # Status code 403 (ERROR)
+            # Description: Not registered
+            return make_response (json.jsonify(message='Not registered %s' % email), 403)
+        
+        elif len(rs) == 1 and get_hashed_password(str(rs[0][0]), session['salt']) == hashed_password:
+            # Status code 200 (OK)
+            # Description: Success to log in
+            isTranslator = translator_checker_plain(g.db, email)
+            session['logged_in'] = True
+            session['useremail'] = email
+            session['isTranslator'] = isTranslator
+            session.pop('salt', None)
+        
+            #if client_os is not None and registration_id is not None:
+            #    check_and_update_reg_key(g.db, client_os, registration_id)
+        
+            return make_response(json.jsonify(
+                message='Logged in',
+                isTranslator=isTranslator,
+                email=email)
+                , 200)
+
+        else:
+            # Status code 406 (ERROR)
+            # Description: Password incorrect
+            return make_response(json.jsonify(
+                message='Please check the password'
+                ), 403)
+
+        return
+
+    else:
+        salt = random_string_gen()
+        session['salt'] = salt
+        return make_response(json.jsonify(identifier=salt), 200)
 
 #@app.route("/api/facebook_login")
 #def facebook_auth():
@@ -436,35 +436,35 @@ def ping():
 #        return make_response(json.jsonify(
 #            message="ID %s is duplicated. Please check the email." % email), 412)
 
-#@app.route('/api/logout', methods=["GET"])
-##@exception_detector
-#def logout():
-#    """
-#    로그아웃 함수
-#        - session에 들어있는 모든 키 제거
-#    """
-#    # No parameter needed
-#    if session['logged_in'] == True:
-#        cache.clear()
-#        username_temp = session['useremail']
-#        session.pop('logged_in', None)
-#        session.pop('useremail', None)
-#        # Status code 200 (OK)
-#        # Logout success
-#        return make_response(json.jsonify(
-#                   message = "Logged out",
-#                   email=username_temp
-#               ), 200)
-#    else:
-#        # Status code 403 (ERROR)
-#        # Description: Not logged in yet
-#        return make_response(json.jsonify(
-#                   message = "You've never logged in"
-#               ), 403)
+@app.route('/api/logout', methods=["GET"])
+#@exception_detector
+def logout_old():
+    """
+    로그아웃 함수
+        - session에 들어있는 모든 키 제거
+    """
+    # No parameter needed
+    if session['logged_in'] == True:
+        cache.clear()
+        username_temp = session['useremail']
+        session.pop('logged_in', None)
+        session.pop('useremail', None)
+        # Status code 200 (OK)
+        # Logout success
+        return make_response(json.jsonify(
+                   message = "Logged out",
+                   email=username_temp
+               ), 200)
+    else:
+        # Status code 403 (ERROR)
+        # Description: Not logged in yet
+        return make_response(json.jsonify(
+                   message = "You've never logged in"
+               ), 403)
 
 @app.route('/api/signup', methods=['POST', 'GET'])
 #@exception_detector
-def signup():
+def signup_old():
     """
     회원가입 함수
     
@@ -522,7 +522,7 @@ def signup():
 
 @app.route('/api/idCheck', methods=['POST'])
 #@exception_detector
-def idChecker():
+def idChecker_old():
     """
     ID 중복조회
 
@@ -552,7 +552,7 @@ def idChecker():
 
 @app.route('/api/user/create_recovery_code', methods=['POST'])
 #@exception_detector
-def create_recovery_code():
+def create_recovery_code_old():
     """
     패스워드 잊어버렸을 때 가입한 이메일로 복구 코드 전송
     담당하는 테이블: CICERON.EMERGENCY_CODE
@@ -591,25 +591,14 @@ def create_recovery_code():
     g.db.commit()
 
     subject = "Here is your temporary password"
-    message="""<img src='%(host)s/api/mail_img/img/logo.png'><br>
-                 <span style='color:#5F9EA0'><h1>Dear %(user)s,</h1></span><br>
-                 <br>
-                 Here is your recovery code:<br>
-                 <br>
-                 <br>
-                 <h2><b>%(password)s</b></h2>
-                 <br>
-                 <br>
-                 Please input the code above to <a href="%(page)s">this page.</a><br>
-                 Have a secure day! :)<br>
-                 <br>
-                 Best regards,<br>
-                 Ciceron team""" % {
-                         'user': user_name,
-                         'password': recovery_code,
-                         'page': HOST,
-                         "host": HOST + ':5000'
-                         }
+    message = open('templates/password_recovery_mail.html', 'r')\
+            .read()\
+            .format(
+                      user=user_name
+                    , password=recovery_code
+                    , page=HOST
+                    , host=HOST + ':5000'
+                    )
 
     send_mail(email, subject, message)
 
@@ -618,7 +607,7 @@ def create_recovery_code():
 
 @app.route('/api/user/recover_password', methods=['POST'])
 #@exception_detector
-def recover_password():
+def recover_password_old():
     """
     복구 코드를 받아 패스워드 재설정하는 부분
 
@@ -658,7 +647,7 @@ def recover_password():
 @app.route('/api/user/change_password', methods=['POST'])
 @login_required
 #@exception_detector
-def change_password():
+def change_password_old():
     """
     패스워드 변경
 
@@ -697,7 +686,7 @@ def change_password():
 @app.route('/api/user/profile', methods = ['GET', 'POST'])
 @login_required
 #@exception_detector
-def user_profile():
+def user_profile_old():
     """
     프로파일 조회 API (GET), 정보 업데이트 API (POST)
 

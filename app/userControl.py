@@ -4,14 +4,18 @@ from datetime import datetime, timedelta
 import os
 import requests
 import io
-
+import traceback
 import psycopg2
-from flask_cache import Cache
 
 try:
     import ciceron_lib
 except:
     from . import ciceron_lib
+
+try:
+    from ciceron_lib import login_required
+except:
+    from .ciceron_lib import login_required
 
 
 class UserControl(object):
@@ -62,29 +66,35 @@ class UserControl(object):
         user_id = ciceron_lib.get_new_id(self.conn, "D_USERS")
     
         print("    New user id: {}".format(user_id) )
-        cursor.execute("""
-            INSERT INTO CICERON.D_USERS
-            VALUES (
-              %s,%s,%s,%s,%s,
-              %s,%s,%s,%s,%s,
-              %s,%s,%s,%s,%s,
-              %s,%s,%s,%s,CURRENT_TIMESTAMP
-            )""",
-                (
-              user_id, email, name, mother_language_id, False,
-              None, None, 0, 0, 0,
-              0, 0, 0, None, "nothing",
-              0, nationality_id, residence_id, 0.7)
-            )
+        try:
+            cursor.execute("""
+                INSERT INTO CICERON.D_USERS
+                VALUES (
+                  %s,%s,%s,%s,%s,
+                  %s,%s,%s,%s,%s,
+                  %s,%s,%s,%s,%s,
+                  %s,%s,%s,%s,CURRENT_TIMESTAMP
+                )""",
+                    (
+                  user_id, email, name, mother_language_id, False,
+                  None, None, 0, 0, 0,
+                  0, 0, 0, None, "nothing",
+                  0, nationality_id, residence_id, 0.7)
+                )
     
-        cursor.execute("INSERT INTO CICERON.PASSWORDS VALUES (%s,%s)",
-            (user_id, hashed_password))
-        # 번역가의 매출
-        cursor.execute("INSERT INTO CICERON.REVENUE VALUES (%s,%s)",
-            (user_id, 0))
-        # 의뢰인의 소지 포인트
-        cursor.execute("INSERT INTO CICERON.RETURN_POINT VALUES (%s,%s)",
-            (user_id, 0))
+            cursor.execute("INSERT INTO CICERON.PASSWORDS VALUES (%s,%s)",
+                (user_id, hashed_password, ))
+            # 번역가의 매출
+            cursor.execute("INSERT INTO CICERON.REVENUE VALUES (%s,%s)",
+                (user_id, 0, ))
+            # 의뢰인의 소지 포인트
+            cursor.execute("INSERT INTO CICERON.RETURN_POINT VALUES (%s,%s)",
+                (user_id, 0, ))
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return 400
     
         #if 'facebook' in external_service_provider:
         #    new_facebook_id = get_new_id(conn, "D_FACEBOOK_USERS")
@@ -92,6 +102,217 @@ class UserControl(object):
         #            (new_facebook_id, email, user_id))
 
         return 200
+
+    def duplicateIdChecker(self, email):
+        cursor = self.conn.cursor()
+        cursor.execute("select id from CICERON.D_USERS where email = %s", (email, ))
+        check_data = cursor.fetchall()
+        if len(check_data) == 0:
+            return True
+        else:
+            return False
+
+    def createRecoveryCode(self, email):
+        cursor = self.conn.cursor()
+        user_id = ciceron_lib.get_user_id(self.conn, email)
+        if user_id == -1:
+            return 400, None
+
+        cursor.execute("SELECT name FROM CICERON.D_USERS WHERE id = %s ", (user_id, ))
+        user_name = cursor.fetchall()[0][0]
+
+        recovery_code = ciceron_lib.random_string_gen(size=12)
+        hashed_code = ciceron_lib.get_hashed_password(recovery_code)
+        query_insert_emergency="""
+            WITH "RECOV_UPDATE" AS (
+                UPDATE CICERON.EMERGENCY_CODE SET code = %s
+                    WHERE user_id = %s RETURNING *
+            )
+            INSERT INTO CICERON.EMERGENCY_CODE (user_id, code)
+            SELECT %s, %s WHERE NOT EXISTS (SELECT * FROM "RECOV_UPDATE")
+            """
+
+        try:
+            cursor.execute(query_insert_emergency, (hashed_code, user_id, user_id, hashed_code, ))
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False, None
+
+        return True, recovery_code
+
+    def sendRecoveryCode(self, email, recovery_code):
+        user_id = ciceron_lib.get_user_id(self.conn, email)
+        user_name = ciceron_lib.get_user_name(self.conn, user_id)
+        subject = "Here is your temporary password"
+        message = None
+        with open('templates/password_recovery_mail.html', 'r') as f:
+            message = f.read().format(
+                          user=user_name
+                        , password=recovery_code
+                        , page=ciceron_lib.HOST
+                        , host=ciceron_lib.HOST + ':5000'
+                        )
+
+        try:
+            ciceron_lib.send_mail(email, subject, message)
+        except:
+            traceback.print_exc()
+            return False
+
+        return True
+
+    def passwordUpdater(self, user_id, rs, hashed_old_password, hashed_new_password):
+        cursor = self.conn.cursor()
+        if len(rs) > 1:
+            # Status code 500 (ERROR)
+            # Description: Same e-mail address tried to be inserted into DB
+            return 501, 'Constraint violation error!'
+
+        elif str(hashed_new_password) == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+            return 405, 'Need password'
+
+        elif len(rs) == 1 and str(rs[0][0]) == hashed_old_password:
+            try:
+                cursor.execute("UPDATE CICERON.PASSWORDS SET hashed_pass = %s WHERE user_id = %s ", (hashed_new_password, user_id))
+                return 200, 'Password successfully changed!'
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return 502, "DB Error"
+
+        else:
+            return 403, 'Security code incorrect!'
+
+    def recoverPassword(self, email, hashed_code, hashed_new_password):
+        cursor = self.conn.cursor()
+        user_id = ciceron_lib.get_user_id(self.conn, email)
+
+        # Get hashed_password using user_id for comparing
+        cursor.execute("SELECT code FROM CICERON.EMERGENCY_CODE where user_id = %s ", (user_id, ))
+        rs = cursor.fetchall()
+        resp_code, message = self.passwordUpdater(user_id, rs, hashed_code, hashed_new_password)
+        if resp_code == 200:
+            cursor.execute("UPDATE CICERON.EMERGENCY_CODE SET code = null WHERE user_id = %s ", (user_id, ))
+            self.conn.commit()
+            return resp_code, message
+
+        else:
+            self.conn.rollback()
+            return resp_code, message
+
+    def changePassword(self, email, hashed_old_password, hashed_new_password):
+        cursor = self.conn.cursor()
+        user_id = ciceron_lib.get_user_id(self.conn, email)
+        cursor.execute("SELECT hashed_pass FROM CICERON.PASSWORDS where user_id = %s ", (user_id, ))
+        rs = cursor.fetchall()
+        resp_code, message = self.passwordUpdater(user_id, rs, hashed_old_password, hashed_new_password)
+        if resp_code == 200:
+            self.conn.commit()
+            return resp_code, message
+
+        else:
+            self.conn.rollback()
+            return resp_code, message
+
+    def profile(self, email, rate=1, is_my_profile=False):
+        cursor = self.conn.cursor()
+        query_userinfo = """
+            SELECT  
+                id, email, name, mother_language_id, is_translator,
+                other_language_list_id, profile_pic_path,
+                numOfRequestPending, numOfRequestOngoing, numOfRequestCompleted,
+                numOfTranslationPending, numOfTranslationOngoing, numOfTranslationCompleted,
+                badgeList_id, profile_text, trans_request_state, nationality, residence
+            FROM CICERON.D_USERS WHERE id = %s
+            """
+
+        # 프로필 주 정보 가져오기
+        user_id = ciceron_lib.get_user_id(self.conn, email)
+        cursor.execute(query_userinfo, (user_id, ))
+        columns = [ desc[0] for desc in cursor.description ]
+        userinfo = cursor.fetchall()
+        profile_ret = ciceron_lib.dbToDict(columns, userinfo)[0]
+
+        # 각종 부가정보 불러오기
+        # 1) 번역 가능 언어
+        cursor.execute("SELECT language_id FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s",
+            (user_id, ))
+        other_language_list = ",".join( [ str(item[0]) for item in cursor.fetchall() ] )
+        cursor.execute("SELECT badge_id FROM CICERON.D_AWARDED_BADGES WHERE user_id = %s",
+            (user_id, ))
+        badgeList = (',').join([ str(item[0]) for item in cursor.fetchall() ])
+
+        # 2) 키워드
+        cursor.execute("SELECT key.text FROM CICERON.D_USER_KEYWORDS ids JOIN CICERON.D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = %s", (user_id, ))
+        keywords = (',').join([ str(item[0]) for item in cursor.fetchall() ])
+
+        if profile_ret['profile_pic_path'] == None:
+            profile_ret['profile_pic_path'] = 'img/anon.jpg'
+        profile_ret['translatableLang'] = other_language_list
+        profile_ret['badgeList'] = badgeList
+        profile_ret['is_translator'] = True if profile_ret['is_translator'] == 1 else False
+        profile_ret['keywords'] = keywords
+
+        if is_my_profile == True and profile_ret['is_translator'] == True:
+            # 번역가 계좌의 돈
+            cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s",  (user_id, ))
+            profile_ret['user_point'] = cursor.fetchone()[0]
+        elif is_your_profile == True and profile['is_translator'] == False:
+            # 사용자 미환급금
+            cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s",  (user_id, ))
+            profile_ret['user_point'] = cursor.fetchone()[0]
+        else:
+            profile_ret['user_point'] = -65535
+
+        return 200, profile_ret
+
+    def changeProfileInfo(self
+            , email
+            , profile_text=None
+            , profile_pic=None):
+
+        cursor = self.conn.cursor()
+        pic_path = None
+
+        # Get user number
+        user_id = ciceron_lib.get_user_id(g.db, email)
+
+        # Profile text update
+        if profile_text != None:
+            try:
+                cursor.execute("UPDATE CICERON.D_USERS SET profile_text = %s WHERE id = %s ", (profile_text, user_id))
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return False
+
+        # Profile photo update
+        filename = ""
+        path = ""
+        if profile_pic and ciceron_lib.pic_allowed_file(profile_pic.filename):
+            extension = profile_pic.filename.split('.')[-1]
+            filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
+            pic_path = os.path.join("profile_pic", str(user_id), filename)
+
+            try:
+                cursor.execute("UPDATE CICERON.D_USERS SET profile_pic_path = %s WHERE id = %s ", (pic_path, user_id))
+                profile_pic_bin = profile_pic.read()
+                query_insert = """
+                    WITH "UPDATE_PROFILE_PIC" AS (
+                        UPDATE CICERON.F_USER_PROFILE_PIC SET filename = %s, bin = %s
+                            WHERE user_id = %s RETURNING *
+                    )
+                    INSERT INTO CICERON.F_USER_PROFILE_PIC (user_id, filename, bin)
+                    SELECT %s, %s, %s WHERE NOT EXISTS (SELECT * FROM "UPDATE_PROFILE_PIC")
+                    """
+                cursor.execute(query_insert, (filename, bytearray(profile_pic_bin), user_id, user_id, filename, bytearray(profile_pic_bin)))
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return False
+
+        return True
 
 
 class UserControlAPI(object):
@@ -106,11 +327,15 @@ class UserControlAPI(object):
             self.app.add_url_rule('{}'.format(endpoint), view_func=self.loginCheck, methods=["GET"])
             self.app.add_url_rule('{}/login'.format(endpoint), view_func=self.login, methods=["GET", "POST"])
             self.app.add_url_rule('{}/logout'.format(endpoint), view_func=self.logout, methods=["GET"])
+            self.app.add_url_rule('{}/idCheck'.format(endpoint), view_func=self.duplicateIdChecker, methods=["POST"])
+            self.app.add_url_rule('{}/user/create_recovery_code'.format(endpoint), view_func=self.createRecoveryCode, methods=["POST"])
+            self.app.add_url_rule('{}/user/recover_password'.format(endpoint), view_func=self.recoverPassword, methods=["POST"])
+            self.app.add_url_rule('{}/user/change_password'.format(endpoint), view_func=self.changePassword, methods=["POST"])
+            self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profile, methods=["GET", "POST"])
 
     def loginCheck(self):
         """
         해당 API
-          #. GET /api
           #. GET /api/v2
 
         해당 세션의 상태를 보여준다.
@@ -159,11 +384,9 @@ class UserControlAPI(object):
         """
         해당 API
           #. 토큰 따기
-            #. GET /api/login
             #. GET /api/v2/login
 
           #. 로그인하기
-            #. POST /api/login
             #. POST /api/v2/login
 
         로그인 로직
@@ -282,7 +505,6 @@ class UserControlAPI(object):
     def signUp(self):
         """
         회원가입 함수
-          #. POST /api/signup
           #. POST /api/v2/signup
 
         **Parameters**
@@ -305,6 +527,8 @@ class UserControlAPI(object):
           **412**: 중복가입
 
           **417**: 올바른 이메일 형식이 아님
+
+          **420**: 어딘가의 이상
         """
         userControlObj = UserControl(g.db)
 
@@ -322,7 +546,242 @@ class UserControlAPI(object):
         nationality_id = int(parameters.get('nationality_id')) if parameters.get('nationality_id') != None else None
         residence_id = int(parameters.get('residence_id')) if parameters.get('residence_id') != None else None
 
-        resp_code = userControlObj.signUp
+        resp_code = userControlObj.signUp(email, hashed_password, name, mother_language_id, nationality_id=nationality_id, residence_id=residence_id)
+
+        if resp_code == 200:
+            return make_response(json.jsonify(
+                email=email
+              , message="Successfully signed up!"
+              ), resp_code)
+
+        elif resp_code == 412:
+            return make_response(json.jsonify(
+                message="Duplicate ID"
+                ), resp_code)
+        elif resp_code == 417:
+            return make_response(json.jsonify(
+                message="ID is not e-mail form"
+                ), resp_code)
+        elif resp_code == 420:
+            return make_response(json.jsonify(
+                message="Something wrong"
+                ), resp_code)
+
+    def duplicateIdChecker(self):
+        """
+        중복 ID check
+          #. POST /api/v2/idCheck
+
+        **Parameters**
+          #. "email": String email
+
+        **Response**
+          **200**
+            중복 ID 없음. 사용가능
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "email": "blahblah@ciceron.me", // 테스트했던 유저 메일
+               }
+
+          **417**
+            해당 입력 email은 중복 ID
+
+        """
+        userControlObj = UserControl(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        email = parameters['email']
+        is_unique = userControlObj.duplicateIdChecker(email)
+        if is_unique == True:
+            return make_response(json.jsonify(
+                email=email
+              , message="You may use the ID"
+              ), 200)
+        else:
+            return make_response(json.jsonify(
+                message="Duplicated ID"
+                ), 417)
+
+    def createRecoveryCode(self):
+        """
+        비밀번호 복구 코드
+          #. POST /api/v2/user/create_recovery_code
+
+        **Parameters**
+          #. "email": String email
+
+        **Response**
+          **200**: 복구 메일 발송 성공
+          **405**: 복구 코드 생성 에러
+          **406**: 메일 시스템 에러
+
+        """
+        userControlObj = UserControl(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        email = parameters['email']
+
+        try:
+            is_produced, recovery_code = userControlObj.createRecoveryCode(email)
+            is_mail_sent = userControlObj.sendRecoveryCode(email, recovery_code)
+        except:
+            traceback.print_exc()
+
+        if is_produced == False:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Recovery code generation error"
+                ), 405)
+        elif is_mail_sent == False:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Mail system error"
+                ), 406)
+        else:
+            g.db.commit()
+            return make_response(json.jsonify(
+                message="Recovery code is generated and sent to your mail"
+                ), 200)
+
+    def recoverPassword(self):
+        """
+        비밀번호 복구하기
+          #. POST /api/v2/user/recover_password
+
+        **Parameters**
+          #. "email": String email
+          #. "code": sha256(recovery_code)
+          #. "new_password": sha256(new_password)
+
+        **Response**
+          **200**: 복구 성공
+          **405**: 패스워드 필드 빈칸
+          **403**: 보안코드 불일치
+          **502**: DB 에러
+
+        """
+        userControlObj = UserControl(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        email = parameters['email']
+        hashed_code = parameters['code']
+        hashed_new_password = parameters['new_password']
+        resp_code, message = userControlObj.recoverPassword(email, hashed_code, hashed_new_password)
+
+        if resp_code == 200:
+            g.db.commit()
+            return make_response(json.jsonify(
+                message=message), resp_code)
+        else:
+            return make_response(json.jsonify(
+                message=message), resp_code)
+
+    @login_required
+    def changePassword(self):
+        """
+        비밀번호 변경
+          #. POST /api/v2/user/change_password
+
+        **Parameters**
+          #. "email": String email
+          #. "old_password": sha256(old_password)
+          #. "new_password": sha256(new_password)
+
+        **Response**
+          **200**: 변경 성공
+          **405**: 패스워드 필드 빈칸
+          **403**: 이전 패스워드 불일치
+          **502**: DB 에러
+
+        """
+        userControlObj = UserControl(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        email = session['useremail']
+        hashed_old_password = parameters['old_password']
+        hashed_new_password = parameters['new_password']
+        resp_code, message = userControlObj.changePassword(email, hashed_old_password, hashed_new_password)
+
+        if resp_code == 200:
+            g.db.commit()
+            return make_response(json.jsonify(
+                message=message), resp_code)
+        else:
+            return make_response(json.jsonify(
+                message=message), resp_code)
+
+    @login_required
+    def profile(self):
+        """
+        프로필 열람
+          #. GET /api/v2/user/profile
+
+        **Parameters**
+          #. user_email: (OPTIONAL) 조회하고픈 유저의 메일.
+            (DEFAULT: 로그인 한 본인의 이메일)
+         
+        **Response**
+          **200**
+            .. code-block:: json
+               :linenos:
+               {
+                 "id": 4, // Integer User Id
+                 "email": "admin@ciceron.me", // E-Mail
+                 "name": "Admin", // User Name
+                 "mother_language_id": 1, // User's mother language
+                 "is_translator": true, // Boolean, 번역가 여부
+                 "other_language_list_id": null, // 필요없음
+                 "profile_pic_path": "profile_pic/4/20160426033806110457.png", // 프로필사진 주소
+                 "numofrequestpending": 0, // 번역 대기중인 의뢰수
+                 "numofrequestongoing": 0, // 번역 진행중인 의뢰수
+                 "numofrequestcompleted": 0, // 의뢰 완료 건수
+                 "numoftranslationpending": 0, // (Useless) 번역 장바구니에 넣은 수
+                 "numoftranslationongoing": 5, // 진행중인 번역 작업물 수
+                 "numoftranslationcompleted": 7, // 번역 완료한 수
+                 "badgelist_id": null, // (Useless) String 형태의 뱃지 ID 리스트들. ','로 갈라 Array로 사용할 수 있다.
+                 "profile_text": "Admin of CICERON", // 프로필 글귀
+                 "trans_request_state": 2, // (Useless) 번역 권한 상태
+                 "nationality": null, // 국적
+                 "residence": null, // 거주지
+                 "translatableLang": "2", // 번역 가능한 언어
+                 "badgeList": "", // (Useless) 뱃지 리스느
+                 "keywords": "", // String 형태의 리스트. 자신을 표현할 수 있는 키워드 추가/수정/삽입
+                 "user_point": 0 // 번역가에겐 출금할 수 있는 돈, 의뢰인에게는 사이버머니
+               }
+
+        프로필 정보 수정
+          #. POST /api/v2/user/profile
+
+        **Parameters**
+          #. "profileText": (OPTIONAL) 수정하고픈 프로필 문구
+          #. "profilePic": (OPTIONAL) 수정하고픈 프로필 사진 바이너리
+
+        **Response**
+          #. **200**: OK
+          #. **405**: Fail
+
+        """
+        userControlObj = UserControl(g.db)
+        if request.method == "GET":
+            email = request.args.get('user_email', session['useremail'])
+            is_same = (email == session['useremail'])
+            resp_code, profile_ret = userControlObj.profile(email, is_my_profile=is_same)
+            return make_response(json.jsonify(**profile_ret), resp_code)
+
+        elif request.method == "POST":
+            parameters = ciceron_lib.parse_request(request)
+            profile_text = parameters.get('profileText', None)
+            profile_pic = request.files.get('profilePic', None)
+            is_updated = userControlObj.changeProfileInfo(session['useremail'], profile_text=profile_text, profile_pic=profile_pic)
+            if is_updated == True:
+                g.db.commit()
+                return make_response(json.jsonify(
+                    message="Updated Successfully"
+                    ), 200)
+
+            else:
+                g.db.rollback()
+                return make_response(json.jsonify(
+                    message="Something wrong"
+                    ), 405)
 
 
 if __name__ == "__main__":
