@@ -5,14 +5,52 @@ from flask_cors import CORS
 from flask_session import Session
 from flask_cache import Cache
 from flask_oauth import OAuth
+import psycopg2
 
-from .i18nHandler
-from .detourserverConnector 
-from .requestwarehouse import 
-from .groupRequest import
-from .requestResell import  
-from .ciceron_lib import *
-from .userControl import UserControlAPI
+try:
+    from i18nHandler import I18nHandler
+except:
+    from .i18nHandler import I18nHandler
+
+try:
+    from detourserverConnector import Connector
+except:
+    from .detourserverConnector import Connector
+
+try:
+    from ciceron_lib import *
+except:
+    from .ciceron_lib import *
+
+try:
+    from requestwarehouse import Warehousing
+except:
+    from .requestwarehouse import Warehousing
+
+try:
+    from groupRequest import GroupRequest
+except:
+    from .groupRequest import GroupRequest
+
+try:
+    from requestResell import RequestResell
+except:
+    from .requestResell import RequestResell
+
+try:
+    from payment import Payment
+except:
+    from .payment import Payment
+
+try:
+    from localizer import LocalizerAPI
+except:
+    from .localizer import LocalizerAPI
+
+try:
+    from userControl import UserControlAPI
+except:
+    from .userControl import UserControlAPI
 
 
 if os.environ.get('PURPOSE') == 'PROD':
@@ -33,23 +71,21 @@ SESSION_TYPE = 'redis'
 SESSION_COOKIE_NAME = "CiceronCookie"
 PERMANENT_SESSION_LIFETIME = timedelta(days=15)
 
-ALLOWED_EXTENSIONS_PIC = set(['jpg', 'jpeg', 'png', 'tiff'])
-ALLOWED_EXTENSIONS_DOC = set(['doc', 'hwp', 'docx', 'pdf', 'ppt', 'pptx', 'rtf'])
-ALLOWED_EXTENSIONS_WAV = set(['wav', 'mp3', 'aac', 'ogg', 'oga', 'flac', '3gp', 'm4a'])
-VERSION = "2015.11.15"
-
 # CELERY_BROKER_URL = 'redis://localhost'
 
 HOST = ""
 if os.environ.get('PURPOSE') == 'PROD':
     HOST = 'http://ciceron.me'
     SESSION_COOKIE_DOMAIN = ".ciceron.me"
+    SESSION_COOKIE_PATH = "/"
     
-else:
+elif os.environ.get('PURPOSE') == 'DEV':
     HOST = 'http://ciceron.xyz'
     SESSION_COOKIE_DOMAIN = ".ciceron.xyz"
+    SESSION_COOKIE_PATH = "/"
 
-SESSION_COOKIE_PATH = "/"
+else:
+    HOST = 'http://localhost'
 
 # APP setting
 app = Flask(__name__)
@@ -63,31 +99,38 @@ cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "tru
 # Flask-Session
 Session(app)
 
-# Flask-Cache
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+ENDPOINTS = ['/api/v2']
+LocalizerAPI(app, ENDPOINTS)
+UserControlAPI(app, ENDPOINTS)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 # celery.conf.update(app.config)
 
-# Flask-OAuth for facebook
-oauth = OAuth()
-facebook = oauth.remote_app('facebook',
-                            base_url='https://graph.facebook.com/',
-                            request_token_url=None,
-                            access_token_url='/oauth/access_token',
-                            authorize_url='https://www.facebook.com/dialog/oauth',
-                            consumer_key=FACEBOOK_APP_ID,
-                            consumer_secret=FACEBOOK_APP_SECRET,
-                            request_token_params={'scope': 'email'}
-                            )
 date_format = "%Y-%m-%d %H:%M:%S.%f"
 super_user = ["pjh0308@gmail.com", "admin@ciceron.me", "yysyhk@naver.com"]
 
+def connect_db():
+    """
+    DB connector 함수
+    """
+    return psycopg2.connect(app.config['DATABASE'])
 
+@app.before_request
+def before_request():
+    """
+    모든 API 실행 전 실행하는 부분. 여기서는 DB 연결.
+    """
+    g.db = connect_db()
 
-
-
+@app.teardown_request
+def teardown_request(exception):
+    """
+    모든 API 실행 후 실행하는 부분. 여기서는 DB 연결종료.
+    """
+    db = getattr(g, 'db', None)
+    if db is not None:
+        db.close()
 
 
 if __name__ == '__main__':
