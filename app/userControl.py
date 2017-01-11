@@ -467,8 +467,6 @@ class UserControlAPI(object):
     def logout(self):
         """
         로그아웃 함수
-          #. GET /api/logout
-          #. GET /api/v2/logout
 
         **Parameters**
           Nothing
@@ -505,7 +503,6 @@ class UserControlAPI(object):
     def signUp(self):
         """
         회원가입 함수
-          #. POST /api/v2/signup
 
         **Parameters**
           #. "email": String, 회원 E-mail
@@ -570,7 +567,6 @@ class UserControlAPI(object):
     def duplicateIdChecker(self):
         """
         중복 ID check
-          #. POST /api/v2/idCheck
 
         **Parameters**
           #. "email": String email
@@ -578,6 +574,7 @@ class UserControlAPI(object):
         **Response**
           **200**
             중복 ID 없음. 사용가능
+
             .. code-block:: json
                :linenos:
 
@@ -606,15 +603,14 @@ class UserControlAPI(object):
     def createRecoveryCode(self):
         """
         비밀번호 복구 코드
-          #. POST /api/v2/user/create_recovery_code
 
         **Parameters**
           #. "email": String email
 
         **Response**
-          **200**: 복구 메일 발송 성공
-          **405**: 복구 코드 생성 에러
-          **406**: 메일 시스템 에러
+          #. **200**: 복구 메일 발송 성공
+          #. **405**: 복구 코드 생성 에러
+          #. **406**: 메일 시스템 에러
 
         """
         userControlObj = UserControl(g.db)
@@ -646,7 +642,6 @@ class UserControlAPI(object):
     def recoverPassword(self):
         """
         비밀번호 복구하기
-          #. POST /api/v2/user/recover_password
 
         **Parameters**
           #. "email": String email
@@ -654,10 +649,10 @@ class UserControlAPI(object):
           #. "new_password": sha256(new_password)
 
         **Response**
-          **200**: 복구 성공
-          **405**: 패스워드 필드 빈칸
-          **403**: 보안코드 불일치
-          **502**: DB 에러
+          #. **200**: 복구 성공
+          #. **405**: 패스워드 필드 빈칸
+          #. **403**: 보안코드 불일치
+          #. **502**: DB 에러
 
         """
         userControlObj = UserControl(g.db)
@@ -679,7 +674,6 @@ class UserControlAPI(object):
     def changePassword(self):
         """
         비밀번호 변경
-          #. POST /api/v2/user/change_password
 
         **Parameters**
           #. "email": String email
@@ -687,10 +681,10 @@ class UserControlAPI(object):
           #. "new_password": sha256(new_password)
 
         **Response**
-          **200**: 변경 성공
-          **405**: 패스워드 필드 빈칸
-          **403**: 이전 패스워드 불일치
-          **502**: DB 에러
+          #. **200**: 변경 성공
+          #. **405**: 패스워드 필드 빈칸
+          #. **403**: 이전 패스워드 불일치
+          #. **502**: DB 에러
 
         """
         userControlObj = UserControl(g.db)
@@ -722,6 +716,7 @@ class UserControlAPI(object):
           **200**
             .. code-block:: json
                :linenos:
+
                {
                  "id": 4, // Integer User Id
                  "email": "admin@ciceron.me", // E-Mail
