@@ -462,6 +462,7 @@ CREATE TABLE CICERON.RETURN_POINT (
 
 CREATE TABLE CICERON.PAYMENT_INFO (
     id INT,
+    product VARCHAR(20),
     request_id INT,
     client_id INT,
     payed_via varchar(20),
