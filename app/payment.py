@@ -77,6 +77,7 @@ class Payment(object):
                     )
 
     def _markAsPaid(self, request_id, is_additional=False):
+        # To Be Depricated
         cursor = self.conn.cursor()
 
         if is_additional == False:
@@ -108,6 +109,21 @@ class Payment(object):
                  , amount
                  , )
                 )
+
+    def _organizePostprocessApiAddress(self, product, request_id):
+        endpoint = "api/v2/user/payment/postprocess"
+        #return endpoint.format(
+        #            product=product
+        #          , request_id=request_id
+        #       )
+        return endpoint
+
+    def _organizeMarkAsPaidApiAddress(self, product, request_id):
+        endpoint = "api/v2/{product}/request/{request_id}/markAsPaid"
+        return endpoint.format(
+                    product=product
+                  , request_id=request_id
+               )
 
     def commonPromotionCodeChecker(self, user_id, code):
         # return: (val1, val2, message)
@@ -232,13 +248,11 @@ class Payment(object):
             traceback.print_exc()
             return False, None
 
-    def alipayPayment(self, is_prod_server, request_id, user_email, amount
+    def alipayPayment(self, is_prod_server, request_id, user_email, amount, product
             , point_for_use=0
             , promo_type=''
             , promo_code=''
-            , is_additional=False
-            , is_groupRequest=False
-            , is_public=False):
+            ):
 
         host_name = ""
         if is_prod_server == False:
@@ -247,11 +261,14 @@ class Payment(object):
             host_name = "http://ciceron.me:5000"
         pay_by = "web"
 
-        postprocess_api = "%s/%s" % (host_name, 'api/user/requests/%d/payment/postprocess' % request_id)
+        postprocess_endpoint = self._organizePostprocessApiAddress(product, request_id)
+        postprocess_api = "{}/{}".format(host_name, postprocess_endpoint)
 
         order_no = self._orderNoGenerator()
         param_dict = {
                 'pay_via': 'alipay'
+              , 'product': product
+              , 'request_id': request_id
               , 'status': 'success'
               , 'user_id': user_email
               , 'pay_amt': amount
@@ -260,11 +277,8 @@ class Payment(object):
               , 'promo_type': promo_type
               , 'promo_code': promo_code
               , 'ciceron_order_no': order_no
-              , 'is_additional': 'false' if is_additional == False else 'true'
-              , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
-              , 'is_public': 'false' if is_public == False else 'true'
                 }
-        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.dictToUrlParam(postprocess_api, **param_dict)
 
         alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
         params = {
@@ -288,13 +302,10 @@ class Payment(object):
 
         return True, provided_link
 
-    def iamportPayment(self, is_prod_server, request_id, user_email, amount
+    def iamportPayment(self, is_prod_server, request_id, user_email, amount, product
             , point_for_use=0
             , promo_type=None
             , promo_code=None
-            , is_additional=False
-            , is_groupRequest=False
-            , is_public=False
             , **payload):
         """
         아임포트 No-ActiveX 결제 시스템이다.
@@ -333,9 +344,12 @@ class Payment(object):
             print(e.message)
             raise Exception
 
-        postprocess_api = "%s/%s" % (host_name, 'api/user/requests/%d/payment/postprocess' % request_id)
+        postprocess_endpoint = self._organizePostprocessApiAddress(product, request_id)
+        postprocess_api = "{}/{}".format(host_name, postprocess_endpoint)
         param_dict = {
                 'pay_via': 'iamport'
+              , 'product': product
+              , 'request_id': request_id
               , 'status': 'success'
               , 'user_id': user_email
               , 'pay_amt': amount
@@ -343,12 +357,9 @@ class Payment(object):
               , 'use_point': point_for_use
               , 'promo_type': promo_type
               , 'promo_code': promo_code
-              , 'is_additional': 'false' if is_additional == False else 'true'
-              , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
-              , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
-        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.dictToUrlParam(postprocess_api, **param_dict)
 
         if double_check == False:
             print("    Iamport checkout abnormaly works!")
@@ -359,10 +370,7 @@ class Payment(object):
     def paypalPayment(self, is_prod_server, request_id, user_email, amount
             , point_for_use=0
             , promo_type=''
-            , promo_code=''
-            , is_additional=False
-            , is_groupRequest=False
-            , is_public=False):
+            , promo_code=''):
         """
         페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
         결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.
@@ -390,9 +398,12 @@ class Payment(object):
         logging.basicConfig(level=logging.INFO)
         logging.basicConfig(level=logging.ERROR)
 
-        postprocess_api = "%s/%s" % (host_name, 'api/user/requests/%d/payment/postprocess' % request_id)
+        postprocess_endpoint = self._organizePostprocessApiAddress(product, request_id)
+        postprocess_api = "{}/{}".format(host_name, postprocess_endpoint)
         param_dict = {
                 'pay_via': 'paypal'
+              , 'product': product
+              , 'request_id': request_id
               , 'status': 'success'
               , 'user_id': user_email
               , 'pay_amt': amount
@@ -400,14 +411,11 @@ class Payment(object):
               , 'use_point': point_for_use
               , 'promo_type': promo_type
               , 'promo_code': promo_code
-              , 'is_additional': 'false' if is_additional == False else 'true'
-              , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
-              , 'is_public': 'false' if is_public == False else 'true'
                 }
-        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.dictToUrlParam(postprocess_api, **param_dict)
 
         param_dict['status'] = 'fail'
-        cancel_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
+        cancel_url = ciceron_lib.dictToUrlParam(postprocess_api, **param_dict)
 
         payment = paypalrestsdk.Payment({
           "intent": "sale",
@@ -436,13 +444,10 @@ class Payment(object):
         else:
             return False, None
 
-    def pointPayment(self, is_prod_server, request_id, user_email, amount
+    def pointPayment(self, is_prod_server, request_id, user_email, amount, product
             , point_for_use=0
             , promo_type=''
-            , promo_code=''
-            , is_additional=False
-            , is_groupRequest=False
-            , is_public=False):
+            , promo_code=''):
         """
         페이팔은 그냥 모든 정보를 URL에 박아서 페이팔에 넘겨주면 된다.
         결제는 페이팔에서 한 후 콜백으로 postprocessing을 불러오기때문에, 여기서는 페이팔로의 링크만 제공해주면 된다.
@@ -455,9 +460,12 @@ class Payment(object):
             host_name = "http://ciceron.me"
 
         order_no = self._orderNoGenerator()
-        postprocess_api = "%s/%s" % (host_name, 'api/user/requests/%d/payment/postprocess' % request_id)
+        postprocess_endpoint = self._organizePostprocessApiAddress(product, request_id)
+        postprocess_api = "{}/{}".format(host_name, postprocess_endpoint)
         param_dict = {
                 'pay_via': 'point'
+              , 'product': product
+              , 'request_id': request_id
               , 'status': 'success'
               , 'user_id': user_email
               , 'pay_amt': amount
@@ -465,12 +473,9 @@ class Payment(object):
               , 'use_point': point_for_use
               , 'promo_type': promo_type
               , 'promo_code': promo_code
-              , 'is_additional': 'false' if is_additional == False else 'true'
-              , 'is_groupRequest': 'false' if is_groupRequest == False else 'true'
-              , 'is_public': 'false' if is_public == False else 'true'
               , 'ciceron_order_id': order_no
                 }
-        return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
+        return_url = ciceron_lib.dictToUrlParam(postprocess_api, **param_dict)
 
         return True, return_url
 
@@ -479,14 +484,12 @@ class Payment(object):
             , request_id=None
             , pay_via=None
             , pay_by=None
+            , product=None
             , is_succeeded=None
             , amount=0
             , use_point=0
             , promo_type=None
             , promo_code=None
-            , is_additional=None
-            , is_groupRequest=None
-            , is_public=None
             , paymentId=None
             , PayerID=None
             , ciceron_order_id=None):
@@ -494,7 +497,7 @@ class Payment(object):
         user_id = ciceron_lib.get_user_id(self.conn, user_email)
 
         if is_succeeded == False:
-            return False
+            return False, None
 
         # Point deduction
         if use_point > 0:
@@ -524,6 +527,7 @@ class Payment(object):
 
         # Set to 'paid'
         self._markAsPaid(request_id, is_additional)
+        markAsPaid_api = self._organizePostprocessApiAddress(product, request_id)
 
         # Group request processing
         if is_groupRequest == 'true':
@@ -537,7 +541,7 @@ class Payment(object):
         # Insert payment info
         self._insertPaymentInfo(request_id, user_id, pay_via, payment_id, amount)
 
-        return True
+        return True, markAsPaid_api
 
     def refundByPoint(self, user_id, points):
         cursor = self.conn.cursor()

@@ -288,7 +288,7 @@ def ddosCheckAndWriteLog(conn):
 
     return is_OK
 
-def apiURLOrganizer(api_base, **kwargs):
+def dictToUrlParam(api_base, **kwargs):
     basic = api_base + '?'
     param = []
     for key, value in kwargs.items():

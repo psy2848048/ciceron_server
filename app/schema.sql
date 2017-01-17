@@ -969,12 +969,12 @@ CREATE TABLE CICERON.F_PRETRANSLATED (
     translator_id INT, -- D_USERS
     original_lang_id INT not null, -- D_LANGUAGES
     target_lang_id INT not null, -- D_LANGUAGES
-    status_id INT not null, -- 0: pending, 1: ongoing, 2: completed
     format_id INT, -- D_FORMATS
     subject_id INT, -- D_SUBJECTS
     registered_time TIMESTAMPTZ,
     points REAL,
     theme_text VARCHAR(100),
+    filename VARCHAR(100),
     description VARCHAR(2000),
     checksum VARCHAR(128),
     tone_id INT, -- D_TONES
@@ -991,6 +991,7 @@ CREATE TABLE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED (
     is_paid boolean,
     is_downloaded boolean,
     feedback_score INT,
+    purchase_time TIMESTAMPTZ,
 
     PRIMARY KEY (request_id, email),
     FOREIGN KEY (request_id) REFERENCES CICERON.F_PROMOTIONAL_TRANSLATIONS (doc_id)
