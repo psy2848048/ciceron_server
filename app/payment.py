@@ -122,7 +122,7 @@ class Payment(object):
         return endpoint
 
     def _organizeMarkAsPaidApiAddress(self, product, request_id):
-        endpoint = "api/v2/{product}/request/{request_id}/markAsPaid"
+        endpoint = "api/v2/user/{product}/request/{request_id}/markAsPaid"
         return endpoint.format(
                     product=product
                   , request_id=request_id
@@ -875,7 +875,7 @@ class PaymentAPI(object):
         프로모션 코드 유효성 체크. 이 API에서는 체크만 하고 적용은 결제 API에서 이루어짐.
 
         **Parameters**
-          **"promoCode"**: 프로모션 코드. 대소문자 가리지 않음.
+          #. **"promoCode"**: 프로모션 코드. 대소문자 가리지 않음.
 
         **Response**
           **200**
@@ -926,19 +926,19 @@ class PaymentAPI(object):
         결제 진행 API
 
         **Parameters**
-          **"payment_platform"**: 지불 플랫폼 ("alipay", "paypal", "iamport", "point")
-          **"product"**: 구매한 내부 플랫폼 이름 ("l10n", "pretranslation", "groupRequest", "f2finterpreter")
-          **"request_id"**: 각 플랫폼에서의 의뢰 번호
-          **"amount"**: 지불 금액 (단위: USD)
-          **"promo_type"**: 쿠폰 타입 ("indiv": 개인적용, "common": 마구 뿌린 프로모션)
-          **"point_for_use"**: 결제시 사용할 포인트. 사용한 만큼 결제금에서 차감
+          #. **"payment_platform"**: 지불 플랫폼 ("alipay", "paypal", "iamport", "point")
+          #. **"product"**: 구매한 내부 플랫폼 이름 ("l10n", "pretranslation", "groupRequest", "f2finterpreter")
+          #. **"request_id"**: 각 플랫폼에서의 의뢰 번호
+          #. **"amount"**: 지불 금액 (단위: USD)
+          #. **"promo_type"**: 쿠폰 타입 ("indiv": 개인적용, "common": 마구 뿌린 프로모션)
+          #. **"point_for_use"**: 결제시 사용할 포인트. 사용한 만큼 결제금에서 차감
 
-          **"card_number"**: 카드번호 (iamport에서만 필요,"xxxx-xxxx-xxxx-xxxx" or "xxxx-xxxx-xxxx-xxx"[AMEX] )
-          **"expiry"**: 유효기간 (iamport에서만 필요, "YYYY-MM")
-          **"birth"**: [개인] 생년월일 "YYMMDD", [사업자] 사업자등록번호 "xxxxxxxxxx" (iamport 전용)
-          **"pwd_2digit"**: 비밀번호 앞 2자리 (iamport 전용)
-          **"buyer_name"**: 구매자 이름 (iamport 전용, OPTIONAL)
-          **"buyer_email"**: 구매자 이메일 (iamport 전용, OPTIONAL)
+          #. **"card_number"**: 카드번호 (iamport에서만 필요,"xxxx-xxxx-xxxx-xxxx" or "xxxx-xxxx-xxxx-xxx"[AMEX] )
+          #. **"expiry"**: 유효기간 (iamport에서만 필요, "YYYY-MM")
+          #. **"birth"**: [개인] 생년월일 "YYMMDD", [사업자] 사업자등록번호 "xxxxxxxxxx" (iamport 전용)
+          #. **"pwd_2digit"**: 비밀번호 앞 2자리 (iamport 전용)
+          #. **"buyer_name"**: 구매자 이름 (iamport 전용, OPTIONAL)
+          #. **"buyer_email"**: 구매자 이메일 (iamport 전용, OPTIONAL)
 
         **Response**
           **200**

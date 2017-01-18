@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask
+from flask import Flask, g
 import os
 
 from flask_cors import CORS
@@ -72,6 +72,7 @@ Session(app)
 ENDPOINTS = ['/api/v2']
 LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
+PaymentAPI(app, ENDPOINTS)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])

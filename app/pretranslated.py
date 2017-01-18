@@ -3,10 +3,16 @@
 import psycopg2
 import io
 import traceback
+from flask import Flask, request, g, make_response, json, session, redirect, render_template
 try:
     from .ciceron_lib import *
 except:
     from ciceron_lib import *
+
+try:
+    from ciceron_lib import login_required, admin_required
+except:
+    from .ciceron_lib import login_required, admin_required
 
 class Pretranslated(object):
     def __init__(self, conn):
@@ -22,7 +28,7 @@ class Pretranslated(object):
         #  , subject_id
         #  , registered_time=CURRENTD_TIMESTAMP
         #  , points
-        #  , filename
+        #  , filename -> Catch from upload request
         #  , theme_text
         #  , description
         #  , checksum=[check_inside]
@@ -160,7 +166,7 @@ class Pretranslated(object):
             cursor.execute(query, (request_id, email, ))
         except:
             traceback.print_exc()
-            self.conn.cursor()
+            self.conn.rollback()
             return False
 
         return True
@@ -177,7 +183,7 @@ class Pretranslated(object):
             cursor.execute(query, (request_id, email, ))
         except:
             traceback.print_exc()
-            self.conn.cursor()
+            self.conn.rollback()
             return False
 
         return True
@@ -198,4 +204,150 @@ class Pretranslated(object):
             return False
 
         return True
+
+
+class PretranslatedAPI(object):
+    def __init__(self, app, endpoints):
+        self.app = app
+        self.endpoints = endpoints
+
+        self.add_api(self.app)
+
+    def add_api(self, app):
+        for endpoint in self.endpoints:
+            self.app.add_url_rule('{}/admin/pretranslated/uploadPretranslated'.format(endpoint), view_func=self.uploadPretranslation, methods=["POST"])
+            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/marAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/rate'.format(endpoint), view_func=self.pretranslatedRateResult, methods=["POST"])
+            self.app.add_url_rule('{}/user/pretranslated/upload'.format(endpoint), view_func=self.uploadPretranslationPage)
+
+    @admin_required
+    def uploadPretranslation(self):
+        """
+        미리 번역해놓은 결과물 업로드 API
+
+        **Parameters**
+          #. **"translator_email"**: 작업한 번역가 이메일
+          #. **"original_lang_id"**: 원 언어 ID
+          #. **"target_lang_id"**: 타겟 언어 ID
+          #. **"format_id"**: 포멧 ID
+          #. **"subject_id"**: 주제 ID
+          #. **"points"**: 판매할 가격. 0이면 프로모션
+          #. **"file"**: 업로드할 파일 파이너리
+          #. **"previewFile"**: 미리보기 파일 바이너리
+          #. **"theme_text"**: 제목
+          #. **"description"**: 번역물 설명
+          #. **"tone_id"**: 의뢰물의 대체적 톤 ID
+
+        **Response**
+          #. **200**: 게시 성공
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "request_id": 1 // Request ID
+               }
+
+           #. **410**: 게시 실패 
+
+        """
+        pretranslatedObj = PretranstedAPI(g.db)
+        parameters = ciceron_lib.parse_request(request)
+
+        fileObj = request.files['file']
+        filename = fileObj.filename
+        file_binary = filePbj.read()
+
+        previewFileObj = request.files['previewFile']
+        preview_file_binary = previewFileObj.read()
+
+        request_dict = {
+                "translator_id": ciceron_lib.get_user_id(g.db, parameters['translator_email'])
+              , "original_lang_id": parameters['original_lang_id']
+              , "target_lang_id": parameters['target_lang_id']
+              , "format_id": parameters['format_id']
+              , "subject_id": parameters['subject_id']
+              , "points": float(parameters['points'])
+              , "filename": filename
+              , "theme_text": parameters['theme_text']
+              , "description": parameters['description']
+              , "tone_id": parameters['tone_id']
+              , "file_binary": file_binary
+              , "preview_binary": preview_file_binary
+                }
+        is_uploaded, request_id = pretranslatedObj.uploadPretranslation(**request_dict)
+        if is_uploaded == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+                request_id=request_id
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                request_id=request_id
+              , message="OK"), 410)
+
+    @login_required
+    def pretranslatedMarkAsPaid(self, request_id):
+        """
+        유저 가격 지불 후 지불처리 하는 함수
+        
+        **Parameters**
+          #. **"request_id"**: Request ID. URL에 직접 삽입
+        
+        **Response**
+          #. **200**: OK
+          #. **405**: Fail
+
+        """
+        pretranslatedObj = PretranstedAPI(g.db)
+        email = session['useremail']
+
+        is_marked = pretranslatedObj.markAsPaid(request_id, email)
+
+        if is_marked == True:
+            g.db.commit()
+            return redirect('/pretranslated/stoa', 302)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Fail"),
+                405)
+
+    @admin_required
+    def uploadPretranslationPage(self):
+        return render_template('uploadPretranslated.html')
+
+    @login_required
+    def pretranslatedRateResult(self, request_id):
+        """
+        유저 가격 지불 후 지불처리 하는 함수
+        
+        **Parameters**
+          #. **"score"**: 1-5점까지의 피드백 점수
+        
+        **Response**
+          #. **200**: OK
+          #. **405**: Fail
+
+        """
+        pretranslatedObj = PretranstedAPI(g.db)
+        email = session['useremail']
+        parameters = ciceron_lib.parse_request(request)
+        score = parameters['score']
+
+        is_rated = pretranslatedObj.rateTranslatedResult(request_id, email, score)
+
+        if is_rated == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+                message="OK"),
+                200)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Fail"),
+                405)
 
