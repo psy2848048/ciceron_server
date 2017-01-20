@@ -720,11 +720,11 @@ class I18nHandler(object):
         return result
 
     def _dictToIOs(self, iosDict):
-        output = io.BytesIO()
+        output = io.StringIO()
         for key, text in iosDict.items():
             output.write(("\"%s\" = \"%s\";\n" % (key, text)))
 
-        return ('Localizable.strings', output.getvalue())
+        return ('Localizable.strings', bytearray(output.getvalue().encode('utf-8')))
 
     def _dictToAndroid(self, andrDict):
         wrappeddict = OrderedDict()
@@ -739,7 +739,10 @@ class I18nHandler(object):
             wrappeddict['resources']['string'].append(row)
 
         xmlResult = xmltodict.unparse(wrappeddict, pretty=True)
-        return ('string.xml', xmlResult.encode('utf-8'))
+        output = io.StringIO()
+        output.write(xmlResult)
+        result = output.getvalue()
+        return ('string.xml', bytearray(result.encode('utf-8')))
 
     def _dictToUnity(self, language, unityDict):
         result = []
@@ -748,13 +751,13 @@ class I18nHandler(object):
         for key, text in unityDict.items():
             result.append([key, text])
 
-        output = io.BytesIO()
-        writer = csv.writer(output)
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
         writer.writerows(result)
 
         unityResult = output.getvalue()
 
-        return ('Localization.csv', unityResult)
+        return ('Localization.csv', bytearray(unityResult.encode('utf-8')))
 
     def _dictToXamarin(self, lang_code, xamDict):
         wrappeddict = OrderedDict()
@@ -770,19 +773,19 @@ class I18nHandler(object):
 
         for key, text in xamDict.items():
             row = {}
-            row['@name'] = key.decode('utf-8')
+            row['@name'] = key
             row['@xml:space'] = 'preserve'
-            row['value'] = text.decode('utf-8')
+            row['value'] = text
 
             wrappeddict['root']['data'].append(row)
 
-        xamResult = xmltodict.unparse(wrappeddict, pretty=True, encoding='utf-8').encode('utf-8')
+        xamResult = bytearray(xmltodict.unparse(wrappeddict, pretty=True, encoding='utf-8').encode('utf-8'))
         return ('AppResources.%s.resx' % lang_code, xamResult)
 
     def _dictToJson(self, lang_code, jsonDict):
         result = OrderedDict()
         result[lang_code] = jsonDict
-        return ('i18n.json', json.dumps(result, indent=4, encoding='utf-8', sort_keys=False))
+        return ('i18n.json', bytearray(json.dumps(result, indent=4, encoding='utf-8', sort_keys=False)))
 
     def _updateComment(self, cursor, variable_id, comment):
         query = """
