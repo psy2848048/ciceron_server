@@ -462,6 +462,7 @@ CREATE TABLE CICERON.RETURN_POINT (
 
 CREATE TABLE CICERON.PAYMENT_INFO (
     id INT,
+    product VARCHAR(20),
     request_id INT,
     client_id INT,
     payed_via varchar(20),
@@ -964,22 +965,36 @@ CREATE TABLE CICERON.INIT_TRANSLATION_TEMP (
 );
 CREATE SEQUENCE CICERON.SEQ_INIT_TRANSLATION_TEMP;
 
-CREATE TABLE CICERON.F_PROMOTIONAL_TRANSLATIONS (
-    doc_id INT,
+CREATE TABLE CICERON.F_PRETRANSLATED (
+    id INT,
+    translator_id INT, -- D_USERS
+    original_lang_id INT not null, -- D_LANGUAGES
+    target_lang_id INT not null, -- D_LANGUAGES
+    format_id INT, -- D_FORMATS
+    subject_id INT, -- D_SUBJECTS
+    registered_time TIMESTAMPTZ,
+    points REAL,
     theme_text VARCHAR(100),
+    filename VARCHAR(100),
+    description VARCHAR(2000),
     checksum VARCHAR(128),
+    tone_id INT, -- D_TONES
     file_binary BYTEA,
-
-    PRIMARY KEY (theme_text)
+    preview_binary BYTEA,
+    
+    PRIMARY KEY(id)
 );
-CREATE UNIQUE INDEX promotional_translation_doc_id ON CICERON.F_PROMOTIONAL_TRANSLATIONS (doc_id);
-CREATE SEQUENCE CICERON.SEQ_F_PROMOTIONAL_TRANSLATIONS;
+CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED;
 
-CREATE TABLE CICERON.F_DOWNLOAD_USERS (
-    doc_id INT,
+CREATE TABLE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED (
+    request_id INT,
     email VARCHAR(100),
+    is_paid boolean,
     is_downloaded boolean,
+    feedback_score INT,
+    purchase_time TIMESTAMPTZ,
 
-    PRIMARY KEY (doc_id, email),
-    FOREIGN KEY (doc_id) REFERENCES CICERON.F_PROMOTIONAL_TRANSLATIONS (doc_id)
+    PRIMARY KEY (request_id, email),
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_PROMOTIONAL_TRANSLATIONS (doc_id)
 );
+

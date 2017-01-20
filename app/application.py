@@ -62,6 +62,11 @@ try:
     from userControl import UserControlAPI
 except:
     from .userControl import UserControlAPI
+
+try:
+    from payment import PaymentAPI
+except:
+    from .payment import PaymentAPI
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
@@ -125,6 +130,7 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 ENDPOINTS = ['/api/v2']
 LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
+PaymentAPI(app, ENDPOINTS)
 
 # Flask-Session
 Session(app)
@@ -3599,6 +3605,7 @@ def pay_for_request_process(request_id):
 
     payload = {
           'user_email': request.args['user_id']
+        , 'product': request.args['product']
         , 'request_id': request_id
         , 'pay_via': request.args['pay_via']
         , 'pay_by': request.args['pay_by']
@@ -3607,9 +3614,6 @@ def pay_for_request_process(request_id):
         , 'use_point': float(request.args.get('use_point', 0))
         , 'promo_type': request.args.get('promo_type', None)
         , 'promo_code': request.args.get('promo_code', None)
-        , 'is_additional': parameter_to_bool(request.args.get('is_additional', False))
-        , 'is_groupRequest': parameter_to_bool(request.args.get('is_groupRequest', False))
-        , 'is_public': parameter_to_bool(request.args.get('is_public', False))
         , 'paymentId': request.args.get('paymentId', None)
         , 'PayerID': request.args.get('PayerID', None)
         , 'ciceron_order_id': request.args.get('ciceron_order_id', None)

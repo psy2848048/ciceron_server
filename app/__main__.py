@@ -1,46 +1,16 @@
 # -*- coding: utf-8 -*-
-from flask import Flask
+from flask import Flask, g
+import os
 
 from flask_cors import CORS
 from flask_session import Session
-from flask_cache import Cache
-from flask_oauth import OAuth
 import psycopg2
+from datetime import timedelta
 
 try:
-    from i18nHandler import I18nHandler
+    from payment import PaymentAPI
 except:
-    from .i18nHandler import I18nHandler
-
-try:
-    from detourserverConnector import Connector
-except:
-    from .detourserverConnector import Connector
-
-try:
-    from ciceron_lib import *
-except:
-    from .ciceron_lib import *
-
-try:
-    from requestwarehouse import Warehousing
-except:
-    from .requestwarehouse import Warehousing
-
-try:
-    from groupRequest import GroupRequest
-except:
-    from .groupRequest import GroupRequest
-
-try:
-    from requestResell import RequestResell
-except:
-    from .requestResell import RequestResell
-
-try:
-    from payment import Payment
-except:
-    from .payment import Payment
+    from .payment import PaymentAPI
 
 try:
     from localizer import LocalizerAPI
@@ -102,6 +72,7 @@ Session(app)
 ENDPOINTS = ['/api/v2']
 LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
+PaymentAPI(app, ENDPOINTS)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])

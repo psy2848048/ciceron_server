@@ -1,0 +1,99 @@
+<!doctype html>
+<div class=page>
+  <h1>Upload pretranslation result</h1>
+    <form action="{{ url_for('uploadPretranslation') }}" method=post class=add-entry ENCTYPE="multipart/form-data">
+      <dl>
+        <dt>Translator Email:
+        <dd><input type=text size=30 name=translator_email>
+        <dt>Original language:
+        <dd>
+          <select name=original_lang_id>
+                <option value="1">Korean</option>
+                <option value="2">English(USA)</option>
+                <option value="3">English(GB)</option>
+                <option value="4">Chinese(Mandarin)</option>
+                <option value="5">Chinese(Cantonese)</option>
+                <option value="6">Thai</option>
+                <option value="7">Chinese(Taiwan)</option>
+                <option value="8">Japanese</option>
+                <option value="9">Spanish</option>
+                <option value="10">Portuguese</option>
+                <option value="11">Vietnamese</option>
+                <option value="12">German</option>
+                <option value="13">French</option>
+          </select>
+        <dt>Target language
+        <dd>
+          <select name=target_lang_id>
+                <option value="1">Korean</option>
+                <option value="2">English(USA)</option>
+                <option value="3">English(GB)</option>
+                <option value="4">Chinese(Mandarin)</option>
+                <option value="5">Chinese(Cantonese)</option>
+                <option value="6">Thai</option>
+                <option value="7">Chinese(Taiwan)</option>
+                <option value="8">Japanese</option>
+                <option value="9">Spanish</option>
+                <option value="10">Portuguese</option>
+                <option value="11">Vietnamese</option>
+                <option value="12">German</option>
+                <option value="13">French</option>
+          </select>
+        <dt>Format
+        <dd>
+          <select name=format_id>
+                <option value="0">Email</option>
+                <option value="1">Paper mail</option>
+                <option value="2">Essay</option>
+                <option value="3">Ad</option>
+                <option value="4">Invitation</option>
+                <option value="5">Greeting</option>
+                <option value="6">Publication</option>
+                <option value="7">Script</option>
+                <option value="8">Research</option>
+                <option value="9">Report</option>
+                <option value="10">Menu</option>
+                <option value="11">Application</option>
+                <option value="12">Manual</option>
+                <option value="13">SNS</option>
+                <option value="14">ETC</option>
+          </select>
+        <dt>Subject
+        <dd>
+          <select name=subject_id>
+                <option value="0">Art</option>
+                <option value="1">Sports</option>
+                <option value="2">Science</option>
+                <option value="3">Health</option>
+                <option value="4">Economy</option>
+                <option value="5">Music</option>
+                <option value="6">Literature</option>
+                <option value="7">Politics</option>
+                <option value="8">Business</option>
+                <option value="9">Religion</option>
+                <option value="10">Shopping</option>
+                <option value="11">Fashion</option>
+          </select>
+        <dt>Point
+        <dd><input type=text name=point>
+        <dt>Theme:
+        <dd><input type=text name=theme_text>
+        <dt>Description
+        <dt><textarea type=text rows=10 cols=30 name=description></textarea>
+        <dt>Tone
+          <select name=tone_id>
+                <option value="0">Resentful</option>
+                <option value="1">Urgent</option>
+                <option value="2">Neutral</option>
+                <option value="3">Respective</option>
+                <option value="4">Appealing</option>
+                <option value="5">Critical</option>
+                <option value="6">Apologitic</option>
+                <option value="7">Frank</option>
+                <option value="8">Emotional</option>
+                <option value="9">Grateful</option>
+          </select>
+        <dd><input type=submit value=UPLOAD>
+      </dl>
+    </form>
+</div>
