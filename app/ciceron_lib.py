@@ -580,8 +580,8 @@ def json_from_V_REQUESTS(conn, rs, purpose="newsfeed"):
             num_of_words = 0
             num_of_letters = 0
         else:
-            num_of_letters = len(text_for_counting.decode('utf-8').replace(' ', ''))
-            num_of_words = len(text_for_counting.decode('utf-8').split(' '))
+            num_of_letters = len(text_for_counting.replace(' ', ''))
+            num_of_words = len(text_for_counting.split(' '))
 
         main_text = text_for_counting
 
