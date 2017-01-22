@@ -67,6 +67,11 @@ try:
     from payment import PaymentAPI
 except:
     from .payment import PaymentAPI
+
+try:
+    from pretranslated import PretranslatedAPI
+except:
+    from .pretranslated import PretranslatedAPI
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
@@ -131,6 +136,7 @@ ENDPOINTS = ['/api/v2']
 LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
 PaymentAPI(app, ENDPOINTS)
+PretranslatedAPI(app, ENDPOINTS)
 
 # Flask-Session
 Session(app)

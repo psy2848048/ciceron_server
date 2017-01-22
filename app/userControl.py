@@ -331,7 +331,8 @@ class UserControlAPI(object):
             self.app.add_url_rule('{}/user/create_recovery_code'.format(endpoint), view_func=self.createRecoveryCode, methods=["POST"])
             self.app.add_url_rule('{}/user/recover_password'.format(endpoint), view_func=self.recoverPassword, methods=["POST"])
             self.app.add_url_rule('{}/user/change_password'.format(endpoint), view_func=self.changePassword, methods=["POST"])
-            self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profile, methods=["GET", "POST"])
+            self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileCheck, methods=["GET"])
+            self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileRevise, methods=["POST"])
 
     def loginCheck(self):
         """
@@ -703,10 +704,9 @@ class UserControlAPI(object):
                 message=message), resp_code)
 
     @login_required
-    def profile(self):
+    def profileCheck(self):
         """
         프로필 열람
-          #. GET /api/v2/user/profile
 
         **Parameters**
           #. user_email: (OPTIONAL) 조회하고픈 유저의 메일.
@@ -742,6 +742,16 @@ class UserControlAPI(object):
                  "user_point": 0 // 번역가에겐 출금할 수 있는 돈, 의뢰인에게는 사이버머니
                }
 
+        """
+        userControlObj = UserControl(g.db)
+        email = request.args.get('user_email', session['useremail'])
+        is_same = (email == session['useremail'])
+        resp_code, profile_ret = userControlObj.profile(email, is_my_profile=is_same)
+        return make_response(json.jsonify(**profile_ret), resp_code)
+
+    @login_required
+    def profileRevise(self):
+        """
         프로필 정보 수정
           #. POST /api/v2/user/profile
 
@@ -755,28 +765,21 @@ class UserControlAPI(object):
 
         """
         userControlObj = UserControl(g.db)
-        if request.method == "GET":
-            email = request.args.get('user_email', session['useremail'])
-            is_same = (email == session['useremail'])
-            resp_code, profile_ret = userControlObj.profile(email, is_my_profile=is_same)
-            return make_response(json.jsonify(**profile_ret), resp_code)
+        parameters = ciceron_lib.parse_request(request)
+        profile_text = parameters.get('profileText', None)
+        profile_pic = request.files.get('profilePic', None)
+        is_updated = userControlObj.changeProfileInfo(session['useremail'], profile_text=profile_text, profile_pic=profile_pic)
+        if is_updated == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+                message="Updated Successfully"
+                ), 200)
 
-        elif request.method == "POST":
-            parameters = ciceron_lib.parse_request(request)
-            profile_text = parameters.get('profileText', None)
-            profile_pic = request.files.get('profilePic', None)
-            is_updated = userControlObj.changeProfileInfo(session['useremail'], profile_text=profile_text, profile_pic=profile_pic)
-            if is_updated == True:
-                g.db.commit()
-                return make_response(json.jsonify(
-                    message="Updated Successfully"
-                    ), 200)
-
-            else:
-                g.db.rollback()
-                return make_response(json.jsonify(
-                    message="Something wrong"
-                    ), 405)
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="Something wrong"
+                ), 405)
 
 
 if __name__ == "__main__":

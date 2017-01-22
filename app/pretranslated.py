@@ -4,10 +4,11 @@ import psycopg2
 import io
 import traceback
 from flask import Flask, request, g, make_response, json, session, redirect, render_template
+from datetime import datetime
 try:
-    from .ciceron_lib import *
+    import ciceron_lib
 except:
-    from ciceron_lib import *
+    from . import ciceron_lib
 
 try:
     from ciceron_lib import login_required, admin_required
@@ -38,7 +39,8 @@ class Pretranslated(object):
 
         params = kwargs
         params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED")
-        params['registered_time'] = 'CURRENT_TIMESTAMP'
+        params['registered_time'] = datetime.utcnow()
+        print(params['registered_time'])
         params['checksum'] = ciceron_lib.calculateChecksum(kwargs['file_binary'])
 
         return params
@@ -67,6 +69,39 @@ class Pretranslated(object):
         else:
             return False
 
+    def pretranslatedList(self, page=1):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT 
+                id
+              , translator_id
+              , translator_email
+              , original_lang_id
+              , original_lang
+              , target_lang_id
+              , target_lang
+              , format_id
+              , format
+              , subject_id
+              , subject
+              , tone_id
+              , tone
+              , registered_time
+              , points
+              , theme_text
+              , filename
+              , description
+            FROM CICERON.V_PRETRANSLATED
+            ORDER BY registered_time
+            LIMIT 10
+            OFFSET 10 * {}
+        """
+        cursor.execute(query.format((page-1) * 10))
+        columns = [desc[0] for desc in cursor.description]
+        ret = cursor.fetchall()
+        pretranslated_list = ciceron_lib.dbToDict(columns, ret)
+        return pretranslated_list
+
     def uploadPretranslatedResult(self, **kwargs):
         cursor = self.conn.cursor()
         query_tmpl = """
@@ -75,16 +110,16 @@ class Pretranslated(object):
             VALUES
             ({prepared_statements})
         """
-        params = self,_organizeParameters(**kwargs)
+        params = self._organizeParameters(**kwargs)
         columns = ','.join( list( params.keys() ) )
-        prepared_statements = ','.join( ['%s' for _ in columns] )
+        prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
         query = query_tmpl.format(
                     columns=columns
                   , prepared_statements=prepared_statements
                   )
 
         try:
-            cursor.execute(query, list( kwargs.values() ))
+            cursor.execute(query, list( params.values() ) )
         except Exception:
             traceback.print_exc()
             self.conn.rollback()
@@ -102,7 +137,7 @@ class Pretranslated(object):
         """
         cursor.execute(query, (request_id, ))
         ret = cursor.fetchone()
-        if ret is None of len(ret) == 0:
+        if ret is None or len(ret) == 0:
             return False, None, None
 
         filename, binary = ret
@@ -118,7 +153,7 @@ class Pretranslated(object):
         """
         cursor.execute(query, (request_id, ))
         ret = cursor.fetchone()
-        if ret is None of len(ret) == 0:
+        if ret is None or len(ret) == 0:
             return False, None, None
 
         filename, binary = ret
@@ -219,6 +254,7 @@ class PretranslatedAPI(object):
             self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/marAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
             self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/rate'.format(endpoint), view_func=self.pretranslatedRateResult, methods=["POST"])
             self.app.add_url_rule('{}/user/pretranslated/upload'.format(endpoint), view_func=self.uploadPretranslationPage)
+            self.app.add_url_rule('{}/user/pretranslated/stoa'.format(endpoint), view_func=self.pretranslatedList)
 
     @admin_required
     def uploadPretranslation(self):
@@ -250,12 +286,12 @@ class PretranslatedAPI(object):
            #. **410**: 게시 실패 
 
         """
-        pretranslatedObj = PretranstedAPI(g.db)
+        pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
 
         fileObj = request.files['file']
         filename = fileObj.filename
-        file_binary = filePbj.read()
+        file_binary = fileObj.read()
 
         previewFileObj = request.files['previewFile']
         preview_file_binary = previewFileObj.read()
@@ -274,7 +310,7 @@ class PretranslatedAPI(object):
               , "file_binary": file_binary
               , "preview_binary": preview_file_binary
                 }
-        is_uploaded, request_id = pretranslatedObj.uploadPretranslation(**request_dict)
+        is_uploaded, request_id = pretranslatedObj.uploadPretranslatedResult(**request_dict)
         if is_uploaded == True:
             g.db.commit()
             return make_response(json.jsonify(
@@ -285,7 +321,7 @@ class PretranslatedAPI(object):
             g.db.rollback()
             return make_response(json.jsonify(
                 request_id=request_id
-              , message="OK"), 410)
+              , message="Fail"), 410)
 
     @login_required
     def pretranslatedMarkAsPaid(self, request_id):
@@ -300,7 +336,7 @@ class PretranslatedAPI(object):
           #. **405**: Fail
 
         """
-        pretranslatedObj = PretranstedAPI(g.db)
+        pretranslatedObj = Pretranslated(g.db)
         email = session['useremail']
 
         is_marked = pretranslatedObj.markAsPaid(request_id, email)
@@ -332,7 +368,7 @@ class PretranslatedAPI(object):
           #. **405**: Fail
 
         """
-        pretranslatedObj = PretranstedAPI(g.db)
+        pretranslatedObj = Pretranslated(g.db)
         email = session['useremail']
         parameters = ciceron_lib.parse_request(request)
         score = parameters['score']
@@ -350,4 +386,19 @@ class PretranslatedAPI(object):
             return make_response(json.jsonify(
                 message="Fail"),
                 405)
+
+    def pretranslatedList(self):
+        """
+        리스트
+
+        **Parameters**
+          #. **"page"**: 페이지 (OPTIONAL)
+
+        **Response**
+          
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        page = int(request.args.get('page', 1))
+        result = pretranslatedObj.pretranslatedList(page)
+        return make_response(json.jsonify(data=result), 200)
 

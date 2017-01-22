@@ -986,6 +986,41 @@ CREATE TABLE CICERON.F_PRETRANSLATED (
 );
 CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED;
 
+CREATE VIEW CICERON.V_PRETRANSLATED AS
+  SELECT
+    fact.id,
+    fact.translator_id translator_id,
+    user_translator.email translator_email , -- D_USERS
+
+    fact.original_lang_id original_lang_id,
+    original_lang.text original_lang,
+    fact.target_lang_id target_lang_id,
+    target_lang.text target_lang,
+
+    fact.format_id format_id,
+    format.text format,
+    fact.subject_id subject_id,
+    subject.text subject,
+    fact.tone_id tone_id,
+    tones.text tone,
+
+    fact.registered_time,
+    fact.points,
+    fact.theme_text,
+    fact.filename,
+    fact.description,
+    fact.checksum,
+    fact.file_binary,
+    fact.preview_binary
+  FROM CICERON.F_PRETRANSLATED fact
+  LEFT OUTER JOIN CICERON.D_USERS user_translator ON fact.translator_id = user_translator.id
+  LEFT OUTER JOIN CICERON.D_LANGUAGES original_lang ON fact.original_lang_id = original_lang.id
+  LEFT OUTER JOIN CICERON.D_LANGUAGES target_lang ON fact.target_lang_id = target_lang.id
+  LEFT OUTER JOIN CICERON.D_FORMATS format ON fact.format_id = format.id
+  LEFT OUTER JOIN CICERON.D_SUBJECTS subject ON fact.subject_id = subject.id
+  LEFT OUTER JOIN CICERON.D_TONES tones ON fact.tone_id = tones.id
+;
+
 CREATE TABLE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED (
     request_id INT,
     email VARCHAR(100),
