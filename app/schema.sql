@@ -976,6 +976,7 @@ CREATE TABLE CICERON.F_PRETRANSLATED (
     points REAL,
     theme_text VARCHAR(100),
     filename VARCHAR(100),
+    preview_filename VARCHAR(100),
     description VARCHAR(2000),
     checksum VARCHAR(128),
     tone_id INT, -- D_TONES
@@ -1008,6 +1009,7 @@ CREATE VIEW CICERON.V_PRETRANSLATED AS
     fact.points,
     fact.theme_text,
     fact.filename,
+    fact.preview_filename,
     fact.description,
     fact.checksum,
     fact.file_binary,
@@ -1030,6 +1032,6 @@ CREATE TABLE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED (
     purchase_time TIMESTAMPTZ,
 
     PRIMARY KEY (request_id, email),
-    FOREIGN KEY (request_id) REFERENCES CICERON.F_PROMOTIONAL_TRANSLATIONS (doc_id)
+    FOREIGN KEY (request_id) REFERENCES CICERON.F_PRETRANSLATED (id)
 );
 

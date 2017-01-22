@@ -1640,7 +1640,7 @@ def approve_negoPoint(conn, request_id, translator_id, user_id):
 def calculateChecksum(*args):
     checksum_obj = hashlib.md5()
     for line in args:
-        checksum_obj.update(line)
+        checksum_obj.update(line.encode('utf-8'))
     return checksum_obj.hexdigest()
 
 def dbToDict(columns, ret):
