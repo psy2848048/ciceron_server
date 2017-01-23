@@ -22,6 +22,10 @@ try:
 except:
     from .userControl import UserControlAPI
 
+try:
+    from pretranslated import PretranslatedAPI
+except:
+    from .pretranslated import PretranslatedAPI
 
 if os.environ.get('PURPOSE') == 'PROD':
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
@@ -73,6 +77,7 @@ ENDPOINTS = ['/api/v2']
 LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
 PaymentAPI(app, ENDPOINTS)
+PretranslatedAPI(app, ENDPOINTS)
 
 # Celery
 # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])

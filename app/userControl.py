@@ -314,6 +314,16 @@ class UserControl(object):
 
         return True
 
+    def profilePic(self, user_id):
+        cursor = g.db.cursor()
+        query_getPic = "SELECT bin FROM CICERON.F_USER_PROFILE_PIC WHERE user_id = %s"
+        cursor.execute(query_getPic, (user_id, ))
+        profile_pic = cursor.fetchone()
+        if profile_pic == None:
+            return None
+        else:
+            return io.BytesIO(profile_pic)
+
 
 class UserControlAPI(object):
     def __init__(self, app, endpoints):
@@ -333,6 +343,7 @@ class UserControlAPI(object):
             self.app.add_url_rule('{}/user/change_password'.format(endpoint), view_func=self.changePassword, methods=["POST"])
             self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileCheck, methods=["GET"])
             self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileRevise, methods=["POST"])
+            self.app.add_url_rule('{}/user/profile/<int:user_id>/profilePic/<fake_filename>'.format(endpoint), view_func=self.profilePic, methods=["GET"])
 
     def loginCheck(self):
         """
@@ -753,7 +764,6 @@ class UserControlAPI(object):
     def profileRevise(self):
         """
         프로필 정보 수정
-          #. POST /api/v2/user/profile
 
         **Parameters**
           #. "profileText": (OPTIONAL) 수정하고픈 프로필 문구
@@ -780,6 +790,27 @@ class UserControlAPI(object):
             return make_response(json.jsonify(
                 message="Something wrong"
                 ), 405)
+
+    @login_required
+    def profilePic(self, user_id, fake_filename):
+        """
+        프로필 사진 받기
+
+        **Parameters**
+          #. **"user_id"**: User ID (Integer), URL에 직접 삽입
+          #. **"fake_filename"**: 프로필 사진 이름
+
+        **Response**
+          **200**: 프로필 사진 전송
+
+          **404**: 등록된 사진 없음
+        """
+        userControlObj = UserControl(g.db)
+        profile_pic = userControlObj.profilePic(user_id)
+        if profile_pic is None:
+            return make_response(json.jsonify(message="No profile pic"), 404)
+        else:
+            return send_file(profile_pic, attachment_filename=fake_filename)
 
 
 if __name__ == "__main__":

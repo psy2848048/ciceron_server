@@ -27,6 +27,7 @@ GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_d_translator_completed_request_titl
 GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_d_users TO ciceron_web;
 GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_f_requests TO ciceron_web;
 GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_payment_info TO ciceron_web;
+GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_f_payment_info TO ciceron_web;
 GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_promotioncodes_common TO ciceron_web;
 GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_promotioncodes_user TO ciceron_web;
 GRANT SELECT, UPDATE ON SEQUENCE CICERON.seq_return_money_bank_account TO ciceron_web;
@@ -78,6 +79,7 @@ GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. f_notification TO ciceron
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. f_requests TO ciceron_web;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. passwords TO ciceron_web;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. payment_info TO ciceron_web;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. f_payment_info TO ciceron_web;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. promotioncodes_common TO ciceron_web;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. promotioncodes_user TO ciceron_web;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. return_money_bank_account TO ciceron_web;

@@ -445,6 +445,7 @@ CREATE TABLE CICERON.EMERGENCY_CODE (
 );
 
 CREATE TABLE CICERON.REVENUE (
+    -- 번역가 계좌
     id INT, -- D_USER
     amount REAL,
 
@@ -453,6 +454,7 @@ CREATE TABLE CICERON.REVENUE (
 );
 
 CREATE TABLE CICERON.RETURN_POINT (
+    -- 의뢰인 포인트&미환급금
     id INT,
     amount REAL,
 
@@ -460,28 +462,23 @@ CREATE TABLE CICERON.RETURN_POINT (
     FOREIGN KEY (id) REFERENCES CICERON.D_USERS (id)
 );
 
-CREATE TABLE CICERON.PAYMENT_INFO (
+CREATE TABLE CICERON.F_PAYMENT_INFO (
     id INT,
     product VARCHAR(20),
+    transaction_type VARCHAR(10),
     request_id INT,
-    client_id INT,
-    payed_via varchar(20),
-    order_no varchar(100),
-    pay_amount DECIMAL(10,2),
-    payed_time TIMESTAMPTZ,
-    translator_id INT,
-    is_payed_back BOOLEAN,
-    back_amount DECIMAL(10,2),
-    back_time TIMESTAMPTZ,
+    user_id INT,
+    payed_platform varchar(20),
+    order_no VARCHAR(100),
+    amount DECIMAL(10,2),
+    transaction_time TIMESTAMPTZ,
     
     PRIMARY KEY (id),
-    FOREIGN KEY (request_id) REFERENCES CICERON.F_REQUESTS (id),
-    FOREIGN KEY (client_id) REFERENCES CICERON.D_USERS (id),
-    FOREIGN KEY (translator_id) REFERENCES CICERON.D_USERS (id)
+    FOREIGN KEY (user_id) REFERENCES CICERON.D_USERS (id)
 );
-CREATE INDEX order_no ON CICERON.PAYMENT_INFO (order_no);
+CREATE INDEX order_no ON CICERON.F_PAYMENT_INFO (order_no);
 
-CREATE SEQUENCE CICERON.SEQ_PAYMENT_INFO;
+CREATE SEQUENCE CICERON.SEQ_F_PAYMENT_INFO;
 
 CREATE VIEW CICERON.V_REQUESTS as
   SELECT distinct

@@ -55,7 +55,7 @@ class Payment(object):
     
         for _ in range(1000):
             order_no = datetime.strftime(datetime.now(), "%Y%m%d") + ciceron_lib.random_string_gen(size=4)
-            cursor.execute("SELECT count(*) FROM CICERON.PAYMENT_INFO WHERE order_no = %s", (order_no, ))
+            cursor.execute("SELECT count(*) FROM CICERON.F_PAYMENT_INFO WHERE order_no = %s", (order_no, ))
             cnt = cursor.fetchone()[0]
     
             if cnt == 0:
@@ -95,12 +95,13 @@ class Payment(object):
     def _insertPaymentInfo(self, product, request_id, user_id, payment_platform, payment_id, amount):
         # Payment information update
         cursor = self.conn.cursor()
-        payment_info_id = ciceron_lib.get_new_id(self.conn, "PAYMENT_INFO")
+        payment_info_id = ciceron_lib.get_new_id(self.conn, "F_PAYMENT_INFO")
         query = """
-            INSERT INTO CICERON.PAYMENT_INFO
-                (id, product, request_id, client_id, payed_via, order_no, pay_amount, payed_time)
+            INSERT INTO CICERON.F_PAYMENT_INFO
+                (id, product, transaction_type, request_id, user_id, payed_platform, order_no, amount, transaction_time)
             VALUES
-                (%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)"""
+                (%s,%s,'income',%s,%s,
+                %s,%s,%s,CURRENT_TIMESTAMP)"""
 
         cursor.execute(query,
                 (  payment_info_id
