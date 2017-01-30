@@ -76,7 +76,7 @@ class Translator:
         if os.environ.get('PURPOSE') == 'PROD':
             DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
         else:
-            DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+            DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 
         conn = psycopg2.connect(DATABASE)
         cursor = conn.cursor()
