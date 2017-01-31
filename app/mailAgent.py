@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 import psycopg2
 from pushjack import GCMClient
-from . import ciceron_lib as lib
-from . import mail_template
+
+try:
+    from . import ciceron_lib as lib
+except:
+    import ciceron_lib as lib
+
+try:
+    from . import mail_template
+except:
+    import mail_template
+
 from multiprocessing import Process
 import argparse, os
 
