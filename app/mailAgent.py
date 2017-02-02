@@ -262,6 +262,9 @@ class MailAgent:
 
         for idx, item in enumerate(rs):
             user_id = item[0]
+            if user_id == None:
+                continue
+
             query_mother_lang = "SELECT mother_language_id FROM CICERON.D_USERS WHERE id = %s"
             cursor.execute(query_mother_lang, (user_id, ) )
             mother_lang_id = cursor.fetchall()[0][0]
