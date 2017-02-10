@@ -962,73 +962,169 @@ CREATE TABLE CICERON.INIT_TRANSLATION_TEMP (
 );
 CREATE SEQUENCE CICERON.SEQ_INIT_TRANSLATION_TEMP;
 
-CREATE TABLE CICERON.F_PRETRANSLATED (
-    id INT,
-    translator_id INT, -- D_USERS
-    original_lang_id INT not null, -- D_LANGUAGES
-    target_lang_id INT not null, -- D_LANGUAGES
-    format_id INT, -- D_FORMATS
-    subject_id INT, -- D_SUBJECTS
-    registered_time TIMESTAMPTZ,
-    points REAL,
-    theme_text VARCHAR(100),
-    filename VARCHAR(100),
-    preview_filename VARCHAR(100),
-    description VARCHAR(2000),
-    checksum VARCHAR(128),
-    tone_id INT, -- D_TONES
-    file_binary BYTEA,
-    preview_binary BYTEA,
-    
-    PRIMARY KEY(id)
+CREATE TABLE CICERON. F_PRETRANSLATED_PROJECT (
+    id int NOT NULL,
+    original_resource_id int,
+    original_lang_id int,
+    format_id int,
+    subject_id int,
+    author varchar(127),
+    register_timestamp timestamptz,
+    cover_photo_filename varchar(255),
+    cover_photo_binary bytea,
+
+    PRIMARY KEY (id)
 );
-CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED;
+CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED_PROJECT;
 
-CREATE VIEW CICERON.V_PRETRANSLATED AS
-  SELECT
-    fact.id,
-    fact.translator_id translator_id,
-    user_translator.email translator_email , -- D_USERS
+CREATE TABLE CICERON. F_PRETRANSLATED_RESOURCES (
+    id int NOT NULL,
+    project_id int,
+    target_language_id int,
+    theme varchar(255),
+    description varchar(2047),
+    tone_id int,
+    read_permission_level varchar(255),
+    price real,
+    register_timestamp timestamptz,
 
-    fact.original_lang_id original_lang_id,
-    original_lang.text original_lang,
-    fact.target_lang_id target_lang_id,
-    target_lang.text target_lang,
+    PRIMARY KEY (id)
+)
+;
+CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED_RESOURCES;
 
-    fact.format_id format_id,
-    format.text format,
-    fact.subject_id subject_id,
-    subject.text subject,
-    fact.tone_id tone_id,
-    tones.text tone,
+CREATE TABLE CICERON. F_PRETRANSLATED_RESULT_FILE (
+    id int NOT NULL,
+    project_id int,
+    resource_id int,
+    preview_permission int,
+    file_binary bytea,
 
-    fact.registered_time,
-    fact.points,
-    fact.theme_text,
-    fact.filename,
-    fact.preview_filename,
-    fact.description,
-    fact.checksum,
-    fact.file_binary,
-    fact.preview_binary
-  FROM CICERON.F_PRETRANSLATED fact
-  LEFT OUTER JOIN CICERON.D_USERS user_translator ON fact.translator_id = user_translator.id
-  LEFT OUTER JOIN CICERON.D_LANGUAGES original_lang ON fact.original_lang_id = original_lang.id
-  LEFT OUTER JOIN CICERON.D_LANGUAGES target_lang ON fact.target_lang_id = target_lang.id
-  LEFT OUTER JOIN CICERON.D_FORMATS format ON fact.format_id = format.id
-  LEFT OUTER JOIN CICERON.D_SUBJECTS subject ON fact.subject_id = subject.id
-  LEFT OUTER JOIN CICERON.D_TONES tones ON fact.tone_id = tones.id
+    PRIMARY KEY (id)
+)
+;
+CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED_RESULT_FILE;
+
+CREATE TABLE CICERON. F_PRETRANSLATED_DOWNLOADED_USER (
+    id int NOT NULL,
+    resource_id int,
+    is_user bool,
+    email varchar(255),
+    is_paid int,
+    is_sent bool,
+    token varchar(255),
+    is_downloaded bool,
+    feedback_score INT,
+
+    PRIMARY KEY (id)
+)
+;
+CREATE SEQUENCE CICERON.SEQ_F_PRETRANSLATED_DOWNLOADED_USER;
+
+CREATE TABLE CICERON. F_PRETRANSLATED_REQUESTER (
+    requester_id int NOT NULL,
+    resource_id int NOT NULL,
+    project_id int,
+
+    PRIMARY KEY (requester_id, resource_id)
+)
 ;
 
-CREATE TABLE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED (
-    request_id INT,
-    email VARCHAR(100),
-    is_paid boolean,
-    is_downloaded boolean,
-    feedback_score INT,
-    purchase_time TIMESTAMPTZ,
+CREATE TABLE CICERON. F_PRETRANSLATED_TRANSLATOR (
+    translator_id int NOT NULL,
+    resource_id int NOT NULL,
+    project_id int,
 
-    PRIMARY KEY (request_id, email),
-    FOREIGN KEY (request_id) REFERENCES CICERON.F_PRETRANSLATED (id)
-);
+    PRIMARY KEY (translator_id, resource_id)
+)
+;
 
+CREATE VIEW CICERON.V_PRETRANSLATED_PROJECT AS
+  SELECT
+    fact.id,
+    fact.original_resource_id,
+    fact.original_lang_id,
+    lang.text original_lang,
+    resources.target_language_id,
+    lang2.text target_language,
+    fact.format_id,
+    formats.text format,
+    fact.subject_id,
+    subjects.text subject,
+    fact.author,
+    fact.register_timestamp project_register_timestamp,
+    resources.theme original_theme,
+    resources.description,
+    resources.register_timestamp resource_register_timestamp
+  FROM CICERON. F_PRETRANSLATED_PROJECT fact
+  LEFT OUTER JOIN CICERON.D_LANGUAGES lang
+    ON fact.original_lang_id = lang.id
+  LEFT OUTER JOIN CICERON. F_PRETRANSLATED_RESOURCES resources
+    ON fact.original_resource_id = resources.id
+  LEFT OUTER JOIN CICERON.D_SUBJECTS subjects
+    ON fact.subject_id = subjects.id
+  LEFT OUTER JOIN CICERON.D_FORMATS formats
+    ON fact.format_id = formats.id
+  LEFT OUTER JOIN CICERON.D_LANGUAGES lang2
+    ON resources.target_language_id = lang2.id
+;
+
+CREATE VIEW CICERON.V_PRETRANSLATED_RESOURCES AS
+  SELECT
+    fact.id,
+    fact.project_id,
+    fact.target_language_id,
+    lang.text target_language,
+    fact.theme,
+    fact.description,
+    fact.tone_id,
+    fact.read_permission_level,
+    fact.price,
+    fact.register_timestamp
+  FROM CICERON. F_PRETRANSLATED_RESOURCES fact
+  LEFT OUTER JOIN CICERON.D_LANGUAGES lang
+    ON fact.target_language_id = lang.id
+;
+
+CREATE VIEW CICERON.V_PRETRANSLATED_MY_DOWNLOAD AS
+  SELECT
+    fact.*,
+    users.id user_id
+  FROM CICERON. F_PRETRANSLATED_DOWNLOADED_USER fact
+  LEFT OUTER JOIN CICERON.D_USERS users
+    ON fact.email = users.email
+;
+
+ALTER TABLE CICERON.F_PRETRANSLATED_RESOURCES
+    ADD CONSTRAINT fk_F_PRETRANSLATED_RESOURCES FOREIGN KEY (project_id) REFERENCES F_PRETRANSLATED_PROJECT (id)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE CICERON.F_PRETRANSLATED_TRANSLATOR
+    ADD CONSTRAINT fk_F_PRETRANSLATED_TRANSLATOR FOREIGN KEY (translator_id) REFERENCES D_USERS (id)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE CICERON.F_PRETRANSLATED_TRANSLATOR
+    ADD CONSTRAINT fk_F_PRETRANSLATED_TRANSLATOR_1 FOREIGN KEY (resource_id) REFERENCES F_PRETRANSLATED_RESOURCES (id)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE CICERON.F_PRETRANSLATED_RESULT_FILE
+    ADD CONSTRAINT fk_F_PRETRANSLATED_RESULT_FILE FOREIGN KEY (project_id) REFERENCES F_PRETRANSLATED_PROJECT (id)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE CICERON.F_PRETRANSLATED_RESULT_FILE
+    ADD CONSTRAINT fk_F_PRETRANSLATED_RESULT_FILE_1 FOREIGN KEY (resource_id) REFERENCES F_PRETRANSLATED_RESOURCES (id)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
+    ADD CONSTRAINT fk_F_PRETRANSLATED_DOWNLOADED_USER FOREIGN KEY (resource_id) REFERENCES F_PRETRANSLATED_RESOURCES (id)
+    ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE CICERON.F_PRETRANSLATED_REQUESTER
+    ADD CONSTRAINT fk_F_PRETRANSLATED_REQUESTER FOREIGN KEY (requester_id) REFERENCES D_USERS (id)
+    ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. F_PRETRANSLATED_PROJECT TO ciceron_web;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. F_PRETRANSLATED_RESOURCES TO ciceron_web;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. F_PRETRANSLATED_RESULT_FILE TO ciceron_web;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. F_PRETRANSLATED_DOWNLOADED_USER TO ciceron_web;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. F_PRETRANSLATED_REQUESTER TO ciceron_web;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE CICERON. F_PRETRANSLATED_TRANSLATOR TO ciceron_web;
+
+GRANT SELECT, UPDATE ON SEQUENCE CICERON.SEQ_F_PRETRANSLATED_PROJECT TO ciceron_web;
+GRANT SELECT, UPDATE ON SEQUENCE CICERON.SEQ_F_PRETRANSLATED_RESOURCES TO ciceron_web;
+GRANT SELECT, UPDATE ON SEQUENCE CICERON.SEQ_F_PRETRANSLATED_RESULT_FILE TO ciceron_web;
+GRANT SELECT, UPDATE ON SEQUENCE CICERON.SEQ_F_PRETRANSLATED_DOWNLOADED_USER TO ciceron_web;
