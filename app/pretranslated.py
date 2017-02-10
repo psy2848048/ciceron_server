@@ -51,7 +51,7 @@ class Pretranslated(object):
         #  , register_timestamp=CURRENT_TIMESTAMP
 
         params = kwargs
-        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_RESOURCE")
+        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_RESOURCES")
         params['registered_time'] = datetime.utcnow()
         print(params['registered_timestamp'])
 
@@ -135,7 +135,7 @@ class Pretranslated(object):
         query = """
             SELECT CASE 
                      WHEN is_paid = true THEN true
-                     WHEN is_paid = false AND (SELECT points FROM CICERON.F_PRETRANSLATED_RESOURCE WHERE id = %s) > 0 THEN false
+                     WHEN is_paid = false AND (SELECT points FROM CICERON.F_PRETRANSLATED_RESOURCES WHERE id = %s) > 0 THEN false
                      ELSE true END as is_paid
             FROM CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             WHERE resource_id = %s
@@ -166,27 +166,45 @@ class Pretranslated(object):
         if ret is None or len(ret) == 0:
             return False, None, None
 
-        return True
-            , '/pretranslated/project/{}/coverPhoto/{}'.format(project_id, ret[0])
-            , ret[1]
+        return True, ret[0], ret[1]
 
-    def provideFile(self, resource_id):
+    def provideFile(self, project_id, resource_id, file_id):
         cursor = self.conn.cursor()
         query = """
             SELECT
                 filename
               , file_binary
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
-            WHERE resource_id = %s
+            WHERE id = %s AND resource_id = %s AND project_id = %s
         """
-        cursor.execute(query, (resource_id, ))
+        cursor.execute(query, (file_id, resource_id, project_id, ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
             return False, None, None
 
-        return True
-            , '/pretranslated/project/{}/resources/{}'.format(resource_id, ret[0])
-            , ret[1]
+        return True, ret[0], ret[1]
+
+    def provideFileListOfResource(self, resource_id):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT
+                id
+              , project_id
+              , resource_id
+              , preview_permission
+            FROM CICERON.F_PRETRANSLATED_RESULT_FILE
+            WHERE resource_id = %s
+            ORDER BY id ASC
+        """
+        cursor.execute(query, (resource_id, ))
+        columns = [ desc[0] for desc in cursor.description ]
+        ret = cursor.fetchall()
+        file_list = ciceron_lib.dbToDict(columns, ret)
+        for item in file_list:
+            can_get, file_name, _ = self.provideFile(item['project_id'], item['resource_id'], item['id'])
+            item['file_url'] = '/pretranslated/project/{}/resources/{}/file/{}/{}'.format(item['project_id'], item['resource_id'], item['id'], file_name)
+
+        return file_list
 
     def provideRequesterList(self, project_id):
         cursor = self.conn.cursor()
@@ -286,8 +304,8 @@ class Pretranslated(object):
 
         project_list = ciceron_lib.dbToDict(columns, ret)
         for item in project_list:
-            can_get, url, _ = self.provideCoverPhoto(item['id'])
-            item['cover_photo_url'] = url
+            can_get, file_name, _ = self.provideCoverPhoto(item['id'])
+            item['cover_photo_url'] = '/pretranslated/project/{}/coverPhoto/{}'.format(item['id'], file_name)
 
         return pretranslated_list
 
@@ -312,15 +330,15 @@ class Pretranslated(object):
 
         return resource_list
 
-    def uploadPretranslatedResult(self, **kwargs):
+    def createProject(self, **kwargs):
         cursor = self.conn.cursor()
         query_tmpl = """
-            INSERT INTO CICERON.F_PRETRANSLATED
+            INSERT INTO CICERON.F_PRETRANSLATED_PROJECT
             ({columns})
             VALUES
             ({prepared_statements})
         """
-        params = self._organizeParameters(**kwargs)
+        params = self._organizeProjectParameters(**kwargs)
         columns = ','.join( list( params.keys() ) )
         prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
         query = query_tmpl.format(
@@ -335,48 +353,66 @@ class Pretranslated(object):
             self.conn.rollback()
             return False, None
 
-        return True, kwargs.get('id')
+        return True, params.get('id')
 
-    def provideBinary(self, request_id):
+    def createResource(self, **kwargs):
         cursor = self.conn.cursor()
-
-        query = """
-            SELECT filename, file_binary
-            FROM CICERON.F_PRETRANSLATED
-            WHERE id = %s
+        query_tmpl = """
+            INSERT INTO CICERON.F_PRETRANSLATED_RESOURCES
+            ({columns})
+            VALUES
+            ({prepared_statements})
         """
-        cursor.execute(query, (request_id, ))
-        ret = cursor.fetchone()
-        if ret is None or len(ret) == 0:
-            return False, None, None
+        params = self._organizeResourceParameters(**kwargs)
+        columns = ','.join( list( params.keys() ) )
+        prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
+        query = query_tmpl.format(
+                    columns=columns
+                  , prepared_statements=prepared_statements
+                  )
 
-        filename, binary = ret
-        return True, filename, io.BytesIO(binary)
+        try:
+            cursor.execute(query, list( params.values() ) )
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False, None
 
-    def providePreviewBinary(self, request_id):
+        return True, params.get('id')
+
+    def createFile(self, **kwargs):
         cursor = self.conn.cursor()
-
-        query = """
-            SELECT preview_filename, preview_binary
-            FROM CICERON.F_PRETRANSLATED
-            WHERE id = %s
+        query_tmpl = """
+            INSERT INTO CICERON.F_PRETRANSLATED_RESULT_FILE
+            ({columns})
+            VALUES
+            ({prepared_statements})
         """
-        cursor.execute(query, (request_id, ))
-        ret = cursor.fetchone()
-        if ret is None or len(ret) == 0:
-            return False, None, None
+        params = self._organizeUploadFileParameters(**kwargs)
+        columns = ','.join( list( params.keys() ) )
+        prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
+        query = query_tmpl.format(
+                    columns=columns
+                  , prepared_statements=prepared_statements
+                  )
 
-        filename, binary = ret
-        return True, filename, io.BytesIO(binary)
+        try:
+            cursor.execute(query, list( params.values() ) )
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False, None
 
-    def addUserAsDownloader(self, request_id, email):
+        return True, params.get('id')
+
+    def addUserAsDownloader(self, resource_id, email):
         cursor = self.conn.cursor()
         query_checkCount = """
             SELECT count(*)
-            FROM CICERON.F_DOWNLOAD_USERS_PRETRANSLATED
-            WHERE request_id = %s AND email = %s
+            FROM CICERON.F_PRETRANSLATED_DOWNLOAD_USER
+            WHERE id = %s AND resource_id = %s AND email = %s
         """
-        cursor.execute(query_checkCount, (request_id, email, ))
+        cursor.execute(query_checkCount, (file_id, resource_id, email, ))
         cnt = cursor.fetchone()[0]
         if cnt > 0:
             # 같은 유저가 같은 번역물 다운로드 권한을
@@ -384,13 +420,17 @@ class Pretranslated(object):
             return 2
 
         query_addUser = """
-            INSERT INTO CICERON.F_DOWNLOAD_USERS_PRETRANSLATED
-            (request_id, email, is_paid, is_downloaded)
+            INSERT INTO CICERON.F_PRETRANSLATED_DOWNLOAD_USER
+            (id, resource_id, is_user, email, is_paid, is_sent, is_downloaded)
             VALUES
-            (%s, %s, false, false)
+            (%s, %s, %s, %s, false, false, false)
         """
+        user_id = ciceron_lib.get_user_id(self.conn, email)
+        is_user = True if user_id > 0 else False
+        new_downloader_id = ciceron_lib.get_new_id(self.conn, "CICERON.F_PRETRANSLATED_DOWNLOAD_USER")
+
         try:
-            cursor.execute(query_addUser, (request_id, email, ))
+            cursor.execute(query_addUser, (new_downloader_id, resource_id, is_user, email, ))
 
         except Exception:
             traceback.print_exc()
@@ -399,11 +439,28 @@ class Pretranslated(object):
 
         return 0
 
+    def markAsSent(self, request_id, email):
+        cursor = self.conn.cursor()
+
+        query = """
+            UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
+            SET is_sent = true
+            WHERE request_id = %s AND email = %s
+        """
+        try:
+            cursor.execute(query, (request_id, email, ))
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
     def markAsDownloaded(self, request_id, email):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED
+            UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             SET is_downloaded = true
             WHERE request_id = %s AND email = %s
         """
@@ -420,7 +477,7 @@ class Pretranslated(object):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED
+            UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             SET is_paid = true
             WHERE request_id = %s AND email = %s
         """
@@ -437,7 +494,7 @@ class Pretranslated(object):
         cursor = self.conn.cursor()
 
         query = """
-            UPDATE CICERON.F_DOWNLOAD_USERS_PRETRANSLATED
+            UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             SET feedback_score = %s
             WHERE request_id = %s AND email = %s
         """
