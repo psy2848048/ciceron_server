@@ -998,6 +998,8 @@ CREATE TABLE CICERON. F_PRETRANSLATED_RESULT_FILE (
     project_id int,
     resource_id int,
     preview_permission int,
+    file_name varchar(255),
+    checksum varchar(255),
     file_binary bytea,
 
     PRIMARY KEY (id)
@@ -1093,6 +1095,24 @@ CREATE VIEW CICERON.V_PRETRANSLATED_MY_DOWNLOAD AS
   FROM CICERON. F_PRETRANSLATED_DOWNLOADED_USER fact
   LEFT OUTER JOIN CICERON.D_USERS users
     ON fact.email = users.email
+;
+
+CREATE VIEW CICERON.V_PRETRANSLATED_REQUESTER AS
+  SELECT
+    fact.*,
+    users.*
+  FROM CICERON.F_PRETRANSLATED_REQUESTER fact
+  LEFT OUTER JOIN CICERON.D_USERS users
+  ON fact.requester_id = users.id
+;
+
+CREATE VIEW CICERON.V_PRETRANSLATED_TRANSLATOR AS
+  SELECT
+    fact.*,
+    users.*
+  FROM CICERON.F_PRETRANSLATED_TRANSLATOR fact
+  LEFT OUTER JOIN CICERON.D_USERS users
+  ON fact.translator_id = users.id
 ;
 
 ALTER TABLE CICERON.F_PRETRANSLATED_RESOURCES

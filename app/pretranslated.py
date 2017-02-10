@@ -20,41 +20,82 @@ class Pretranslated(object):
     def __init__(self, conn):
         self.conn = conn
 
-    def _organizeParameters(self, **kwargs):
+    def _organizeProjectParameters(self, **kwargs):
         # Current parameters
         #    id
-        #  , translator_id
+        #  , original_resource_id
         #  , original_lang_id
-        #  , target_lang_id
         #  , format_id
         #  , subject_id
-        #  , registered_time=CURRENTD_TIMESTAMP
-        #  , points
-        #  , filename -> Catch from upload request
-        #  , theme_text
-        #  , description
-        #  , checksum=[check_inside]
-        #  , tone_id
-        #  , file_binary
-        #  , preview_binary
+        #  , registered_timestamp=CURRENTD_TIMESTAMP
+        #  , cover_photo_filename -> Catch from upload request
+        #  , cover_photo_binary
 
         params = kwargs
-        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED")
-        params['registered_time'] = datetime.utcnow()
-        print(params['registered_time'])
-        params['checksum'] = ciceron_lib.calculateChecksum(kwargs['file_binary'])
+        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_PROJECT")
+        params['registered_timestamp'] = datetime.utcnow()
+        print(params['registered_timestamp'])
 
         return params
 
-    def calcChecksumForEmailParams(self, request_id, email):
+    def _organizeResourceParameters(self, **kwargs):
+        # Current parameters
+        #    id
+        #  , project_id
+        #  , target_language_id
+        #  , theme
+        #  , description
+        #  , tone_id
+        #  , read_permission_level
+        #  , price
+        #  , register_timestamp=CURRENT_TIMESTAMP
+
+        params = kwargs
+        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_RESOURCE")
+        params['registered_time'] = datetime.utcnow()
+        print(params['registered_timestamp'])
+
+        return params
+
+    def _organizeUploadFileParameters(self, **kwargs):
+        # Current parameters
+        #    id
+        #  , project_id
+        #  , resource_id
+        #  , preview_permission
+        #  , file_name
+        #  , file_binary
+
+        params = kwargs
+        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_RESULT_FILE")
+        params['checksum'] = ciceron_lib.calculateChecksum(params['file_binary'])
+        return params
+
+    def _organizeDownloadFileParameters(self, **kwargs):
+        # Current parameters
+        #    id
+        #  , resource_id
+        #  , is_user
+        #  , email
+        #  , is_paid
+        #  , is_sent
+        #  , token
+        #  , is_downloaded
+        #  , feedback_score
+
+        params = kwargs
+        params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_DOWNLOADED_USER")
+        return params
+
+    def calcChecksumForEmailParams(self, resource_id, email):
         cursor = self.conn.cursor()
 
         query = """
             SELECT filename, checksum
-            FROM CICERON.F_PRETRANSLATED
-            WHERE id = %s
+            FROM CICERON.F_PRETRANSLATED_RESULT_FILE
+            WHERE resource_id = %s
         """
-        cursor.execute(query, (request_id, ))
+        cursor.execute(query, (resource_id, ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
             return False, None
@@ -63,7 +104,7 @@ class Pretranslated(object):
         hashed_result = ciceron_lib.calculateChecksum(filename, email, checksum)
         return True, hashed_result
 
-    def generateDownloadableLink(self, endpoint, request_id, email, checksum):
+    def generateDownloadableLink(self, endpoint, resource_id, email, checksum):
         HOST = ""
         if os.environ.get('PURPOSE') == 'PROD':
             HOST = 'http://ciceron.me'
@@ -75,32 +116,32 @@ class Pretranslated(object):
             HOST = 'http://localhost:5000'
 
         params = "?" + '&'.join([
-              'request_id={}'.format(request_id)
+              'resource_id={}'.format(resource_id)
             , 'email={}'.format(email)
             , 'token={}'.format(checksum)
             ])
         link = '/'.join([HOST, endpoint[1:], 'user', 'pretranslated', 'download', params])
         return link
 
-    def checkChecksumFromEmailParams(self, request_id, email, checksum_from_param):
-        can_get, hashed_internal = self.calcChecksumForEmailParams(request_id, email)
+    def checkChecksumFromEmailParams(self, resource_id, email, checksum_from_param):
+        can_get, hashed_internal = self.calcChecksumForEmailParams(resource_id, email)
         if hashed_internal == checksum_from_param:
             return True
         else:
             return False
 
-    def checkIsPaid(self, request_id, email):
+    def checkIsPaid(self, resource_id, email):
         cursor = self.conn.cursor()
         query = """
             SELECT CASE 
                      WHEN is_paid = true THEN true
-                     WHEN is_paid = false AND (SELECT points FROM CICERON.F_PRETRANSLATED WHERE id = %s) > 0 THEN false
+                     WHEN is_paid = false AND (SELECT points FROM CICERON.F_PRETRANSLATED_RESOURCE WHERE id = %s) > 0 THEN false
                      ELSE true END as is_paid
-            FROM CICERON.F_DOWNLOAD_USERS_PRETRANSLATED
-            WHERE request_id = %s
+            FROM CICERON.F_PRETRANSLATED_DOWNLOADED_USER
+            WHERE resource_id = %s
               AND email = %s
         """
-        cursor.execute(query, (request_id, request_id, email, ))
+        cursor.execute(query, (resource_id, request_id, email, ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
             return 2
@@ -111,38 +152,165 @@ class Pretranslated(object):
         else:
             return 1
 
-    def pretranslatedList(self, page=1):
+    def provideCoverPhoto(self, project_id):
         cursor = self.conn.cursor()
         query = """
-            SELECT 
-                id
-              , translator_id
-              , translator_email
-              , original_lang_id
-              , original_lang
-              , target_lang_id
-              , target_lang
-              , format_id
-              , format
-              , subject_id
-              , subject
-              , tone_id
-              , tone
-              , registered_time
-              , points
-              , theme_text
-              , filename
-              , description
-            FROM CICERON.V_PRETRANSLATED
-            ORDER BY registered_time
+            SELECT
+                cover_photo_filename
+              , cover_photo_binary
+            FROM CICERON.F_PRETRANSLATED_PROJECT
+            WHERE id = %s
+        """
+        cursor.execute(query, (project_id, ))
+        ret = cursor.fetchone()
+        if ret is None or len(ret) == 0:
+            return False, None, None
+
+        return True
+            , '/pretranslated/project/{}/coverPhoto/{}'.format(project_id, ret[0])
+            , ret[1]
+
+    def provideFile(self, resource_id):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT
+                filename
+              , file_binary
+            FROM CICERON.F_PRETRANSLATED_RESULT_FILE
+            WHERE resource_id = %s
+        """
+        cursor.execute(query, (resource_id, ))
+        ret = cursor.fetchone()
+        if ret is None or len(ret) == 0:
+            return False, None, None
+
+        return True
+            , '/pretranslated/project/{}/resources/{}'.format(resource_id, ret[0])
+            , ret[1]
+
+    def provideRequesterList(self, project_id):
+        cursor = self.conn.cursor()
+	query = """
+	    SELECT *
+	    FROM CICERON.V_PRETRANSLATED_REQUESTER
+	    WHERE project_id = %s
+	"""
+	cursor.execute(query, (project_id, ))
+	column = [col[0] for col in cursor.description]
+	requester_list = ciceron_lib.dbToDict(column, ret)
+
+	return requester_list
+
+    def provideTranslatorList(self, project_id):
+        cursor = self.conn.cursor()
+	query = """
+	    SELECT *
+	    FROM CICERON.V_PRETRANSLATED_TRANSLATOR
+	    WHERE project_id = %s
+	"""
+	cursor.execute(query, (project_id, ))
+	column = [col[0] for col in cursor.description]
+	translator_list = ciceron_lib.dbToDict(column, ret)
+
+	return translator_list
+
+    def updateProjectInfo(self, project_id, **kwargs):
+        query_project = """
+            UPDATE CICERON. F_PRETRANSLATED_PROJECT
+            SET {}
+            WHERE id = %s
+        """
+        query_check_resource_id = """
+            SELECT original_resource_id
+            FROM CICERON. F_PRETRANSLATED_PROJECT
+            WHERE id = %s
+        """
+        query_resource = """
+            UPDATE CICERON. F_PRETRANSLATED_RESOURCES
+            SET {}
+            WHERE id = %s
+        """
+        query_resultFile = """
+            UPDATE CICERON. F_PRETRANSLATED_RESULT_FILE
+            SET {}
+            WHERE resource_id = %s
+        """
+
+        cursor = self.conn.cursor()
+        cursor.execute(query_check_resource_id, (project_id, ))
+        original_resource_id = cursor.fetchone()[0]
+
+        param_project = []
+        param_resource = []
+        params_resultFile = []
+        for key, value in kwargs.items():
+            if key in ["original_lang_id", "format_id", "subject_id", "author", "cover_photo_filename", "cover_photo_binary"]:
+                param_project.append("{}={}".format(key, value))
+            elif key in ["target_language_id", "theme", "description", "tone_id", "read_permission_level", "price"]:
+                param_resource.append("{}={}".format(key, value))
+            elif key in ["preview_permission", "file_name", "file_binary"]:
+                param_resultFile.append("{}={}".format(key, value))
+
+        try:
+            if len(param_project) > 0:
+                query_project = query_project.format(", ".join(param_project))
+                cursor.execute(query_project, (project_id, ))
+
+            if len(param_resource) > 0:
+                query_resource = query_resource.format(", ".join(param_resource))
+                cursor.execute(query_resource, (original_resource_id, ))
+
+            if len(param_resultFile) > 0:
+                query_resultFile = query_resultFile.format(", ".join(param_resultFile))
+                cursor.execute(query_resultFile, (original_resource_id, ))
+
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def pretranslatedProjectList(self, page=1):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT *
+            FROM CICERON.V_PRETRANSLATED_PROJECT
+            ORDER BY id DESC
             LIMIT 10
             OFFSET 10 * {}
         """
         cursor.execute(query.format((page-1) * 10))
         columns = [desc[0] for desc in cursor.description]
         ret = cursor.fetchall()
-        pretranslated_list = ciceron_lib.dbToDict(columns, ret)
+
+        project_list = ciceron_lib.dbToDict(columns, ret)
+        for item in project_list:
+            can_get, url, _ = self.provideCoverPhoto(item['id'])
+            item['cover_photo_url'] = url
+
         return pretranslated_list
+
+    def pretranslatedResourceList(self, project_id):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT *
+            FROM CICERON.V_PRETRANSLATED_RESOURCE
+            WHERE project_id = %s
+            ORDER BY id ASC
+        """
+        cursor.execute(query, (project_id, ))
+        columns = [desc[0] for desc in cursor.description]
+        ret = cursor.fetchall()
+
+        resource_list = ciceron_lib.dbToDict(columns, ret)
+        for item in resource_list:
+            can_get, url, _ = self.provideFile(item['project_id'])
+            item['file_url'] = url
+	    item['requester_list'] = self.provideRequesterList(project_id)
+	    item['translator_list'] = self.provideTranslatorList(project_id)
+
+        return resource_list
 
     def uploadPretranslatedResult(self, **kwargs):
         cursor = self.conn.cursor()
@@ -304,6 +472,32 @@ class PretranslatedAPI(object):
             self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/addUserForDownload'.format(endpoint), view_func=self.addUserForDownload, methods=["POST"])
             self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/provideLink'.format(endpoint), view_func=self.issueDownloadableLinkAndSendToMail, methods=["POST"])
             self.app.add_url_rule('{}/user/pretranslated/download/'.format(endpoint), view_func=self.download, methods=["GET"])
+
+    @admin_required
+    def createProject(self):
+        """
+        프로젝트 열기
+
+        **Parameters**
+          #. **"original_lang_id"**: 원 언어 ID
+          #. **"format_id"**: 포맷 ID
+          #. **"subject_id"**: 주제 ID
+          #. **"author"**: 원작자
+          #. **"cover_photo"**: 사진파일
+
+        **Response**
+          #. **200**: 추가 성공
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "project_id": 1 // Request ID
+               }
+
+           #. **410**: 추가 실패 
+
+        """
+        pass
 
     @admin_required
     def uploadPretranslation(self):
