@@ -159,11 +159,35 @@ class Pretranslated(object):
 
         return True
 
-    def calcChecksumForEmailParams(self, resource_id, email):
+    def _hrefTagMaker(self, links):
+        base_link = """<br><a href="{downloadable_link}">{downloadable_link}</a> [{idx}]"""
+        link_list = []
+        for idx, link in enumerate(links):
+            link_list.append(base_link.format(downloadable_link=link, idx=idx+1))
+
+        return link_list
+
+    def calcUnitChecksumForEmailParams(self, resource_id, file_id, email):
         cursor = self.conn.cursor()
 
         query = """
             SELECT filename, checksum
+            FROM CICERON.F_PRETRANSLATED_RESULT_FILE
+            WHERE id = %s
+        """
+        cursor.execute(query, (file_id, ))
+        ret = cursor.fetchone()
+        if ret is None or len(ret) == 0:
+            return False, None
+
+        hashed_result = ciceron_lib.calculateChecksum(resource_id, filename, email, checksum)
+        return True, hashed_result
+
+    def calcChecksumForEmailParams(self, resource_id, email):
+        cursor = self.conn.cursor()
+
+        query = """
+            SELECT id
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
             WHERE resource_id = %s
         """
@@ -172,11 +196,14 @@ class Pretranslated(object):
         if ret is None or len(ret) == 0:
             return False, None
 
-        filename, checksum = ret
-        hashed_result = ciceron_lib.calculateChecksum(filename, email, checksum)
-        return True, hashed_result
+        hashed_result_list = []
+        for file_id in ret:
+            hashed_result = ciceron_lib.calculateiUnitChecksum(resource_id, file_id, email, checksum)
+            hashed_result_list.append(hashed_result)
 
-    def generateDownloadableLink(self, endpoint, resource_id, email, checksum):
+        return True, hashed_result_list
+
+    def generateDownloadableLink(self, endpoint, resource_id, file_id, email, checksum):
         HOST = ""
         if os.environ.get('PURPOSE') == 'PROD':
             HOST = 'http://ciceron.me'
@@ -189,14 +216,15 @@ class Pretranslated(object):
 
         params = "?" + '&'.join([
               'resource_id={}'.format(resource_id)
+            , 'file_id={}'.format(file_id)
             , 'email={}'.format(email)
             , 'token={}'.format(checksum)
             ])
         link = '/'.join([HOST, endpoint[1:], 'user', 'pretranslated', 'download', params])
         return link
 
-    def checkChecksumFromEmailParams(self, resource_id, email, checksum_from_param):
-        can_get, hashed_internal = self.calcChecksumForEmailParams(resource_id, email)
+    def checkChecksumFromEmailParams(self, resource_id, file_id, email, checksum_from_param):
+        can_get, hashed_internal = self.calcUnitChecksumForEmailParams(resource_id, file_id, email)
         if hashed_internal == checksum_from_param:
             return True
         else:
@@ -240,23 +268,23 @@ class Pretranslated(object):
 
         return True, ret[0], ret[1]
 
-    def provideFile(self, project_id, resource_id, file_id):
+    def provideFile(self, resource_id, file_id):
         cursor = self.conn.cursor()
         query = """
             SELECT
                 filename
               , file_binary
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
-            WHERE id = %s AND resource_id = %s AND project_id = %s
+            WHERE id = %s AND resource_id = %s
         """
-        cursor.execute(query, (file_id, resource_id, project_id, ))
+        cursor.execute(query, (file_id, resource_id, ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
             return False, None, None
 
         return True, ret[0], ret[1]
 
-    def provideFileListOfResource(self, resource_id):
+    def provideFileListOfResource(self, resource_id, endpoint):
         cursor = self.conn.cursor()
         query = """
             SELECT
@@ -274,31 +302,31 @@ class Pretranslated(object):
         file_list = ciceron_lib.dbToDict(columns, ret)
         for item in file_list:
             can_get, file_name, _ = self.provideFile(item['project_id'], item['resource_id'], item['id'])
-            item['file_url'] = '/pretranslated/project/{}/resources/{}/file/{}/{}'.format(item['project_id'], item['resource_id'], item['id'], file_name)
+            item['file_url'] = endpoint + '/pretranslated/project/{}/resources/{}/file/{}/{}'.format(item['project_id'], item['resource_id'], item['id'], file_name)
 
         return file_list
 
-    def provideRequesterList(self, project_id):
+    def provideRequesterList(self, project_id, resource_id):
         cursor = self.conn.cursor()
 	query = """
 	    SELECT *
 	    FROM CICERON.V_PRETRANSLATED_REQUESTER
-	    WHERE project_id = %s
+	    WHERE project_id = %s AND resource_id = %s
 	"""
-	cursor.execute(query, (project_id, ))
+	cursor.execute(query, (project_id, resource_id, ))
 	column = [col[0] for col in cursor.description]
 	requester_list = ciceron_lib.dbToDict(column, ret)
 
 	return requester_list
 
-    def provideTranslatorList(self, project_id):
+    def provideTranslatorList(self, project_id, resource_id):
         cursor = self.conn.cursor()
 	query = """
 	    SELECT *
 	    FROM CICERON.V_PRETRANSLATED_TRANSLATOR
-	    WHERE project_id = %s
+	    WHERE project_id = %s AND resource_id = %s
 	"""
-	cursor.execute(query, (project_id, ))
+	cursor.execute(query, (project_id, resource_id, ))
 	column = [col[0] for col in cursor.description]
 	translator_list = ciceron_lib.dbToDict(column, ret)
 
@@ -338,7 +366,7 @@ class Pretranslated(object):
 
         return True
 
-    def pretranslatedProjectList(self, page=1):
+    def pretranslatedProjectList(self, endpoint, page=1):
         cursor = self.conn.cursor()
         query = """
             SELECT *
@@ -354,11 +382,11 @@ class Pretranslated(object):
         project_list = ciceron_lib.dbToDict(columns, ret)
         for item in project_list:
             can_get, file_name, _ = self.provideCoverPhoto(item['id'])
-            item['cover_photo_url'] = '/pretranslated/project/{}/coverPhoto/{}'.format(item['id'], file_name)
+            item['cover_photo_url'] = endpoint + '/pretranslated/project/{}/coverPhoto/{}'.format(item['id'], file_name)
 
         return pretranslated_list
 
-    def pretranslatedResourceList(self, project_id):
+    def pretranslatedResourceList(self, project_id, endpoint):
         cursor = self.conn.cursor()
         query = """
             SELECT *
@@ -372,10 +400,10 @@ class Pretranslated(object):
 
         resource_list = ciceron_lib.dbToDict(columns, ret)
         for item in resource_list:
-            can_get, url, _ = self.provideFile(item['project_id'])
-            item['file_url'] = url
-	    item['requester_list'] = self.provideRequesterList(project_id)
-	    item['translator_list'] = self.provideTranslatorList(project_id)
+            file_list_of_resource = self.provideFileListOfResource(item['id'], endpoint)
+            item['resorce_info'] = file_list_of_resource
+	    item['requester_list'] = self.provideRequesterList(project_id, item['id'])
+	    item['translator_list'] = self.provideTranslatorList(project_id, item['id'])
 
         return resource_list
 
@@ -435,9 +463,9 @@ class Pretranslated(object):
         query_checkCount = """
             SELECT count(*)
             FROM CICERON.F_PRETRANSLATED_DOWNLOAD_USER
-            WHERE id = %s AND resource_id = %s AND email = %s
+            WHERE resource_id = %s AND email = %s
         """
-        cursor.execute(query_checkCount, (file_id, resource_id, email, ))
+        cursor.execute(query_checkCount, (resource_id, email, ))
         cnt = cursor.fetchone()[0]
         if cnt > 0:
             # 같은 유저가 같은 번역물 다운로드 권한을
@@ -451,7 +479,7 @@ class Pretranslated(object):
             (%s, %s, %s, %s, false, false, false, CURRENT_TIMESTAMP)
         """
         user_id = ciceron_lib.get_user_id(self.conn, email)
-        is_user = True if user_id > 0 else False
+        is_user = False if user_id == -1 else True
         new_downloader_id = ciceron_lib.get_new_id(self.conn, "CICERON.F_PRETRANSLATED_DOWNLOAD_USER")
 
         try:
@@ -481,16 +509,16 @@ class Pretranslated(object):
 
         return True
 
-    def markAsDownloaded(self, request_id, email):
+    def markAsDownloaded(self, resource_id, email):
         cursor = self.conn.cursor()
 
         query = """
             UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             SET is_downloaded = true
-            WHERE request_id = %s AND email = %s
+            WHERE resource_id = %s AND email = %s
         """
         try:
-            cursor.execute(query, (request_id, email, ))
+            cursor.execute(query, (resource_id, email, ))
         except:
             traceback.print_exc()
             self.conn.rollback()
@@ -515,13 +543,13 @@ class Pretranslated(object):
 
         return True
 
-    def rateTranslatedResult(self, request_id, email, score):
+    def rateTranslatedResult(self, resource_id, email, score):
         cursor = self.conn.cursor()
 
         query = """
             UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             SET feedback_score = %s
-            WHERE request_id = %s AND email = %s
+            WHERE resource_id = %s AND email = %s
         """
         try:
             cursor.execute(query, (score, request_id, email, ))
@@ -755,34 +783,151 @@ class PretranslatedAPI(object):
             return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedUpdateResourceInfo(self):
+    def pretranslatedUpdateResourceInfo(self, resource_id):
         """
+        번역물 리소스 수정 API
+
+        **Parameters** (All OPTIONAL)
+          #. **"resource_id"**: 프로젝트 ID (URL)
+          #. **"target_language_id"**: 번역 타겟 언어 ID (원 언어일수도 있음)
+          #. **"theme"**: 제목
+          #. **"description"**: 번역물 설명
+          #. **"tone_id"**: 번역물 톤 ID
+          #. **"read_permission_level"**: 접근 레벨
+          #. **"price"**: 가격 in USD
+
+        **Response**
+          #. **200**: 업데이트 성공
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "message": "OK" // Request ID
+               }
+
+           #. **410**: 업데이트 실패 
+
         """
-        pass
+        pretranslatedObj = Pretranslated(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        is_ok = pretranslatedObj.updateResource(resource_id, **parameters)
+        if is_of == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedUpdateFileInfo(self):
+    def pretranslatedUpdateFileInfo(self, file_id):
         """
+        파일 수정 API
+
+        **Parameters**
+          #. **"file_id"**: 파일 ID (URL)
+          #. **"preview_permission"**: 미리보기 권한
+          #. **"file"**: 파일
+
+        **Response**
+          #. **200**: 업데이트 성공
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "message": "OK" // Request ID
+               }
+
+           #. **410**: 게시 실패 
+
         """
-        pass
+        pretranslatedObj = Pretranslated(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        if "file" in request:
+            file_obj = request.files['file']
+            parameters['file_name'] = file_obj.filename
+            parameters['file_binary'] = file_obj.read()
+            parameters.pop('file')
+
+        is_ok = pretranslatedObj.updateFile(file_id, **parameters)
+        if is_ok == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def pretranslatedDeleteProject(self, project_id):
         """
+        프로젝트 삭제
+        **Parameters**
+          #. **"project_id"**: 프로젝트 ID (URL)
+
+        **Response**
+          #. **200**: OK
+          #. **410**: Fail
+
         """
-        pass
+        pretranslatedObj = Pretranslated(g.db)
+        is_ok = pretranslatedObj.deleteProject(project_id)
+        if is_ok == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def pretranslatedDeleteResource(self, resource_id):
         """
+        리소스 삭제
+        **Parameters**
+          #. **"resource_id"**: Resource ID (URL)
+
+        **Response**
+          #. **200**: OK
+          #. **410**: Fail
+
         """
-        pass
+        pretranslatedObj = Pretranslated(g.db)
+        is_ok = pretranslatedObj.deleteResource(resource_id)
+        if is_ok == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def pretranslatedDeleteFile(self, file_id):
         """
+        파일 삭제
+        **Parameters**
+          #. **"file_id"**: File ID (URL)
+
+        **Response**
+          #. **200**: OK
+          #. **410**: Fail
+
         """
-        pass
+        pretranslatedObj = Pretranslated(g.db)
+        is_ok = pretranslatedObj.deleteResultFile(file_id)
+        if is_ok == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def pretranslatedControlProjectWeb(self):
@@ -811,7 +956,8 @@ class PretranslatedAPI(object):
         """
         **Parameters**
           #. **"email"**: 이메일. 프론트에서는 로그인되어 있다면 세션의 'useremail'을 따 와서 자동으로 입력했으면 하는 소망이 있음.
-          #. **"request_id"**: 구매한 번역물의 ID. URL에 직접 삽입
+          #. **"project_id"**: 프로젝트 ID. URL에 직접 삽입
+          #. **"resource_id"**: 구매한 번역물의 ID. URL에 직접 삽입
 
         **Response**
           **200**: 성공
@@ -825,7 +971,7 @@ class PretranslatedAPI(object):
         parameters = ciceron_lib.parse_request(request)
         email = parameters['email']
         # 다운로드한 유저 목록에 추가
-        is_added = pretranslatedObj.addUserAsDownloader(request_id, email)
+        is_added = pretranslatedObj.addUserAsDownloader(resource_id, email)
         if is_added == 2:
             g.db.rollback()
             return make_response(json.jsonify(message="Multiple request in one request_id"), 410)
@@ -834,15 +980,15 @@ class PretranslatedAPI(object):
             return make_response(json.jsonify(message="DB error"), 411)
         else:
             g.db.commit()
-            return make_response(json.jsonify(message="OK"), 200)
+            return make_response("OK", 200)
 
     @login_required
-    def pretranslatedMarkAsPaid(self, project_id, request_id):
+    def pretranslatedMarkAsPaid(self, project_id, resource_id):
         """
         유저 가격 지불 후 지불처리 하는 함수
         
         **Parameters**
-          #. **"request_id"**: Request ID. URL에 직접 삽입
+          #. **"resource_id"**: Request ID. URL에 직접 삽입
         
         **Response**
           #. **200**: OK
@@ -852,7 +998,7 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         email = session['useremail']
 
-        is_marked = pretranslatedObj.markAsPaid(request_id, email)
+        is_marked = pretranslatedObj.markAsPaid(resource_id, email)
 
         if is_marked == True:
             g.db.commit()
@@ -864,12 +1010,7 @@ class PretranslatedAPI(object):
                 message="Fail"),
                 405)
 
-    def pretranslatedMarkAsSent(self, project_id, resource_id):
-        """
-        """
-        pass
-
-    def issueDownloadableLinkAndSendToMail(self, request_id):
+    def issueDownloadableLinkAndSendToMail(self, project_id, resource_id):
         """
         구매한 번역 메일로 링크 전송
 
@@ -890,9 +1031,10 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
         email = parameters['email']
+        resource_id = parameters['resource_id']
 
         # 보안을 위하여 Token 제작
-        is_issued, checksum = pretranslatedObj.calcChecksumForEmailParams(request_id, email)
+        is_issued, checksums = pretranslatedObj.calcChecksumForEmailParams(resource_id, email)
         if is_issued == False:
             g.db.rollback()
             return make_response(json.jsonify(
@@ -900,14 +1042,20 @@ class PretranslatedAPI(object):
                 , 412)
 
         # 지불여부 체크
-        is_paid = pretranslatedObj.checkIsPaid(request_id, email)
+        is_paid = pretranslatedObj.checkIsPaid(resource_id, email)
         if is_paid == False:
             return make_response(json.jsonify(message="Need payment"), 411)
 
         # 링크 제작하고 메일로 전송
-        downloadable_link = pretranslatedObj.generateDownloadableLink(self.endpoints[-1], request_id, email, checksum)
+        downloadable_links = []
+        for checksum in checksums:
+            downloadable_link = pretranslatedObj.generateDownloadableLink(self.endpoints[-1], resource_id, email, checksum)
+            downloadable_links.append(checksum)
+
+        href_part = pretranslatedObj._hrefTagMaker(downloadable_links)
+
         f = open('templates/pretranslatedDownloadMail.html', 'r')
-        mail_content = f.read().format(downloadable_link=downloadable_link)
+        mail_content = f.read().format(href_part=href_part)
         f.close()
         try:
             ciceron_lib.send_mail(
@@ -924,11 +1072,14 @@ class PretranslatedAPI(object):
         g.db.commit()
         return make_response(json.jsonify(message="OK"), 200)
 
+    @login_required
     def pretranslatedRateResult(self, project_id, resource_id):
         """
-        유저 가격 지불 후 지불처리 하는 함수
-        
+        번역물 평점 먹이기
+
         **Parameters**
+          #. **"project_id"**: 프로젝트 ID (URL)
+          #. **"resource_id"**: 리소스 ID (URL)
           #. **"score"**: 1-5점까지의 피드백 점수
         
         **Response**
@@ -941,7 +1092,7 @@ class PretranslatedAPI(object):
         parameters = ciceron_lib.parse_request(request)
         score = parameters['score']
 
-        is_rated = pretranslatedObj.rateTranslatedResult(request_id, email, score)
+        is_rated = pretranslatedObj.rateTranslatedResult(resource_id, email, score)
 
         if is_rated == True:
             g.db.commit()
@@ -1001,45 +1152,42 @@ class PretranslatedAPI(object):
     @login_required
     def pretranslatedMyDownloadedList(self):
         """
-        """
-        pass
-
-    @login_required
-    def pretranslatedProvideCoverPhoto(self, project_id):
-        """
-        """
-        pass
-
-    @login_required
-    def pretranslatedProvideResource(self, project_id, resource_id):
-        """
-        """
-        pass
-
-    @login_required
-    def pretranslatedProvideFiles(self, project_id, request_id, file_id):
-        """
-        번역 파일 다운로드
+        내가 구매한 다운로드 목록 리스트
 
         **Parameters**
-          **"request_id"**: Integer, URL에 직접 입력
-
-        **Response**
-          **200**: 다운로드 실행
-
-          **410**: Checksum 에러
-
-          **411**: 다운로드 완료 마킹 실패
+          #. **"page"**: 페이지 (OPTIONAL)
 
         """
         pretranslatedObj = Pretranslated(g.db)
+        user_id = ciceron_lib.get_user_id(g.db, session['useremail'])
+        result = pretranslatedObj.getMyDownloadList(user_id)
+        return make_response(json.jsonifuy(data=result), 200)
 
-        is_ok, filename, binary = pretranslatedObj.providePreviewBinary(request_id)
+    @login_required
+    def pretranslatedProvideCoverPhoto(self, project_id, filename):
+        """
+        커버사진 다운로드
+
+        **Response**
+          #. **200**: 파일 다운로드
+          #. **404**: 파일 없음
+
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        is_ok, _filename, binary = pretranslatedObj.provideCoverPhoto(project_id)
         if is_ok == True:
-            return send_file(binary, attachment_filename=filename)
-
+            return send_file(binary, attachment_filename=_filename)
         else:
-            return make_response(json.jsonify(message="DB error"), 411)
+            return make_response("Fail", 404)
+
+    @login_required
+    def pretranslatedProvideResource(self, project_id):
+        """
+        리소스 정보 보여주기
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[0])
+        return make_response(json.jsonify(data=resource_list), 200)
 
     def download(self):
         """
@@ -1060,19 +1208,20 @@ class PretranslatedAPI(object):
         """
         pretranslatedObj = Pretranslated(g.db)
         email = request.args['email']
-        request_id = request.args['request_id']
+        resource_id = request.args['resource_id']
+        file_id = request.args['file_id']
         checksum_from_param = request.args['token']
 
-        is_ok = pretranslatedObj.checkChecksumFromEmailParams(request_id, email, checksum_from_param)
+        is_ok = pretranslatedObj.checkChecksumFromEmailParams(resorce_id, file_id, email, checksum_from_param)
         if is_ok == False:
             g.db.rollback()
             return make_response(json.jsonify(message="Auth error"), 410)
 
         else:
-            is_marked = pretranslatedObj.markAsDownloaded(request_id, email)
+            is_marked = pretranslatedObj.markAsDownloaded(resource_id, email)
             if is_marked == True:
                 g.db.commit()
-                can_provide, filename, binary = pretranslatedObj.provideBinary(request_id)
+                can_provide, filename, binary = pretranslatedObj.provideFile(resource_id, file_id)
                 return send_file(binary, attachment_filename=filename)
             else:
                 g.db.rollback()
