@@ -87,10 +87,82 @@ class Pretranslated(object):
         params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_DOWNLOADED_USER")
         return params
 
+    def _insert(self, table, **kwargs):
+        cursor = self.conn.cursor()
+        query_tmpl = """
+            INSERT INTO CICERON.{table}
+            ({columns})
+            VALUES
+            ({prepared_statements})
+        """
+        columns = ','.join( list( kwargs.keys() ) )
+        prepared_statements = ','.join( ['%s' for _ in list(kwargs.keys())] )
+        query = query_tmpl.format(
+                    table=table
+                  , columns=columns
+                  , prepared_statements=prepared_statements
+                  )
+
+        try:
+            cursor.execute(query, list( kwargs.values() ) )
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def _update(self, table, something_id, **kwargs):
+        cursor = self.conn.cursor()
+        query = """
+            UPDATE CICERON.{table}
+            SET {value}
+            WHERE id = %s
+        """
+
+        params = []
+        values = []
+        for key, value in kwargs.items():
+            params.append("{}=%s".format(key))
+            values.append(value)
+
+        try:
+            query = query.format(
+                      table=table
+                    , value=", ".join(param_resource)
+                    )
+            values.append(something_id)
+            cursor.execute(query, value)
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def _delete(self, table, something_id):
+        cursor = self.conn.cursor()
+        query = """
+            DELETE FROM CICERON.{table}
+            WHERE id = %s
+        """
+
+        try:
+            query = query.format(table=table)
+            cursor.execute(query, (something_id, ))
+
+        except Exception:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
     def calcChecksumForEmailParams(self, resource_id, email):
         cursor = self.conn.cursor()
 
-query = """
+        query = """
             SELECT filename, checksum
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
             WHERE resource_id = %s
@@ -233,56 +305,33 @@ query = """
 	return translator_list
 
     def updateProjectInfo(self, project_id, **kwargs):
-        query_project = """
-            UPDATE CICERON. F_PRETRANSLATED_PROJECT
-            SET {}
-            WHERE id = %s
-        """
         query_check_resource_id = """
             SELECT original_resource_id
             FROM CICERON. F_PRETRANSLATED_PROJECT
             WHERE id = %s
-        """
-        query_resource = """
-            UPDATE CICERON. F_PRETRANSLATED_RESOURCES
-            SET {}
-            WHERE id = %s
-        """
-        query_resultFile = """
-            UPDATE CICERON. F_PRETRANSLATED_RESULT_FILE
-            SET {}
-            WHERE resource_id = %s
         """
 
         cursor = self.conn.cursor()
         cursor.execute(query_check_resource_id, (project_id, ))
         original_resource_id = cursor.fetchone()[0]
 
-        param_project = []
-        param_resource = []
-        params_resultFile = []
+        param_project = {}
+        param_resource = {}
         for key, value in kwargs.items():
             if key in ["original_lang_id", "format_id", "subject_id", "author", "cover_photo_filename", "cover_photo_binary"]:
-                param_project.append("{}={}".format(key, value))
+                param_project[key] = value
             elif key in ["target_language_id", "theme", "description", "tone_id", "read_permission_level", "price"]:
-                param_resource.append("{}={}".format(key, value))
-            elif key in ["preview_permission"]:
-                param_resultFile.append("{}={}".format(key, value))
+                param_resource[key] = value
 
-        try:
-            if len(param_project) > 0:
-                query_project = query_project.format(", ".join(param_project))
-                cursor.execute(query_project, (project_id, ))
+        is_ok1 = True
+        is_ok2 = True
+        if len(param_project) > 0:
+            is_ok1 = self._update("F_PRETRANSLATED_PROJECT", project_id, **param_project)
 
-            if len(param_resource) > 0:
-                query_resource = query_resource.format(", ".join(param_resource))
-                cursor.execute(query_resource, (original_resource_id, ))
+        if len(param_resource) > 0:
+            is_ok2 = self._update("F_PRETRANSLATED_RESOURCES", original_resource_id, **param_resource)
 
-            if len(param_resultFile) > 0:
-                query_resultFile = query_resultFile.format(", ".join(param_resultFile))
-                cursor.execute(query_resultFile, (original_resource_id, ))
-
-        except:
+        if is_ok1 == False or is_ok2 == False:
             traceback.print_exc()
             self.conn.rollback()
             return False
@@ -331,54 +380,14 @@ query = """
         return resource_list
 
     def createProject(self, **kwargs):
-        cursor = self.conn.cursor()
-        query_tmpl = """
-            INSERT INTO CICERON.F_PRETRANSLATED_PROJECT
-            ({columns})
-            VALUES
-            ({prepared_statements})
-        """
         params = self._organizeProjectParameters(**kwargs)
-        columns = ','.join( list( params.keys() ) )
-        prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
-        query = query_tmpl.format(
-                    columns=columns
-                  , prepared_statements=prepared_statements
-                  )
-
-        try:
-            cursor.execute(query, list( params.values() ) )
-        except Exception:
-            traceback.print_exc()
-            self.conn.rollback()
-            return False, None
-
-        return True, params.get('id')
+        is_ok = self._insert("F_PRETRANSLATED_PROJECT", **params)
+        return is_ok, params.get('id')
 
     def createResource(self, **kwargs):
-        cursor = self.conn.cursor()
-        query_tmpl = """
-            INSERT INTO CICERON.F_PRETRANSLATED_RESOURCES
-            ({columns})
-            VALUES
-            ({prepared_statements})
-        """
         params = self._organizeResourceParameters(**kwargs)
-        columns = ','.join( list( params.keys() ) )
-        prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
-        query = query_tmpl.format(
-                    columns=columns
-                  , prepared_statements=prepared_statements
-                  )
-
-        try:
-            cursor.execute(query, list( params.values() ) )
-        except Exception:
-            traceback.print_exc()
-            self.conn.rollback()
-            return False, None
-
-        return True, params.get('id')
+        is_ok = self._insert("F_PRETRANSLATED_RESOURCES", **params)
+        return is_ok, params.get('id')
 
     def linkResourceToProject(self, project_id, resource_id):
         cursor = self.conn.cursor()
@@ -397,29 +406,29 @@ query = """
         return True
 
     def createFile(self, **kwargs):
-        cursor = self.conn.cursor()
-        query_tmpl = """
-            INSERT INTO CICERON.F_PRETRANSLATED_RESULT_FILE
-            ({columns})
-            VALUES
-            ({prepared_statements})
-        """
         params = self._organizeUploadFileParameters(**kwargs)
-        columns = ','.join( list( params.keys() ) )
-        prepared_statements = ','.join( ['%s' for _ in list(params.keys())] )
-        query = query_tmpl.format(
-                    columns=columns
-                  , prepared_statements=prepared_statements
-                  )
+        is_ok = self._insert("F_PRETRANSLATED_RESULT_FILE", **params)
+        return is_ok, params.get('id')
 
-        try:
-            cursor.execute(query, list( params.values() ) )
-        except Exception:
-            traceback.print_exc()
-            self.conn.rollback()
-            return False, None
+    def updateResource(self, resource_id, **params):
+        is_ok = self._update("F_PRETRANSLATED_RESOURCES", resource_id, **parmas)
+        return is_ok
 
-        return True, params.get('id')
+    def updateFile(self, file_id, **params):
+        is_ok = self._update("F_PRETRANSLATED_RESULT_FILE", file_id, **parmas)
+        return is_ok
+
+    def deleteProject(self, project_id):
+        is_ok = self._delete("F_PRETRANSLATED_PROJECT", project_id)
+        return is_ok
+
+    def deleteResource(self, resource_id):
+        is_ok = self._delete("F_PRETRANSLATED_RESOURCES", resource_id)
+        return is_ok
+
+    def deleteResultFile(self, file_id):
+        is_ok = self._delete("F_PRETRANSLATED_RESULT_FILE", file_id)
+        return is_ok
 
     def addUserAsDownloader(self, resource_id, email):
         cursor = self.conn.cursor()
@@ -706,21 +715,44 @@ class PretranslatedAPI(object):
               , message="OK"), 200)
 
     @admin_required
-    def pretranslatedUpdateProjectInfo(self):
+    def pretranslatedUpdateProjectInfo(self, project_id):
         """
         프로젝트 정보 업데이트
         **Parameters (ALL OPTIONAL)**
+          #. **"project_id"**: Project ID (URL)
           #. **"original_lang_id"**: 원문 언어
           #. **"format_id"**: 포맷 ID
           #. **"subject_id"**: 주제 ID
           #. **"author"**: 원작자명
           #. **"cover_photo"**: 커버 사진
           #. **"target_laguage_id"**: 번역문 언어
-          #. **""theme**: 제목
+          #. **"theme"**: 제목
           #. **"description"**: 설명
           #. **"tone_id"**: 톤 ID
           #. **"read_permission_level"**: 권한 ID
+
+        **Response**
+          #. **200**: OK
+          #. **410**: Fail
+          
         """
+        pretranslatedObj = Pretranslated(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        if "cover_photo" in request:
+            cover_photo_obj = request.files['cover_photo']
+            parameters['cover_photo_filename'] = cover_photo_obj.filename
+            parameters['cover_photo_binary'] = cover_photo_obj.read()
+            parameters.pop('cover_photo')
+
+        is_ok = pretranslatedObj.updateProjectInfo(project_id, **parameters)
+        if is_ok == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+              , message="OK"), 200)
+
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def pretranslatedUpdateResourceInfo(self):
