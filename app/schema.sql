@@ -984,7 +984,7 @@ CREATE TABLE CICERON. F_PRETRANSLATED_RESOURCES (
     theme varchar(255),
     description varchar(2047),
     tone_id int,
-    read_permission_level varchar(255),
+    read_permission_level int,
     price real,
     register_timestamp timestamptz,
 
