@@ -1017,6 +1017,7 @@ CREATE TABLE CICERON. F_PRETRANSLATED_DOWNLOADED_USER (
     token varchar(255),
     is_downloaded bool,
     feedback_score INT,
+    request_timestamp timestamptz,
 
     PRIMARY KEY (id)
 )

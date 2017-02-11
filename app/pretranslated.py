@@ -90,7 +90,7 @@ class Pretranslated(object):
     def calcChecksumForEmailParams(self, resource_id, email):
         cursor = self.conn.cursor()
 
-        query = """
+query = """
             SELECT filename, checksum
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
             WHERE resource_id = %s
@@ -421,9 +421,9 @@ class Pretranslated(object):
 
         query_addUser = """
             INSERT INTO CICERON.F_PRETRANSLATED_DOWNLOAD_USER
-            (id, resource_id, is_user, email, is_paid, is_sent, is_downloaded)
+            (id, resource_id, is_user, email, is_paid, is_sent, is_downloaded, request_timestamp)
             VALUES
-            (%s, %s, %s, %s, false, false, false)
+            (%s, %s, %s, %s, false, false, false, CURRENT_TIMESTAMP)
         """
         user_id = ciceron_lib.get_user_id(self.conn, email)
         is_user = True if user_id > 0 else False
@@ -507,6 +507,26 @@ class Pretranslated(object):
 
         return True
 
+    def getMydownloadList(self, user_id):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT
+                id
+              , resource_id
+              , is_paid
+              , is_sent
+              , is_downloaded
+              , feedback_score
+              , request_timestamp
+            FROM CICERON.V_PRETRANSLATED_MY_DOWNLOAD
+            WHERE user_id = %s
+            ORDER BY request_timestamp DESC
+        """
+        cursor.execute(query, (user_id, ))
+        column = [ desc[0] for desc in cursor.description ]
+        ret = cursor.fetchall()
+        return ciceron_lib.dbToDict(column, ret)
+
 
 class PretranslatedAPI(object):
     """
@@ -520,15 +540,15 @@ class PretranslatedAPI(object):
 
     def add_api(self, app):
         for endpoint in self.endpoints:
-            self.app.add_url_rule('{}/admin/pretranslated/uploadPretranslated'.format(endpoint), view_func=self.uploadPretranslation, methods=["POST"])
-            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/markAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
-            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/rate'.format(endpoint), view_func=self.pretranslatedRateResult, methods=["POST"])
-            self.app.add_url_rule('{}/user/pretranslated/upload'.format(endpoint), view_func=self.uploadPretranslationPage)
-            self.app.add_url_rule('{}/user/pretranslated/stoa'.format(endpoint), view_func=self.pretranslatedList, methods=["GET"])
-            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/preview'.format(endpoint), view_func=self.providePreviewBinary)
-            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/addUserForDownload'.format(endpoint), view_func=self.addUserForDownload, methods=["POST"])
-            self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/provideLink'.format(endpoint), view_func=self.issueDownloadableLinkAndSendToMail, methods=["POST"])
-            self.app.add_url_rule('{}/user/pretranslated/download/'.format(endpoint), view_func=self.download, methods=["GET"])
+            self.app.add_url_rule('{}/admin/pretranslated/createProject'.format(endpoint), view_func=self.createProject, methods=["POST"])
+            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/markAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
+            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/rate'.format(endpoint), view_func=self.pretranslatedRateResult, methods=["POST"])
+            #self.app.add_url_rule('{}/user/pretranslated/upload'.format(endpoint), view_func=self.uploadPretranslationPage)
+            #self.app.add_url_rule('{}/user/pretranslated/stoa'.format(endpoint), view_func=self.pretranslatedList, methods=["GET"])
+            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/preview'.format(endpoint), view_func=self.providePreviewBinary)
+            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/addUserForDownload'.format(endpoint), view_func=self.addUserForDownload, methods=["POST"])
+            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/provideLink'.format(endpoint), view_func=self.issueDownloadableLinkAndSendToMail, methods=["POST"])
+            #self.app.add_url_rule('{}/user/pretranslated/download/'.format(endpoint), view_func=self.download, methods=["GET"])
 
     @admin_required
     def createProject(self):
@@ -554,7 +574,25 @@ class PretranslatedAPI(object):
            #. **410**: 추가 실패 
 
         """
-        pass
+        pretranslatedObj = Pretranslated(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        for key in parameters.keys():
+            if key not in ['original_resource_id', 'original_lang_id', 'format_id', 'subject_id', 'author', 'cover_photo']:
+                return make_response("Bad request", 400)
+
+        cover_photo_obj = request.files['cover_photo']
+        parameters['cover_photo_filename'] = cover_photo_obj.filename
+        parameters['cover_photo_binary'] = cover_photo_obj.read()
+        is_ok, project_id = pretranslatedObj.createProject(**parameters)
+        if is_ok == True:
+            g.db.commit()
+            return make_response(json.jsonify(
+                message="OK", project_id=project_id), 200)
+
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(
+                message="OK", project_id=project_id), 410)
 
     @admin_required
     def uploadPretranslation(self):
