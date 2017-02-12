@@ -593,15 +593,32 @@ class PretranslatedAPI(object):
 
     def add_api(self, app):
         for endpoint in self.endpoints:
-            self.app.add_url_rule('{}/admin/pretranslated/createProject'.format(endpoint), view_func=self.createProject, methods=["POST"])
-            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/markAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
-            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/rate'.format(endpoint), view_func=self.pretranslatedRateResult, methods=["POST"])
-            #self.app.add_url_rule('{}/user/pretranslated/upload'.format(endpoint), view_func=self.uploadPretranslationPage)
-            #self.app.add_url_rule('{}/user/pretranslated/stoa'.format(endpoint), view_func=self.pretranslatedList, methods=["GET"])
-            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/preview'.format(endpoint), view_func=self.providePreviewBinary)
-            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/addUserForDownload'.format(endpoint), view_func=self.addUserForDownload, methods=["POST"])
-            #self.app.add_url_rule('{}/user/pretranslated/request/<int:request_id>/provideLink'.format(endpoint), view_func=self.issueDownloadableLinkAndSendToMail, methods=["POST"])
-            #self.app.add_url_rule('{}/user/pretranslated/download/'.format(endpoint), view_func=self.download, methods=["GET"])
+            self.app.add_url_rule('{}/admin/pretranslated/project'.format(endpoint), view_func=self.pretranslatedCreateProject, methods=["POST"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource'.format(endpoint), view_func=self.pretranslatedCreateResource, methods=["POST"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>/file'.format(endpoint), view_func=self.pretranslatedCreateFile, methods=["POST"])
+
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>'.format(endpoint), view_func=self.pretranslatedUpdateProjectInfo, methods=["PUT"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>'.format(endpoint), view_func=self.pretranslatedUpdateResourceInfo, methods=["PUT"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>/file/<int:file_id>'.format(endpoint), view_func=self.pretranslatedUpdateFileInfo, methods=["PUT"])
+
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>'.format(endpoint), view_func=self.pretranslatedDeleteProject, methods=["DELETE"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>'.format(endpoint), view_func=self.pretranslatedDeleteResource, methods=["DELETE"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>/file/<int:file_id>'.format(endpoint), view_func=self.pretranslatedDeleteFile, methods=["PUT"])
+
+
+
+
+
+
+            self.app.add_url_rule('{}/user/pretranslated/project'.format(endpoint), view_func=self.pretranslatedList, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/coverPhoto/<filename>'.format(endpoint), view_func=self.pretranslatedProvideCoverPhoto, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource'.format(endpoint), view_func=self.pretranslatedProvideResource, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/request'.format(endpoint), view_func=self.addUserForDownload, methods=["POST"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/markAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/sendMail'.format(endpoint), view_func=self.pretranslatedSendToMail, methods=["POST"])
+            self.app.add_url_rule('{}/user/pretranslated/download/'.format(endpoint), view_func=self.download, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/rate'.format(endpoint), view_func=self.pretranslatedRateResult, methods=["POST"])
+            self.app.add_url_rule('{}/user/pretranslated/mine'.format(endpoint), view_func=self.pretranslatedMyDownloadedList, methods=["GET"])
 
     ########## Admin side ############
 
@@ -650,12 +667,12 @@ class PretranslatedAPI(object):
             return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedCreateResource(self):
+    def pretranslatedCreateResource(self, project_id):
         """
         번역물 리소스 생성 API
 
         **Parameters**
-          #. **"project_id"**: 프로젝트 ID
+          #. **"project_id"**: 프로젝트 ID (URL)
           #. **"target_language_id"**: 번역 타겟 언어 ID (원 언어일수도 있음)
           #. **"theme"**: 제목
           #. **"description"**: 번역물 설명
@@ -679,9 +696,10 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
         for key in parameters.keys():
-            if key not in ['project_id', 'target_language_id', 'theme', 'description', 'tone_id', 'read_permission_level', 'price', 'is_original']:
+            if key not in ['target_language_id', 'theme', 'description', 'tone_id', 'read_permission_level', 'price', 'is_original']:
                 return make_response("Bad request", 400)
         is_original = parameters['is_original']
+        parameters['project_id'] = project_id
         parameters.pop('is_original')
         is_ok, resource_id = pretranslatedObj.createResource(**parameters)
 
@@ -703,13 +721,13 @@ class PretranslatedAPI(object):
               , message="OK"), 200)
 
     @admin_required
-    def pretranslatedCreateFile(self):
+    def pretranslatedCreateFile(self, project_id, resource_id):
         """
         파일 업로드 API
 
         **Parameters**
-          #. **"project_id"**: 프로젝트 ID
-          #. **"resource_id"**: Resource ID
+          #. **"project_id"**: 프로젝트 ID (URL)
+          #. **"resource_id"**: Resource ID (URL)
           #. **"preview_permission"**: 미리보기 권한
           #. **"file_list[]"**: 파일 목록
 
@@ -728,7 +746,10 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
         upload_files = request.files.getlist("file_list[]")
+        parameters['project_id'] = project_id
+        parametres['resource_id'] = resource_id
         parameters.pop('file_list[]')
+
         for upload_file in upload_files:
             parameters['file_name'] = upload_file.filename
             parameters['file_binary'] = upload_file.read()
@@ -783,7 +804,7 @@ class PretranslatedAPI(object):
             return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedUpdateResourceInfo(self, resource_id):
+    def pretranslatedUpdateResourceInfo(self, project_id, resource_id):
         """
         번역물 리소스 수정 API
 
@@ -811,7 +832,7 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
         is_ok = pretranslatedObj.updateResource(resource_id, **parameters)
-        if is_of == True:
+        if is_ok == True:
             g.db.commit()
             return make_response(json.jsonify(
               , message="OK"), 200)
@@ -821,7 +842,7 @@ class PretranslatedAPI(object):
             return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedUpdateFileInfo(self, file_id):
+    def pretranslatedUpdateFileInfo(self, project_id, resource_id, file_id):
         """
         파일 수정 API
 
@@ -884,7 +905,7 @@ class PretranslatedAPI(object):
             return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedDeleteResource(self, resource_id):
+    def pretranslatedDeleteResource(self, project_id, resource_id):
         """
         리소스 삭제
         **Parameters**
@@ -907,7 +928,7 @@ class PretranslatedAPI(object):
             return make_response("Fail", 410)
 
     @admin_required
-    def pretranslatedDeleteFile(self, file_id):
+    def pretranslatedDeleteFile(self, project_id, resource_id, file_id):
         """
         파일 삭제
         **Parameters**
@@ -951,6 +972,73 @@ class PretranslatedAPI(object):
 
 
     ######################## User side #####################
+
+    def pretranslatedList(self):
+        """
+        기 번역된 목록 리스트
+
+        **Parameters**
+          #. **"page"**: 페이지 (OPTIONAL)
+
+        **Response**
+          **200**
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "data": [
+                   {
+                     "id": 13,
+                     "translator_id": 4,
+                     "translator_email": "admin@ciceron.me",
+                     "original_lang_id": 1,
+                     "original_lang": "Korean",
+                     "target_lang_id": 2,
+                     "target_lang": "English(USA)",
+                     "format_id": 0,
+                     "format": null,
+                     "subject_id": 0,
+                     "subject": null,
+                     "tone_id": 0,
+                     "tone": null,
+                     "registered_time": "Sun, 22 Jan 2017 07:23:47 GMT",
+                     "points": 0,
+                     "theme_text": "Mail test",
+                     "filename": "전문연.pdf",
+                     "description": "Mail test"
+                   }
+                 ]
+               }
+          
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        page = int(request.args.get('page', 1))
+        result = pretranslatedObj.pretranslatedList(page)
+        return make_response(json.jsonify(data=result), 200)
+
+    def pretranslatedProvideCoverPhoto(self, project_id, filename):
+        """
+        커버사진 다운로드
+
+        **Response**
+          #. **200**: 파일 다운로드
+          #. **404**: 파일 없음
+
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        is_ok, _filename, binary = pretranslatedObj.provideCoverPhoto(project_id)
+        if is_ok == True:
+            return send_file(binary, attachment_filename=_filename)
+        else:
+            return make_response("Fail", 404)
+
+    def pretranslatedProvideResource(self, project_id):
+        """
+        리소스 정보 보여주기
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[0])
+        return make_response(json.jsonify(data=resource_list), 200)
 
     def addUserForDownload(self, project_id, resource_id):
         """
@@ -1010,7 +1098,7 @@ class PretranslatedAPI(object):
                 message="Fail"),
                 405)
 
-    def issueDownloadableLinkAndSendToMail(self, project_id, resource_id):
+    def pretranslatedSendToMail(self, project_id, resource_id):
         """
         구매한 번역 메일로 링크 전송
 
@@ -1031,7 +1119,6 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
         email = parameters['email']
-        resource_id = parameters['resource_id']
 
         # 보안을 위하여 Token 제작
         is_issued, checksums = pretranslatedObj.calcChecksumForEmailParams(resource_id, email)
@@ -1072,6 +1159,45 @@ class PretranslatedAPI(object):
         g.db.commit()
         return make_response(json.jsonify(message="OK"), 200)
 
+    def download(self):
+        """
+        번역 파일 다운로드
+
+        **Parameters**
+          #. **"email"**: 이메일
+          #. **"resource_id"**: Resource ID
+          #. **"file_id"**: File ID
+          #. **"token"**: 정당한 의뢰인지 알아보는 Token
+
+        **Response**
+          **200**: 다운로드 실행
+
+          **410**: Checksum 에러
+
+          **411**: 다운로드 완료 마킹 실패
+
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        email = request.args['email']
+        resource_id = request.args['resource_id']
+        file_id = request.args['file_id']
+        checksum_from_param = request.args['token']
+
+        is_ok = pretranslatedObj.checkChecksumFromEmailParams(resorce_id, file_id, email, checksum_from_param)
+        if is_ok == False:
+            g.db.rollback()
+            return make_response(json.jsonify(message="Auth error"), 410)
+
+        else:
+            is_marked = pretranslatedObj.markAsDownloaded(resource_id, email)
+            if is_marked == True:
+                g.db.commit()
+                can_provide, filename, binary = pretranslatedObj.provideFile(resource_id, file_id)
+                return send_file(binary, attachment_filename=filename)
+            else:
+                g.db.rollback()
+                return make_response(json.jsonify(message="DB error"), 411)
+
     @login_required
     def pretranslatedRateResult(self, project_id, resource_id):
         """
@@ -1106,49 +1232,6 @@ class PretranslatedAPI(object):
                 message="Fail"),
                 405)
 
-    def pretranslatedList(self):
-        """
-        기 번역된 목록 리스트
-
-        **Parameters**
-          #. **"page"**: 페이지 (OPTIONAL)
-
-        **Response**
-          **200**
-            .. code-block:: json
-               :linenos:
-
-               {
-                 "data": [
-                   {
-                     "id": 13,
-                     "translator_id": 4,
-                     "translator_email": "admin@ciceron.me",
-                     "original_lang_id": 1,
-                     "original_lang": "Korean",
-                     "target_lang_id": 2,
-                     "target_lang": "English(USA)",
-                     "format_id": 0,
-                     "format": null,
-                     "subject_id": 0,
-                     "subject": null,
-                     "tone_id": 0,
-                     "tone": null,
-                     "registered_time": "Sun, 22 Jan 2017 07:23:47 GMT",
-                     "points": 0,
-                     "theme_text": "Mail test",
-                     "filename": "전문연.pdf",
-                     "description": "Mail test"
-                   }
-                 ]
-               }
-          
-        """
-        pretranslatedObj = Pretranslated(g.db)
-        page = int(request.args.get('page', 1))
-        result = pretranslatedObj.pretranslatedList(page)
-        return make_response(json.jsonify(data=result), 200)
-
     @login_required
     def pretranslatedMyDownloadedList(self):
         """
@@ -1162,68 +1245,4 @@ class PretranslatedAPI(object):
         user_id = ciceron_lib.get_user_id(g.db, session['useremail'])
         result = pretranslatedObj.getMyDownloadList(user_id)
         return make_response(json.jsonifuy(data=result), 200)
-
-    @login_required
-    def pretranslatedProvideCoverPhoto(self, project_id, filename):
-        """
-        커버사진 다운로드
-
-        **Response**
-          #. **200**: 파일 다운로드
-          #. **404**: 파일 없음
-
-        """
-        pretranslatedObj = Pretranslated(g.db)
-        is_ok, _filename, binary = pretranslatedObj.provideCoverPhoto(project_id)
-        if is_ok == True:
-            return send_file(binary, attachment_filename=_filename)
-        else:
-            return make_response("Fail", 404)
-
-    @login_required
-    def pretranslatedProvideResource(self, project_id):
-        """
-        리소스 정보 보여주기
-        """
-        pretranslatedObj = Pretranslated(g.db)
-        resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[0])
-        return make_response(json.jsonify(data=resource_list), 200)
-
-    def download(self):
-        """
-        번역 파일 다운로드
-
-        **Parameters**
-          #. **"email"**: 이메일
-          #. **"request_id"**: Request ID
-          #. **"token"**: 정당한 의뢰인지 알아보는 Token
-
-        **Response**
-          **200**: 다운로드 실행
-
-          **410**: Checksum 에러
-
-          **411**: 다운로드 완료 마킹 실패
-
-        """
-        pretranslatedObj = Pretranslated(g.db)
-        email = request.args['email']
-        resource_id = request.args['resource_id']
-        file_id = request.args['file_id']
-        checksum_from_param = request.args['token']
-
-        is_ok = pretranslatedObj.checkChecksumFromEmailParams(resorce_id, file_id, email, checksum_from_param)
-        if is_ok == False:
-            g.db.rollback()
-            return make_response(json.jsonify(message="Auth error"), 410)
-
-        else:
-            is_marked = pretranslatedObj.markAsDownloaded(resource_id, email)
-            if is_marked == True:
-                g.db.commit()
-                can_provide, filename, binary = pretranslatedObj.provideFile(resource_id, file_id)
-                return send_file(binary, attachment_filename=filename)
-            else:
-                g.db.rollback()
-                return make_response(json.jsonify(message="DB error"), 411)
 
