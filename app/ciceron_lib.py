@@ -1641,7 +1641,7 @@ def calculateChecksum(*args):
     checksum_obj = hashlib.md5()
     for line in args:
         try:
-            checksum_obj.update(line.encode('utf-8'))
+            checksum_obj.update(str(line).encode('utf-8'))
         except:
             checksum_obj.update(line)
 

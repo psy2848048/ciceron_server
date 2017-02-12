@@ -345,6 +345,11 @@ class UserControlAPI(object):
             self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileRevise, methods=["POST"])
             self.app.add_url_rule('{}/user/profile/<int:user_id>/profilePic/<fake_filename>'.format(endpoint), view_func=self.profilePic, methods=["GET"])
 
+            if os.environ['PURPOSE'] != 'PROD':
+                self.app.add_url_rule('{}/login/admin'.format(endpoint), view_func=self.fakeLoginAdmin, methods=["GET", "POST"])
+                self.app.add_url_rule('{}/login/user'.format(endpoint), view_func=self.fakeLoginUser, methods=["GET", "POST"])
+
+
     def loginCheck(self):
         """
         해당 API
@@ -812,6 +817,17 @@ class UserControlAPI(object):
         else:
             return send_file(profile_pic, attachment_filename=fake_filename)
 
+    def fakeLoginAdmin(self):
+        session['useremail'] = 'admin@ciceron.me'
+        session['logged_in'] = True
+        session['isTranslator'] = True
+        return make_response("OK", 200)
+
+    def fakeLoginUser(self):
+        session['useremail'] = 'psy2848048@nate.com'
+        session['logged_in'] = True
+        session['isTranslator'] = False
+        return make_response("OK", 200)
 
 if __name__ == "__main__":
     pass

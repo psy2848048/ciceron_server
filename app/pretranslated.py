@@ -33,8 +33,8 @@ class Pretranslated(object):
 
         params = kwargs
         params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_PROJECT")
-        params['registered_timestamp'] = datetime.utcnow()
-        print(params['registered_timestamp'])
+        params['register_timestamp'] = datetime.utcnow()
+        print(params['register_timestamp'])
 
         return params
 
@@ -52,8 +52,8 @@ class Pretranslated(object):
 
         params = kwargs
         params['id'] = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_RESOURCES")
-        params['registered_time'] = datetime.utcnow()
-        print(params['registered_timestamp'])
+        params['register_timestamp'] = datetime.utcnow()
+        print(params['register_timestamp'])
 
         return params
 
@@ -171,7 +171,7 @@ class Pretranslated(object):
         cursor = self.conn.cursor()
 
         query = """
-            SELECT filename, checksum
+            SELECT file_name, checksum
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
             WHERE id = %s
         """
@@ -180,7 +180,7 @@ class Pretranslated(object):
         if ret is None or len(ret) == 0:
             return False, None
 
-        hashed_result = ciceron_lib.calculateChecksum(resource_id, filename, email, checksum)
+        hashed_result = ciceron_lib.calculateChecksum(resource_id, ret[0], email, ret[1])
         return True, hashed_result
 
     def calcChecksumForEmailParams(self, resource_id, email):
@@ -198,8 +198,13 @@ class Pretranslated(object):
 
         hashed_result_list = []
         for file_id in ret:
-            hashed_result = ciceron_lib.calculateiUnitChecksum(resource_id, file_id, email, checksum)
-            hashed_result_list.append(hashed_result)
+            _, hashed_result = self.calcUnitChecksumForEmailParams(resource_id, file_id, email)
+            hashed_result_list.append(
+                    {
+                        "file_id": file_id,
+                        "checksum": hashed_result
+                    }
+                )
 
         return True, hashed_result_list
 
@@ -216,9 +221,9 @@ class Pretranslated(object):
 
         params = "?" + '&'.join([
               'resource_id={}'.format(resource_id)
-            , 'file_id={}'.format(file_id)
             , 'email={}'.format(email)
             , 'token={}'.format(checksum)
+            , 'file_id={}'.format(file_id)
             ])
         link = '/'.join([HOST, endpoint[1:], 'user', 'pretranslated', 'download', params])
         return link
@@ -235,18 +240,19 @@ class Pretranslated(object):
         query = """
             SELECT CASE 
                      WHEN is_paid = true THEN true
-                     WHEN is_paid = false AND (SELECT points FROM CICERON.F_PRETRANSLATED_RESOURCES WHERE id = %s) > 0 THEN false
+                     WHEN is_paid = false AND (SELECT price FROM CICERON.F_PRETRANSLATED_RESOURCES WHERE id = %s) > 0 THEN false
                      ELSE true END as is_paid
             FROM CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             WHERE resource_id = %s
               AND email = %s
         """
-        cursor.execute(query, (resource_id, request_id, email, ))
+        cursor.execute(query, (resource_id, resource_id, email, ))
         ret = cursor.fetchone()
         if ret is None or len(ret) == 0:
             return 2
 
         is_paid = ret[0]
+        print(is_paid)
         if is_paid == True:
             return 0
         else:
@@ -272,7 +278,7 @@ class Pretranslated(object):
         cursor = self.conn.cursor()
         query = """
             SELECT
-                filename
+                file_name
               , file_binary
             FROM CICERON.F_PRETRANSLATED_RESULT_FILE
             WHERE id = %s AND resource_id = %s
@@ -301,7 +307,7 @@ class Pretranslated(object):
         ret = cursor.fetchall()
         file_list = ciceron_lib.dbToDict(columns, ret)
         for item in file_list:
-            can_get, file_name, _ = self.provideFile(item['project_id'], item['resource_id'], item['id'])
+            can_get, file_name, _ = self.provideFile(item['resource_id'], item['id'])
             item['file_url'] = endpoint + '/pretranslated/project/{}/resources/{}/file/{}/{}'.format(item['project_id'], item['resource_id'], item['id'], file_name)
 
         return file_list
@@ -315,6 +321,7 @@ class Pretranslated(object):
 	"""
         cursor.execute(query, (project_id, resource_id, ))
         column = [col[0] for col in cursor.description]
+        ret = cursor.fetchall()
         requester_list = ciceron_lib.dbToDict(column, ret)
 
         return requester_list
@@ -328,6 +335,7 @@ class Pretranslated(object):
 	"""
         cursor.execute(query, (project_id, resource_id, ))
         column = [col[0] for col in cursor.description]
+        ret = cursor.fetchall()
         translator_list = ciceron_lib.dbToDict(column, ret)
 
         return translator_list
@@ -382,15 +390,15 @@ class Pretranslated(object):
         project_list = ciceron_lib.dbToDict(columns, ret)
         for item in project_list:
             can_get, file_name, _ = self.provideCoverPhoto(item['id'])
-            item['cover_photo_url'] = endpoint + '/pretranslated/project/{}/coverPhoto/{}'.format(item['id'], file_name)
+            item['cover_photo_url'] = endpoint + '/user/pretranslated/project/{}/coverPhoto/{}'.format(item['id'], file_name)
 
-        return pretranslated_list
+        return project_list
 
     def pretranslatedResourceList(self, project_id, endpoint):
         cursor = self.conn.cursor()
         query = """
             SELECT *
-            FROM CICERON.V_PRETRANSLATED_RESOURCE
+            FROM CICERON.V_PRETRANSLATED_RESOURCES
             WHERE project_id = %s
             ORDER BY id ASC
         """
@@ -462,7 +470,7 @@ class Pretranslated(object):
         cursor = self.conn.cursor()
         query_checkCount = """
             SELECT count(*)
-            FROM CICERON.F_PRETRANSLATED_DOWNLOAD_USER
+            FROM CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             WHERE resource_id = %s AND email = %s
         """
         cursor.execute(query_checkCount, (resource_id, email, ))
@@ -473,14 +481,14 @@ class Pretranslated(object):
             return 2
 
         query_addUser = """
-            INSERT INTO CICERON.F_PRETRANSLATED_DOWNLOAD_USER
+            INSERT INTO CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             (id, resource_id, is_user, email, is_paid, is_sent, is_downloaded, request_timestamp)
             VALUES
             (%s, %s, %s, %s, false, false, false, CURRENT_TIMESTAMP)
         """
         user_id = ciceron_lib.get_user_id(self.conn, email)
         is_user = False if user_id == -1 else True
-        new_downloader_id = ciceron_lib.get_new_id(self.conn, "CICERON.F_PRETRANSLATED_DOWNLOAD_USER")
+        new_downloader_id = ciceron_lib.get_new_id(self.conn, "F_PRETRANSLATED_DOWNLOADED_USER")
 
         try:
             cursor.execute(query_addUser, (new_downloader_id, resource_id, is_user, email, ))
@@ -526,16 +534,16 @@ class Pretranslated(object):
 
         return True
 
-    def markAsPaid(self, request_id, email):
+    def markAsPaid(self, resource_id, email):
         cursor = self.conn.cursor()
 
         query = """
             UPDATE CICERON.F_PRETRANSLATED_DOWNLOADED_USER
             SET is_paid = true
-            WHERE request_id = %s AND email = %s
+            WHERE resource_id = %s AND email = %s
         """
         try:
-            cursor.execute(query, (request_id, email, ))
+            cursor.execute(query, (resource_id, email, ))
         except:
             traceback.print_exc()
             self.conn.rollback()
@@ -603,7 +611,7 @@ class PretranslatedAPI(object):
 
             self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>'.format(endpoint), view_func=self.pretranslatedDeleteProject, methods=["DELETE"])
             self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>'.format(endpoint), view_func=self.pretranslatedDeleteResource, methods=["DELETE"])
-            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>/file/<int:file_id>'.format(endpoint), view_func=self.pretranslatedDeleteFile, methods=["PUT"])
+            self.app.add_url_rule('{}/admin/pretranslated/project/<int:project_id>/resource/<int:resource_id>/file/<int:file_id>'.format(endpoint), view_func=self.pretranslatedDeleteFile, methods=["DELETE"])
 
 
 
@@ -653,7 +661,7 @@ class PretranslatedAPI(object):
                 return make_response("Bad request", 400)
 
         cover_photo_obj = request.files['cover_photo']
-        parameters.pop('cover_photo')
+        #parameters.pop('cover_photo')
         parameters['cover_photo_filename'] = cover_photo_obj.filename
         parameters['cover_photo_binary'] = cover_photo_obj.read()
         is_ok, project_id = pretranslatedObj.createProject(**parameters)
@@ -714,11 +722,10 @@ class PretranslatedAPI(object):
                 g.db.rollback()
                 return make_response("Fail", 410)
 
-        else:
-            g.db.commit()
-            return make_response(json.jsonify(
-                resource_id=resource_id
-              , message="OK"), 200)
+        g.db.commit()
+        return make_response(json.jsonify(
+            resource_id=resource_id
+          , message="OK"), 200)
 
     @admin_required
     def pretranslatedCreateFile(self, project_id, resource_id):
@@ -747,8 +754,7 @@ class PretranslatedAPI(object):
         parameters = ciceron_lib.parse_request(request)
         upload_files = request.files.getlist("file_list[]")
         parameters['project_id'] = project_id
-        parametres['resource_id'] = resource_id
-        parameters.pop('file_list[]')
+        parameters['resource_id'] = resource_id
 
         for upload_file in upload_files:
             parameters['file_name'] = upload_file.filename
@@ -978,31 +984,28 @@ class PretranslatedAPI(object):
             .. code-block:: json
                :linenos:
 
-               {
-                 "data": [
-                   {
-                     "id": 13,
-                     "translator_id": 4,
-                     "translator_email": "admin@ciceron.me",
-                     "original_lang_id": 1,
-                     "original_lang": "Korean",
-                     "target_lang_id": 2,
-                     "target_lang": "English(USA)",
-                     "format_id": 0,
-                     "format": null,
-                     "subject_id": 0,
-                     "subject": null,
-                     "tone_id": 0,
-                     "tone": null,
-                     "registered_time": "Sun, 22 Jan 2017 07:23:47 GMT",
-                     "points": 0,
-                     "theme_text": "Mail test",
-                     "filename": "전문연.pdf",
-                     "description": "Mail test"
-                   }
-                 ]
-               }
-          
+                 {
+                   "data": [
+                     {
+                       "id": 2,
+                       "original_resource_id": 4,
+                       "original_lang_id": 1,
+                       "original_lang": "Korean",
+                       "target_language_id": 1,
+                       "target_language": "Korean",
+                       "format_id": 1,
+                       "format": null,
+                       "subject_id": 1,
+                       "subject": null,
+                       "author": "이준행",
+                       "project_register_timestamp": "Sun, 12 Feb 2017 08:58:34 GMT",
+                       "original_theme": "테스트",
+                       "description": "테스트의 한 일환입니다",
+                       "resource_register_timestamp": "Sun, 12 Feb 2017 09:10:04 GMT",
+                       "cover_photo_url": "/api/v2/user/pretranslated/project/2/coverPhoto/preview.png"
+                     }
+                   ]
+                 }
         """
         pretranslatedObj = Pretranslated(g.db)
         page = int(request.args.get('page', 1))
@@ -1021,13 +1024,101 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         is_ok, _filename, binary = pretranslatedObj.provideCoverPhoto(project_id)
         if is_ok == True:
-            return send_file(binary, attachment_filename=_filename)
+            return send_file(io.BytesIO(binary), attachment_filename=_filename)
         else:
             return make_response("Fail", 404)
 
     def pretranslatedProvideResource(self, project_id):
         """
         리소스 정보 보여주기
+        **Parameters**
+          #. **"project_id"**: 프로젝트 ID (URL)
+
+        **Response**
+          #. **200**
+            .. code-block:: json
+              :linenos:
+
+                {
+                  "data": [
+                    {
+                      "id": 4,
+                      "project_id": 2,
+                      "target_language_id": 1,
+                      "target_language": "Korean",
+                      "theme": "테스트",
+                      "description": "테스트의 한 일환입니다",
+                      "tone_id": 1,
+                      "read_permission_level": 1,
+                      "price": 0,
+                      "register_timestamp": "Sun, 12 Feb 2017 09:10:04 GMT",
+                      "resorce_info": [
+                        {
+                          "id": 1,
+                          "project_id": 2,
+                          "resource_id": 4,
+                          "preview_permission": 1,
+                          "file_url": "/api/v2/pretranslated/project/2/resources/4/file/1/swsx.png"
+                        }
+                      ],
+                      "requester_list": [
+                        {
+                          "requester_id": 2,
+                          "resource_id": 4,
+                          "project_id": 2,
+                          "id": 2,
+                          "email": "pjh0308@gmail.com",
+                          "name": "박박박",
+                          "mother_language_id": 1,
+                          "is_translator": false,
+                          "other_language_list_id": null,
+                          "profile_pic_path": "profile_pic/2/20151127104901114524.png",
+                          "numofrequestpending": 0,
+                          "numofrequestongoing": 0,
+                          "numofrequestcompleted": 0,
+                          "numoftranslationpending": 0,
+                          "numoftranslationongoing": 0,
+                          "numoftranslationcompleted": 0,
+                          "badgelist_id": null,
+                          "profile_text": "Translation license",
+                          "trans_request_state": 1,
+                          "nationality": null,
+                          "residence": null,
+                          "return_rate": 0.7,
+                          "member_since": null
+                        }
+                      ],
+                      "translator_list": [
+                        {
+                          "translator_id": 1,
+                          "resource_id": 4,
+                          "project_id": 2,
+                          "id": 1,
+                          "email": "psy2848048@gmail.com",
+                          "name": "Bryan",
+                          "mother_language_id": 1,
+                          "is_translator": true,
+                          "other_language_list_id": null,
+                          "profile_pic_path": "profile_pic/1/20151126160851584724.jpg",
+                          "numofrequestpending": 0,
+                          "numofrequestongoing": 0,
+                          "numofrequestcompleted": 0,
+                          "numoftranslationpending": 0,
+                          "numoftranslationongoing": 0,
+                          "numoftranslationcompleted": 1,
+                          "badgelist_id": null,
+                          "profile_text": "Test",
+                          "trans_request_state": 2,
+                          "nationality": null,
+                          "residence": null,
+                          "return_rate": 0.7,
+                          "member_since": null
+                        }
+                      ]
+                    }
+                  ]
+                }
+
         """
         pretranslatedObj = Pretranslated(g.db)
         resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[-1])
@@ -1083,7 +1174,7 @@ class PretranslatedAPI(object):
 
         if is_marked == True:
             g.db.commit()
-            return redirect('{}/user/pretranslated/stoa'.format(self.endpoints[-1]), 302)
+            return redirect('{}/user/pretranslated/project'.format(self.endpoints[-1]), 302)
 
         else:
             g.db.rollback()
@@ -1096,8 +1187,9 @@ class PretranslatedAPI(object):
         구매한 번역 메일로 링크 전송
 
         **Parameters**
+          #. **"project_id"**: Project ID. (URL)
+          #. **"resource_id"**: 구매한 번역물의 ID. (URL)
           #. **"email"**: 이메일. 프론트에서는 로그인되어 있다면 세션의 'useremail'을 따 와서 자동으로 입력했으면 하는 소망이 있음.
-          #. **"request_id"**: 구매한 번역물의 ID. URL에 직접 입력
 
         **Response**
           **200**: 성공
@@ -1114,7 +1206,7 @@ class PretranslatedAPI(object):
         email = parameters['email']
 
         # 보안을 위하여 Token 제작
-        is_issued, checksums = pretranslatedObj.calcChecksumForEmailParams(resource_id, email)
+        is_issued, checksums_and_fileId = pretranslatedObj.calcChecksumForEmailParams(resource_id, email)
         if is_issued == False:
             g.db.rollback()
             return make_response(json.jsonify(
@@ -1123,19 +1215,21 @@ class PretranslatedAPI(object):
 
         # 지불여부 체크
         is_paid = pretranslatedObj.checkIsPaid(resource_id, email)
-        if is_paid == False:
+        if is_paid > 0:
             return make_response(json.jsonify(message="Need payment"), 411)
 
         # 링크 제작하고 메일로 전송
         downloadable_links = []
-        for checksum in checksums:
-            downloadable_link = pretranslatedObj.generateDownloadableLink(self.endpoints[-1], resource_id, email, checksum)
-            downloadable_links.append(checksum)
+        for item in checksums_and_fileId:
+            file_id = item['file_id']
+            checksum = item['checksum']
+            downloadable_link = pretranslatedObj.generateDownloadableLink(self.endpoints[-1], resource_id, file_id, email, checksum)
+            downloadable_links.append(downloadable_link)
 
         href_part = pretranslatedObj._hrefTagMaker(downloadable_links)
 
         f = open('templates/pretranslatedDownloadMail.html', 'r')
-        mail_content = f.read().format(href_part=href_part)
+        mail_content = f.read().format(href_part='\n'.join(href_part))
         f.close()
         try:
             ciceron_lib.send_mail(
@@ -1176,7 +1270,7 @@ class PretranslatedAPI(object):
         file_id = request.args['file_id']
         checksum_from_param = request.args['token']
 
-        is_ok = pretranslatedObj.checkChecksumFromEmailParams(resorce_id, file_id, email, checksum_from_param)
+        is_ok = pretranslatedObj.checkChecksumFromEmailParams(resource_id, file_id, email, checksum_from_param)
         if is_ok == False:
             g.db.rollback()
             return make_response(json.jsonify(message="Auth error"), 410)
@@ -1186,7 +1280,7 @@ class PretranslatedAPI(object):
             if is_marked == True:
                 g.db.commit()
                 can_provide, filename, binary = pretranslatedObj.provideFile(resource_id, file_id)
-                return send_file(binary, attachment_filename=filename)
+                return send_file(io.BytesIO(binary), attachment_filename=filename)
             else:
                 g.db.rollback()
                 return make_response(json.jsonify(message="DB error"), 411)
@@ -1233,9 +1327,28 @@ class PretranslatedAPI(object):
         **Parameters**
           #. **"page"**: 페이지 (OPTIONAL)
 
+        **Response**
+          #. **200**
+            .. code-block:: json
+               :linenos:
+
+                 {
+                   "data": [
+                     {
+                       "id": 3,
+                       "resource_id": 4,
+                       "is_paid": false,
+                       "is_sent": false,
+                       "is_downloaded": false,
+                       "feedback_score": null,
+                       "request_timestamp": "Sun, 12 Feb 2017 19:40:45 GMT"
+                     }
+                   ]
+                 }
+
         """
         pretranslatedObj = Pretranslated(g.db)
         user_id = ciceron_lib.get_user_id(g.db, session['useremail'])
         result = pretranslatedObj.getMyDownloadList(user_id)
-        return make_response(json.jsonifuy(data=result), 200)
+        return make_response(json.jsonify(data=result), 200)
 
