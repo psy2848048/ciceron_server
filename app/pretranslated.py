@@ -760,8 +760,7 @@ class PretranslatedAPI(object):
 
         else:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
     @admin_required
     def pretranslatedUpdateProjectInfo(self, project_id):
@@ -796,8 +795,7 @@ class PretranslatedAPI(object):
         is_ok = pretranslatedObj.updateProjectInfo(project_id, **parameters)
         if is_ok == True:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
         else:
             g.db.rollback()
@@ -834,8 +832,7 @@ class PretranslatedAPI(object):
         is_ok = pretranslatedObj.updateResource(resource_id, **parameters)
         if is_ok == True:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
         else:
             g.db.rollback()
@@ -874,8 +871,7 @@ class PretranslatedAPI(object):
         is_ok = pretranslatedObj.updateFile(file_id, **parameters)
         if is_ok == True:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
         else:
             g.db.rollback()
@@ -897,8 +893,7 @@ class PretranslatedAPI(object):
         is_ok = pretranslatedObj.deleteProject(project_id)
         if is_ok == True:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
         else:
             g.db.rollback()
@@ -920,8 +915,7 @@ class PretranslatedAPI(object):
         is_ok = pretranslatedObj.deleteResource(resource_id)
         if is_ok == True:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
         else:
             g.db.rollback()
@@ -943,8 +937,7 @@ class PretranslatedAPI(object):
         is_ok = pretranslatedObj.deleteResultFile(file_id)
         if is_ok == True:
             g.db.commit()
-            return make_response(json.jsonify(
-              , message="OK"), 200)
+            return make_response("OK", 200)
 
         else:
             g.db.rollback()
