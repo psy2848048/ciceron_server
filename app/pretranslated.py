@@ -1006,7 +1006,7 @@ class PretranslatedAPI(object):
         """
         pretranslatedObj = Pretranslated(g.db)
         page = int(request.args.get('page', 1))
-        result = pretranslatedObj.pretranslatedList(page)
+        result = pretranslatedObj.pretranslatedProjectList(self.endpoints[-1], page)
         return make_response(json.jsonify(data=result), 200)
 
     def pretranslatedProvideCoverPhoto(self, project_id, filename):
@@ -1030,7 +1030,7 @@ class PretranslatedAPI(object):
         리소스 정보 보여주기
         """
         pretranslatedObj = Pretranslated(g.db)
-        resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[0])
+        resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[-1])
         return make_response(json.jsonify(data=resource_list), 200)
 
     def addUserForDownload(self, project_id, resource_id):
