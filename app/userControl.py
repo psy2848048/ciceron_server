@@ -345,7 +345,7 @@ class UserControlAPI(object):
             self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileRevise, methods=["POST"])
             self.app.add_url_rule('{}/user/profile/<int:user_id>/profilePic/<fake_filename>'.format(endpoint), view_func=self.profilePic, methods=["GET"])
 
-            if os.environ['PURPOSE'] != 'PROD':
+            if os.environ.get('PURPOSE') != 'PROD':
                 self.app.add_url_rule('{}/login/admin'.format(endpoint), view_func=self.fakeLoginAdmin, methods=["GET", "POST"])
                 self.app.add_url_rule('{}/login/user'.format(endpoint), view_func=self.fakeLoginUser, methods=["GET", "POST"])
 

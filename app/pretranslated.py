@@ -644,6 +644,7 @@ class PretranslatedAPI(object):
 
         **Response**
           #. **200**: 추가 성공
+
             .. code-block:: json
                :linenos:
 
@@ -651,7 +652,7 @@ class PretranslatedAPI(object):
                  "project_id": 1 // Request ID
                }
 
-           #. **410**: 추가 실패 
+          #. **410**: 추가 실패 
 
         """
         pretranslatedObj = Pretranslated(g.db)
@@ -691,6 +692,7 @@ class PretranslatedAPI(object):
 
         **Response**
           #. **200**: 게시 성공
+
             .. code-block:: json
                :linenos:
 
@@ -698,7 +700,7 @@ class PretranslatedAPI(object):
                  "resource_id": 1 // Request ID
                }
 
-           #. **410**: 게시 실패 
+          #. **410**: 게시 실패 
 
         """
         pretranslatedObj = Pretranslated(g.db)
@@ -740,6 +742,7 @@ class PretranslatedAPI(object):
 
         **Response**
           #. **200**: 게시 성공
+
             .. code-block:: json
                :linenos:
 
@@ -747,7 +750,7 @@ class PretranslatedAPI(object):
                  "resource_id": 1 // Request ID
                }
 
-           #. **410**: 게시 실패 
+          #. **410**: 게시 실패 
 
         """
         pretranslatedObj = Pretranslated(g.db)
@@ -772,6 +775,7 @@ class PretranslatedAPI(object):
     def pretranslatedUpdateProjectInfo(self, project_id):
         """
         프로젝트 정보 업데이트
+
         **Parameters (ALL OPTIONAL)**
           #. **"project_id"**: Project ID (URL)
           #. **"original_lang_id"**: 원문 언어
@@ -823,6 +827,7 @@ class PretranslatedAPI(object):
 
         **Response**
           #. **200**: 업데이트 성공
+
             .. code-block:: json
                :linenos:
 
@@ -830,7 +835,7 @@ class PretranslatedAPI(object):
                  "message": "OK" // Request ID
                }
 
-           #. **410**: 업데이트 실패 
+          #. **410**: 업데이트 실패 
 
         """
         pretranslatedObj = Pretranslated(g.db)
@@ -856,6 +861,7 @@ class PretranslatedAPI(object):
 
         **Response**
           #. **200**: 업데이트 성공
+
             .. code-block:: json
                :linenos:
 
@@ -863,7 +869,7 @@ class PretranslatedAPI(object):
                  "message": "OK" // Request ID
                }
 
-           #. **410**: 게시 실패 
+          #. **410**: 게시 실패 
 
         """
         pretranslatedObj = Pretranslated(g.db)
@@ -887,6 +893,7 @@ class PretranslatedAPI(object):
     def pretranslatedDeleteProject(self, project_id):
         """
         프로젝트 삭제
+
         **Parameters**
           #. **"project_id"**: 프로젝트 ID (URL)
 
@@ -909,6 +916,7 @@ class PretranslatedAPI(object):
     def pretranslatedDeleteResource(self, project_id, resource_id):
         """
         리소스 삭제
+
         **Parameters**
           #. **"resource_id"**: Resource ID (URL)
 
@@ -931,6 +939,7 @@ class PretranslatedAPI(object):
     def pretranslatedDeleteFile(self, project_id, resource_id, file_id):
         """
         파일 삭제
+
         **Parameters**
           #. **"file_id"**: File ID (URL)
 
@@ -981,6 +990,7 @@ class PretranslatedAPI(object):
 
         **Response**
           **200**
+
             .. code-block:: json
                :linenos:
 
@@ -1031,11 +1041,13 @@ class PretranslatedAPI(object):
     def pretranslatedProvideResource(self, project_id):
         """
         리소스 정보 보여주기
+
         **Parameters**
           #. **"project_id"**: 프로젝트 ID (URL)
 
         **Response**
           #. **200**
+
             .. code-block:: json
               :linenos:
 
@@ -1126,6 +1138,8 @@ class PretranslatedAPI(object):
 
     def addUserForDownload(self, project_id, resource_id):
         """
+        다운로드 유저 추가
+
         **Parameters**
           #. **"email"**: 이메일. 프론트에서는 로그인되어 있다면 세션의 'useremail'을 따 와서 자동으로 입력했으면 하는 소망이 있음.
           #. **"project_id"**: 프로젝트 ID. URL에 직접 삽입
@@ -1329,6 +1343,7 @@ class PretranslatedAPI(object):
 
         **Response**
           #. **200**
+
             .. code-block:: json
                :linenos:
 
