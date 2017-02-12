@@ -308,29 +308,29 @@ class Pretranslated(object):
 
     def provideRequesterList(self, project_id, resource_id):
         cursor = self.conn.cursor()
-	query = """
+        query = """
 	    SELECT *
 	    FROM CICERON.V_PRETRANSLATED_REQUESTER
 	    WHERE project_id = %s AND resource_id = %s
 	"""
-	cursor.execute(query, (project_id, resource_id, ))
-	column = [col[0] for col in cursor.description]
-	requester_list = ciceron_lib.dbToDict(column, ret)
+        cursor.execute(query, (project_id, resource_id, ))
+        column = [col[0] for col in cursor.description]
+        requester_list = ciceron_lib.dbToDict(column, ret)
 
-	return requester_list
+        return requester_list
 
     def provideTranslatorList(self, project_id, resource_id):
         cursor = self.conn.cursor()
-	query = """
-	    SELECT *
-	    FROM CICERON.V_PRETRANSLATED_TRANSLATOR
-	    WHERE project_id = %s AND resource_id = %s
+        query = """
+            SELECT *
+            FROM CICERON.V_PRETRANSLATED_TRANSLATOR
+            WHERE project_id = %s AND resource_id = %s
 	"""
-	cursor.execute(query, (project_id, resource_id, ))
-	column = [col[0] for col in cursor.description]
-	translator_list = ciceron_lib.dbToDict(column, ret)
+        cursor.execute(query, (project_id, resource_id, ))
+        column = [col[0] for col in cursor.description]
+        translator_list = ciceron_lib.dbToDict(column, ret)
 
-	return translator_list
+        return translator_list
 
     def updateProjectInfo(self, project_id, **kwargs):
         query_check_resource_id = """
@@ -402,8 +402,8 @@ class Pretranslated(object):
         for item in resource_list:
             file_list_of_resource = self.provideFileListOfResource(item['id'], endpoint)
             item['resorce_info'] = file_list_of_resource
-	    item['requester_list'] = self.provideRequesterList(project_id, item['id'])
-	    item['translator_list'] = self.provideTranslatorList(project_id, item['id'])
+            item['requester_list'] = self.provideRequesterList(project_id, item['id'])
+            item['translator_list'] = self.provideTranslatorList(project_id, item['id'])
 
         return resource_list
 
