@@ -15,7 +15,7 @@ import nltk.data
 try:
     from . import ciceron_lib
 except:
-    from ciceron_lib import *
+    import ciceron_lib
 
 
 class I18nHandler(object):

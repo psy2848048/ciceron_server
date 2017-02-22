@@ -258,7 +258,7 @@ class UserControl(object):
             # 번역가 계좌의 돈
             cursor.execute("SELECT amount FROM CICERON.REVENUE WHERE id = %s",  (user_id, ))
             profile_ret['user_point'] = cursor.fetchone()[0]
-        elif is_your_profile == True and profile['is_translator'] == False:
+        elif is_my_profile == True and profile_ret['is_translator'] == False:
             # 사용자 미환급금
             cursor.execute("SELECT amount FROM CICERON.RETURN_POINT WHERE id = %s",  (user_id, ))
             profile_ret['user_point'] = cursor.fetchone()[0]

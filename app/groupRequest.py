@@ -6,7 +6,7 @@ import traceback
 try:
     from .ciceron_lib import *
 except:
-    from ciceron_lib import *
+    import ciceron_lib
 
 class GroupRequest(object):
     def __init__(self, conn):

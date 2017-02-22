@@ -17,6 +17,7 @@ import psycopg2
 from flask_cors import CORS
 from flask_session import Session
 from flask_cache import Cache
+import traceback
 
 try:
     from i18nHandler import I18nHandler
@@ -984,6 +985,7 @@ def requests():
                     i18nObj.unityToDb(request_id, i18n_langKey, original_lang_id, target_lang_id, i18n_binary)
 
             except Exception:
+                traceback.print_exc()
                 g.db.rollback()
                 return make_response(json.jsonify(
                     message="Something wrong in your file"), 413)
