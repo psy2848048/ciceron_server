@@ -293,7 +293,7 @@ class UserControl(object):
         if profile_pic and ciceron_lib.pic_allowed_file(profile_pic.filename):
             extension = profile_pic.filename.split('.')[-1]
             filename = str(datetime.today().strftime('%Y%m%d%H%M%S%f')) + '.' + extension
-            pic_path = os.path.join("profile_pic", str(user_id), filename)
+            pic_path = os.path.join("user", "profile", str(user_id), "profilePic", filename)
 
             try:
                 cursor.execute("UPDATE CICERON.D_USERS SET profile_pic_path = %s WHERE id = %s ", (pic_path, user_id))
@@ -335,7 +335,8 @@ class UserControlAPI(object):
     def add_api(self, app):
         for endpoint in self.endpoints:
             self.app.add_url_rule('{}'.format(endpoint), view_func=self.loginCheck, methods=["GET"])
-            self.app.add_url_rule('{}/login'.format(endpoint), view_func=self.login, methods=["GET", "POST"])
+            self.app.add_url_rule('{}/login'.format(endpoint), view_func=self.login, methods=["POST"])
+            self.app.add_url_rule('{}/login'.format(endpoint), view_func=self.getLoginToken, methods=["GET"])
             self.app.add_url_rule('{}/logout'.format(endpoint), view_func=self.logout, methods=["GET"])
             self.app.add_url_rule('{}/idCheck'.format(endpoint), view_func=self.duplicateIdChecker, methods=["POST"])
             self.app.add_url_rule('{}/user/create_recovery_code'.format(endpoint), view_func=self.createRecoveryCode, methods=["POST"])
@@ -353,7 +354,6 @@ class UserControlAPI(object):
     def loginCheck(self):
         """
         해당 API
-          #. GET /api/v2
 
         해당 세션의 상태를 보여준다.
         아래 return값은 session[var_name]으로 접근 가능하다
@@ -399,12 +399,7 @@ class UserControlAPI(object):
 
     def login(self):
         """
-        해당 API
-          #. 토큰 따기
-            #. GET /api/v2/login
-
-          #. 로그인하기
-            #. POST /api/v2/login
+        로그인하기
 
         로그인 로직
           #. GET /api/v2/login에 접속
@@ -412,20 +407,6 @@ class UserControlAPI(object):
           #. 클라이언트에서는 sha256(salt + sha256(password) + salt) 값을 만들어 서버에 전송한다.
           #. Password 테이블 값과 비교하여 일치하면 session 값들을 고쳐준다.
 
-        GET /api/login or /api/v2/login
-          **Parameters**
-            Nothing
-
-          **Response**
-            **200**
-              .. code-block:: json
-                 :linenos:
-
-                 {
-                   "identifier": "a3Bd1g", // Password Salt
-                 }
-
-        POST /api/login or /api/v2/login
           **Parameters**
             #. "email": 유저 email 주소 (ciceron_lib.get_user_id를 통하여 email에서 user_id를 추출할 수 있다.)
             #. "password": 3번 참조
@@ -476,10 +457,27 @@ class UserControlAPI(object):
                     email=email)
                     , resp_code)
 
-        else:
-            salt = ciceron_lib.random_string_gen()
-            session['salt'] = salt
-            return make_response(json.jsonify(identifier=salt), 200)
+    def getLoginToken(self):
+        """
+        로그인 토큰 발급
+
+        **Parameters**
+          Nothing
+       
+        **Response**
+          **200**
+       
+            .. code-block:: json
+               :linenos:
+       
+               {
+                 "identifier": "a3Bd1g", // Password Salt
+               }
+
+        """
+        salt = ciceron_lib.random_string_gen()
+        session['salt'] = salt
+        return make_response(json.jsonify(identifier=salt), 200)
 
     def logout(self):
         """
@@ -730,6 +728,7 @@ class UserControlAPI(object):
          
         **Response**
           **200**
+
             .. code-block:: json
                :linenos:
 
