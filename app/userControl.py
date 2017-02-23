@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, request, g, make_response, json, session
+from flask import Flask, request, g, make_response, json, session, send_file
 from datetime import datetime, timedelta
 import os
 import requests
@@ -318,7 +318,7 @@ class UserControl(object):
         cursor = g.db.cursor()
         query_getPic = "SELECT bin FROM CICERON.F_USER_PROFILE_PIC WHERE user_id = %s"
         cursor.execute(query_getPic, (user_id, ))
-        profile_pic = cursor.fetchone()
+        profile_pic = cursor.fetchone()[0]
         if profile_pic == None:
             return None
         else:
