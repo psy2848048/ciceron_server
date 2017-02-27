@@ -308,7 +308,7 @@ class Pretranslated(object):
         file_list = ciceron_lib.dbToDict(columns, ret)
         for item in file_list:
             can_get, file_name, _ = self.provideFile(item['resource_id'], item['id'])
-            item['file_url'] = endpoint + '/pretranslated/project/{}/resources/{}/file/{}/{}'.format(item['project_id'], item['resource_id'], item['id'], file_name)
+            item['file_url'] = endpoint + '/user/pretranslated/project/{}/resource/{}/file/{}/{}'.format(item['project_id'], item['resource_id'], item['id'], file_name)
 
         return file_list
 
@@ -621,6 +621,7 @@ class PretranslatedAPI(object):
             self.app.add_url_rule('{}/user/pretranslated/project'.format(endpoint), view_func=self.pretranslatedList, methods=["GET"])
             self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/coverPhoto/<filename>'.format(endpoint), view_func=self.pretranslatedProvideCoverPhoto, methods=["GET"])
             self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource'.format(endpoint), view_func=self.pretranslatedProvideResource, methods=["GET"])
+            self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/file/<int:file_id>/<filename>'.format(endpoint), view_func=self.provideFile, methods=["GET"])
             self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/request'.format(endpoint), view_func=self.addUserForDownload, methods=["POST"])
             self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/markAsPaid'.format(endpoint), view_func=self.pretranslatedMarkAsPaid, methods=["GET"])
             self.app.add_url_rule('{}/user/pretranslated/project/<int:project_id>/resource/<int:resource_id>/sendMail'.format(endpoint), view_func=self.pretranslatedSendToMail, methods=["POST"])
@@ -1071,7 +1072,7 @@ class PretranslatedAPI(object):
                           "project_id": 2,
                           "resource_id": 4,
                           "preview_permission": 1,
-                          "file_url": "/api/v2/pretranslated/project/2/resources/4/file/1/swsx.png"
+                          "file_url": "/api/v2/user/pretranslated/project/2/resources/4/file/1/swsx.png"
                         }
                       ],
                       "requester_list": [
@@ -1299,6 +1300,28 @@ class PretranslatedAPI(object):
             else:
                 g.db.rollback()
                 return make_response(json.jsonify(message="DB error"), 411)
+
+    @login_required
+    def provideFile(self, project_id, resource_id, file_id, filename):
+        """
+        파일 보기
+        **Parameters**
+          #. **"project_id"**: URL
+          #. **"resource_id"**: URL
+          #. **"file_id"**: URL
+          #. **"filename"**: URL
+
+        **Response**
+          # **200**: 바이너리 제공
+          # **404**: 없음
+
+        """
+        pretranslatedObj = Pretranslated(g.db)
+        is_ok, filename, file_binary = pretranslatedObj.provideFile(resource_id, file_id)
+        if is_ok == True:
+            return send_file(io.BytesIO(file_binary), attachment_filename=filename)
+        else:
+            return make_response("Fail", 404)
 
     @login_required
     def pretranslatedRateResult(self, project_id, resource_id):
