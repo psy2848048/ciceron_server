@@ -409,7 +409,7 @@ class Pretranslated(object):
         resource_list = ciceron_lib.dbToDict(columns, ret)
         for item in resource_list:
             file_list_of_resource = self.provideFileListOfResource(item['id'], endpoint)
-            item['resorce_info'] = file_list_of_resource
+            item['resource_info'] = file_list_of_resource
             item['requester_list'] = self.provideRequesterList(project_id, item['id'])
             item['translator_list'] = self.provideTranslatorList(project_id, item['id'])
 
@@ -1064,7 +1064,7 @@ class PretranslatedAPI(object):
                       "read_permission_level": 1,
                       "price": 0,
                       "register_timestamp": "Sun, 12 Feb 2017 09:10:04 GMT",
-                      "resorce_info": [
+                      "resource_info": [
                         {
                           "id": 1,
                           "project_id": 2,
