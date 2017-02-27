@@ -658,7 +658,8 @@ class PretranslatedAPI(object):
         pretranslatedObj = Pretranslated(g.db)
         parameters = ciceron_lib.parse_request(request)
         for key in parameters.keys():
-            if key not in ['original_resource_id', 'original_lang_id', 'format_id', 'subject_id', 'author', 'cover_photo']:
+            if key not in ['original_lang_id', 'format_id', 'subject_id', 'author', 'cover_photo']:
+                print(key)
                 return make_response("Bad request", 400)
 
         cover_photo_obj = request.files['cover_photo']
