@@ -1301,7 +1301,6 @@ class PretranslatedAPI(object):
                 g.db.rollback()
                 return make_response(json.jsonify(message="DB error"), 411)
 
-    @login_required
     def provideFile(self, project_id, resource_id, file_id, filename):
         """
         파일 보기
@@ -1323,7 +1322,6 @@ class PretranslatedAPI(object):
         else:
             return make_response("Fail", 404)
 
-    @login_required
     def pretranslatedRateResult(self, project_id, resource_id):
         """
         번역물 평점 먹이기
