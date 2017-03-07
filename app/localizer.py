@@ -8,6 +8,7 @@ import lxml.html
 import tarfile
 import zipfile
 import traceback
+import chardet
 from flask import request, send_file
 
 try:
@@ -30,7 +31,7 @@ class Localizer(object):
     """
 
     def __init__(self, file_name, file_bin):
-        self.session = session
+        #self.session = session
         self.old_file_bin = None
         if file_name.endswith('.tar.gz') or file_name.endswith('.tar.bz2'):
             self.old_file_bin = tarfile.TarFile(file_bin, 'r')
@@ -76,7 +77,9 @@ class Localizer(object):
         # URL식으로 인코딩을 하기 때문에 일찍 처리해야 한다.
         replaced_html_string = htmlString.replace('<br>', '\n').\
                 replace('<br/>', '\n').replace('<br />', '\n')
-        #replaced_html_string = unicode(htmlString)
+        if type(replaced_html_string) == str:
+            replaced_html_string = replaced_html_string.decode('utf-8')
+
         root = etree.parse(io.StringIO(replaced_html_string), utf8_parser)
 
         idx = 1
@@ -110,7 +113,10 @@ class Localizer(object):
         return json.dumps(return_dict, indent=4)
 
     def compressFileOrganizer(self, filename, binary):
-        self.zip_obj.writestr(filename, bytearray(binary.encode()))
+        try:
+            self.zip_obj.writestr(filename, bytearray(binary.encode()))
+        except:
+            self.zip_obj.writestr(filename, buffer(binary.encode()))
 
     def run(self, target_lang):
         for filename in self.file_list:
@@ -118,13 +124,13 @@ class Localizer(object):
             file_binary = self.old_file_bin.read(filename)
 
             # 인코딩 처리
-            try:
+            file_encoding = chardet.detect(file_binary)
+            print(file_encoding['encoding'])
+            if file_encoding['encoding'] == 'utf-8':
                 file_binary = str(file_binary.decode('utf-8'))
-            except UnicodeDecodeError:
-                try:
-                    file_binary = str(file_binary)
-                except UnicodeDecodeError:
-                    file_binary = file_binary
+
+            else:
+                file_binary = str(file_binary)
 
             if filename.split('.')[-1] in self.html_extensions:
                 file_binary = self.textExtractor(filename, file_binary)
@@ -177,10 +183,10 @@ if __name__ == "__main__":
     localizer = None
     result_binary = None
 
-    with open('../test/testdata/ciceron_webclient.zip', 'r') as f:
-        localizer = Localizer('ciceron_webclient.zip', f)
+    with open('../test/testdata/funmeu_sample.php.zip', 'r') as f:
+        localizer = Localizer('funmeu_sample.php.zip', f)
         result_binary = localizer.run('en')
 
-    result_file = open('ciceron_webclient_replaced.zip', 'w')
+    result_file = open('funmeu_sample.php_replaced.zip', 'w')
     result_file.write(result_binary)
     result_file.close()
