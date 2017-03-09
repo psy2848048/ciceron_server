@@ -9,6 +9,7 @@ import tarfile
 import zipfile
 import traceback
 import chardet
+from collections import OrderedDict
 from flask import request, send_file
 
 try:
@@ -108,9 +109,9 @@ class Localizer(object):
         return lxml.html.tostring(root.getroot(), pretty_print=True, method="html")
 
     def jsonWriter(self, target_lang):
-        return_dict = {}
+        return_dict = OrderedDict()
         return_dict[ target_lang ] = self.json_value
-        return json.dumps(return_dict, indent=4)
+        return json.dumps(return_dict, indent=4, sort_keys=True)
 
     def compressFileOrganizer(self, filename, binary):
         try:

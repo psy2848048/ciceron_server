@@ -7,6 +7,7 @@ import hashlib
 import codecs
 import traceback
 import os
+import re
 import tempfile
 from collections import OrderedDict
 
@@ -719,6 +720,20 @@ class I18nHandler(object):
 
         return result
 
+    def _phpToDict(self, phpText):
+        result = OrderedDict()
+        for line in phpText.split('\n'):
+            temp_result = re.search(r"\w\['([a-z0-9\_]+)'\][\s]+=[\s]+'(.*?)';", line)
+            if temp_result is None:
+                continue
+
+            key = temp_result.group(1)
+            value = temp_result.group(2)
+
+            result[ key ] = value
+
+        return result
+
     def _dictToIOs(self, iosDict):
         output = io.StringIO()
         for key, text in iosDict.items():
@@ -745,11 +760,14 @@ class I18nHandler(object):
         return ('string.xml', bytearray(result.encode('utf-8')))
 
     def _dictToUnity(self, language, unityDict):
+        counter = 0
+
         result = []
         result.append(['KEY', language])
 
         for key, text in unityDict.items():
             result.append([key, text])
+            counter += len(text.split(' '))
 
         output = io.StringIO()
         writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
@@ -757,7 +775,7 @@ class I18nHandler(object):
 
         unityResult = output.getvalue()
 
-        return ('Localization.csv', bytearray(unityResult.encode('utf-8')))
+        return ('Localization.csv', unityResult, counter)
 
     def _dictToXamarin(self, lang_code, xamDict):
         wrappeddict = OrderedDict()
@@ -786,6 +804,14 @@ class I18nHandler(object):
         result = OrderedDict()
         result[lang_code] = jsonDict
         return ('i18n.json', bytearray(json.dumps(result, indent=4, encoding='utf-8', sort_keys=False)))
+
+    def _dictToPhp(self, phpDict):
+        output = io.StringIO()
+        output.write("<?php\n")
+        for key, value in phpDict.items():
+            output.write("$_['{}'] = '{}'".format(key, value))
+
+        return ('translated.php', bytearray(output.getvalue().encode('utf-8')))
 
     def _updateComment(self, cursor, variable_id, comment):
         query = """
@@ -823,6 +849,10 @@ class I18nHandler(object):
 
     def unityToDb(self, request_id, source_lang_key, source_lang_id, target_lang_id, unityText):
         dict_data = self._unityToDict(unityText, source_lang_key)
+        self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
+
+    def phpToDb(self, request_id, source_lang_key, source_lang_id, target_lang_id, phpText):
+        dict_data = self._phpToDict(unityText)
         self._dictToDb(request_id, source_lang_id, target_lang_id, dict_data)
 
     def updateVariableName(self, request_id, variable_id, text):
@@ -909,51 +939,56 @@ class I18nHandler(object):
         filename, xamarin_binary = self._dictToXamarin(target_lang, target_dict_data)
         return filename, xamarin_binary
 
+    def exportPhp(self, request_id):
+        source_dict_data, target_dict_data = self._dbToDict(request_id)
+        filename, php_binary = self._dictToPhp(target_dict_data)
+        return filename, php_binary
+
 if __name__ == "__main__":
     import psycopg2
     import os
     if os.environ.get('PURPOSE') == 'PROD':
         DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
     else:
-        DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+        DATABASE = "host=ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 
     conn = psycopg2.connect(DATABASE)
 
     i18nObj = I18nHandler(conn)
 
     # 불러오고 각 포멧으로 Export하는 테스트
-    from collections import OrderedDict
-    dictData = OrderedDict()
-    f = open('../test/testdata/peer_gynt/xmlReady.csv', 'r')
-    csvReader = csv.reader(f)
-    for key, value in csvReader:
-        dictData[key] = value
-    f.close()
+    #from collections import OrderedDict
+    #dictData = OrderedDict()
+    #f = open('../test/testdata/peer_gynt/xmlReady.csv', 'r')
+    #csvReader = csv.reader(f)
+    #for key, value in csvReader:
+    #    dictData[key] = value
+    #f.close()
 
-    filename, binary = i18nObj._dictToAndroid(dictData)
-    f = open('../test/testdata/peer_gynt/string.xml', 'w')
-    f.write(binary)
-    f.close()
+    #filename, binary = i18nObj._dictToAndroid(dictData)
+    #f = open('../test/testdata/peer_gynt/string.xml', 'w')
+    #f.write(binary)
+    #f.close()
 
-    filename, binary = i18nObj._dictToJson('ko', dictData)
-    f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
-    f.write(binary)
-    f.close()
+    #filename, binary = i18nObj._dictToJson('ko', dictData)
+    #f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
+    #f.write(binary)
+    #f.close()
 
-    filename, binary = i18nObj._dictToUnity('Korean', dictData)
-    f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
-    f.write(binary)
-    f.close()
+    #filename, binary = i18nObj._dictToUnity('Korean', dictData)
+    #f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
+    #f.write(binary)
+    #f.close()
 
-    filename, binary = i18nObj._dictToIOs(dictData)
-    f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
-    f.write(binary)
-    f.close()
+    #filename, binary = i18nObj._dictToIOs(dictData)
+    #f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
+    #f.write(binary)
+    #f.close()
 
-    filename, binary = i18nObj._dictToXamarin('ko', dictData)
-    f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
-    f.write(binary)
-    f.close()
+    #filename, binary = i18nObj._dictToXamarin('ko', dictData)
+    #f = open('../test/testdata/peer_gynt/%s' % filename, 'w')
+    #f.write(binary)
+    #f.close()
 
     #filename_json, json_binary = i18nObj.exportJson(678)
     #filename_unity, unity_binary = i18nObj.exportUnity(678)
@@ -984,3 +1019,24 @@ if __name__ == "__main__":
     #i18nObj.updateVariableName(678, 2772, 'credit0001')
     #i18nObj.insertVariable(678, 'credit_opening')
     #i18nObj.deleteVariable(678, 2781)
+
+    wordcounter = 0
+
+    for root, folders, files in os.walk('../test/testdata/funmeu_source'):
+        for filename in files:
+            if not filename.endswith('.php'):
+                continue
+
+            print(os.path.join(root, filename))
+            f = open(os.path.join(root, filename), 'r')
+            phpBinary = f.read()
+            f.close()
+
+            dictFromPhp = i18nObj._phpToDict(phpBinary)
+            new_filename, new_binary, unit_file_counter = i18nObj._dictToUnity('EN', dictFromPhp)
+            wordcounter += unit_file_counter
+            f2 = open(os.path.join(root, filename + '.csv'), 'w')
+            f2.write(new_binary)
+            f2.close()
+
+    print(wordcounter)
