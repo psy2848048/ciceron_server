@@ -192,16 +192,16 @@ class Pretranslated(object):
             WHERE resource_id = %s
         """
         cursor.execute(query, (resource_id, ))
-        ret = cursor.fetchone()
+        ret = cursor.fetchall()
         if ret is None or len(ret) == 0:
             return False, None
 
         hashed_result_list = []
         for file_id in ret:
-            _, hashed_result = self.calcUnitChecksumForEmailParams(resource_id, file_id, email)
+            _, hashed_result = self.calcUnitChecksumForEmailParams(resource_id, file_id[0], email)
             hashed_result_list.append(
                     {
-                        "file_id": file_id,
+                        "file_id": file_id[0],
                         "checksum": hashed_result
                     }
                 )
