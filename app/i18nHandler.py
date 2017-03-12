@@ -763,11 +763,14 @@ class I18nHandler(object):
         counter = 0
 
         result = []
+        cur_sentences = []
+
         result.append(['KEY', language])
 
         for key, text in unityDict.items():
             result.append([key, text])
             counter += len(text.split(' '))
+            cur_sentences.append(text)
 
         output = io.StringIO()
         writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
@@ -775,7 +778,7 @@ class I18nHandler(object):
 
         unityResult = output.getvalue()
 
-        return ('Localization.csv', unityResult, counter)
+        return ('Localization.csv', unityResult, counter, cur_sentences)
 
     def _dictToXamarin(self, lang_code, xamDict):
         wrappeddict = OrderedDict()
@@ -1021,6 +1024,7 @@ if __name__ == "__main__":
     #i18nObj.deleteVariable(678, 2781)
 
     wordcounter = 0
+    total_sentences = []
 
     for root, folders, files in os.walk('../test/testdata/funmeu_source'):
         for filename in files:
@@ -1033,10 +1037,20 @@ if __name__ == "__main__":
             f.close()
 
             dictFromPhp = i18nObj._phpToDict(phpBinary)
-            new_filename, new_binary, unit_file_counter = i18nObj._dictToUnity('EN', dictFromPhp)
-            wordcounter += unit_file_counter
+            new_filename, new_binary, unit_file_counter, sentences = i18nObj._dictToUnity('EN', dictFromPhp)
+            #wordcounter += unit_file_counter
+            for sentence in sentences:
+                if sentence not in total_sentences:
+                    total_sentences.append(sentence)
+
             f2 = open(os.path.join(root, filename + '.csv'), 'w')
             f2.write(new_binary)
             f2.close()
+
+    for item in total_sentences:
+        print(item)
+
+    for item in total_sentences:
+        wordcounter += len(item.split(' '))
 
     print(wordcounter)

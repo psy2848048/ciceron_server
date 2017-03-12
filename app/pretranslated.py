@@ -413,7 +413,10 @@ class Pretranslated(object):
             item['requester_list'] = self.provideRequesterList(project_id, item['id'])
             item['translator_list'] = self.provideTranslatorList(project_id, item['id'])
 
-        return resource_list
+        can_get, file_name, _ = self.provideCoverPhoto(project_id)
+        cover_photo_url = endpoint + '/user/pretranslated/project/{}/coverPhoto/{}'.format(project_id, file_name)
+
+        return resource_list, cover_photo_url
 
     def createProject(self, **kwargs):
         params = self._organizeProjectParameters(**kwargs)
@@ -1054,6 +1057,7 @@ class PretranslatedAPI(object):
               :linenos:
 
                 {
+                  "cover_photo_url": "/api/v2/user/pretranslated/project/2/coverPhoto/preview.png",
                   "data": [
                     {
                       "id": 4,
@@ -1135,8 +1139,8 @@ class PretranslatedAPI(object):
 
         """
         pretranslatedObj = Pretranslated(g.db)
-        resource_list = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[-1])
-        return make_response(json.jsonify(data=resource_list), 200)
+        resource_list, cover_photo_url = pretranslatedObj.pretranslatedResourceList(project_id, self.endpoints[-1])
+        return make_response(json.jsonify(data=resource_list, cover_photo_url=cover_photo_url), 200)
 
     def addUserForDownload(self, project_id, resource_id):
         """
