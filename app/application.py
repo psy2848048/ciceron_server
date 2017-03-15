@@ -73,6 +73,12 @@ try:
     from pretranslated import PretranslatedAPI
 except:
     from .pretranslated import PretranslatedAPI
+
+try:
+    from ciceronTranslatorConnector import CiceronTranslatorAPI
+except:
+    from .ciceronTranslatorConnector import CiceronTranslatorAPI
+
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
@@ -138,6 +144,7 @@ LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
 PaymentAPI(app, ENDPOINTS)
 PretranslatedAPI(app, ENDPOINTS)
+CiceronTranslatorAPI(app, ENDPOINTS)
 
 # Flask-Session
 Session(app)
