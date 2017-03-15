@@ -7,6 +7,8 @@ from yandex_translate import YandexTranslate
 import psycopg2
 import os
 import traceback
+import requests
+import json
 try:
     from urllib.parse import quote
 except:
@@ -19,6 +21,7 @@ class Translator:
                                 developerKey=developerKey)
         self.yandexAPI = YandexTranslate('trnsl.1.1.20160423T052231Z.a28f67a8074f04f8.0a0282fad14a1dfd13d21ed6ab55f0a0a61c2d3f')
         self.bingAPI = Bing_Translator('welcome_ciceron', 'VL9isREJUILWMCLE2hr75xVaePRof6kuGkCM+r9oTb0=')
+        self.ciceronAPI = "http://221.142.31.56:{port}/translator/translate"
 
     def _googleTranslate(self, source_lang, target_lang, sentences):
         if (source_lang == 'ko' and target_lang == 'en') or \
@@ -55,6 +58,19 @@ class Translator:
                 return result_text
             else:
                 return None
+
+    def _ciceronTranslate(self, source_lang, target_lang, sentences):
+        headers = {'content-type': 'application/json'}
+        payload = {'src': sentences}
+        if source_lang == 'en' and target_lang == 'ko':
+            response = requests.post(self.ciceronAPI.format(port=7700), data=json.dumps(payload), headers=headers)
+        elif source_lang == 'ko' and target_lang == 'en':
+            response = requests.post(self.ciceronAPI.format(port=7710), data=json.dumps(payload), headers=headers)
+        else:
+            return None
+
+        data = response.json()
+        return data[0][0]['tgt']
 
     def _bingTranslate(self, source_lang, target_lang, sentences):
         try:
@@ -120,7 +136,13 @@ class Translator:
             traceback.print_exc()
             result_yandex = "초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
 
-        return True, {'google': result_google, 'bing': result_bing, 'yandex': result_yandex}
+        try:
+            result_ciceron = self._ciceronTranslate(source_langCodeDict['google'], target_langCodeDict['google'], sentences)
+        except Exception:
+            traceback.print_exc()
+            result_yandex = "초벌번역 처리가 불가능한 문자가 삽입되었습니다. / Unsupported character is contained in the sentence."
+
+        return True, {'google': result_google, 'bing': result_bing, 'yandex': result_yandex, 'ciceron': result_ciceron}
 
 if __name__ == '__main__':
     translator = Translator()
