@@ -327,7 +327,7 @@ def admin_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('useremail') in super_user:
+        if session.get('isAdmin', False) == True:
             return f(*args, **kwargs)
         else:
             return make_response(json.jsonify(

@@ -75,9 +75,14 @@ except:
     from .pretranslated import PretranslatedAPI
 
 try:
-    from ciceronTranslatorConnector import CiceronTranslatorAPI
+    from adminStats import AdminStatsAPI
 except:
-    from .ciceronTranslatorConnector import CiceronTranslatorAPI
+    from .adminStats import AdminStatsAPI
+
+try:
+    from adminKangaroo import KangarooAdminAPI
+except:
+    from .adminKangaroo import KangarooAdminAPI
 
 #from flask_oauth import OAuth
 
@@ -144,7 +149,8 @@ LocalizerAPI(app, ENDPOINTS)
 UserControlAPI(app, ENDPOINTS)
 PaymentAPI(app, ENDPOINTS)
 PretranslatedAPI(app, ENDPOINTS)
-CiceronTranslatorAPI(app, ENDPOINTS)
+AdminStatsAPI(app, ENDPOINTS)
+KangarooAdminAPI(app, ENDPOINTS)
 
 # Flask-Session
 Session(app)

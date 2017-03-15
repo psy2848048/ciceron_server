@@ -1047,8 +1047,12 @@ if __name__ == "__main__":
             f2.write(new_binary)
             f2.close()
 
+    f3 = open("funmeu_request.csv", "w")
+    writer = csv.writer(f3)
     for item in total_sentences:
-        print(item)
+        writer.writerow([item, None])
+
+    f3.close()
 
     for item in total_sentences:
         wordcounter += len(item.split(' '))

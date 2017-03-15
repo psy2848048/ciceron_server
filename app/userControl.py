@@ -13,14 +13,17 @@ except:
     from . import ciceron_lib
 
 try:
-    from ciceron_lib import login_required
+    from ciceron_lib import login_required, admin_required
 except:
-    from .ciceron_lib import login_required
+    from .ciceron_lib import login_required, admin_required
 
 
 class UserControl(object):
     def __init__(self, conn):
         self.conn = conn
+
+    def _adminCheck(self, email):
+        pass
 
     def passwordCheck(self, email, salt, hashed_password):
         cursor = self.conn.cursor()
@@ -69,11 +72,42 @@ class UserControl(object):
         try:
             cursor.execute("""
                 INSERT INTO CICERON.D_USERS
-                VALUES (
+                  (
+                    id
+                  , email
+                  , name
+                  , mother_language_id
+                  , is_translator
+
+                  , other_language_list_id
+                  , profile_pic_path
+                  , numOfRequestPending
+                  , numOfRequestOngoing
+                  , numOfRequestCompleted
+
+                  , numOfTranslationPending
+                  , numOfTranslationOngoing
+                  , numOfTranslationCompleted
+                  , badgeList_id
+                  , profile_text
+
+                  , trans_request_state
+                  , nationality
+                  , residence
+                  , return_rate
+                  , member_since
+
+                  , is_admin
+                  , is_active
+
+                  )
+                VALUES
+                (
                   %s,%s,%s,%s,%s,
                   %s,%s,%s,%s,%s,
                   %s,%s,%s,%s,%s,
-                  %s,%s,%s,%s,CURRENT_TIMESTAMP
+                  %s,%s,%s,%s,CURRENT_TIMESTAMP,
+                  false, true
                 )""",
                     (
                   user_id, email, name, mother_language_id, False,
@@ -324,6 +358,15 @@ class UserControl(object):
         else:
             return io.BytesIO(profile_pic)
 
+    def userLists(self, page=1):
+        pass
+
+    def permissionChange(self, user_id, permission_id):
+        pass
+
+    def activeStatusChange(self, user_id, activeStatus_id):
+        pass
+
 
 class UserControlAPI(object):
     def __init__(self, app, endpoints):
@@ -345,6 +388,13 @@ class UserControlAPI(object):
             self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileCheck, methods=["GET"])
             self.app.add_url_rule('{}/user/profile'.format(endpoint), view_func=self.profileRevise, methods=["POST"])
             self.app.add_url_rule('{}/user/profile/<int:user_id>/profilePic/<fake_filename>'.format(endpoint), view_func=self.profilePic, methods=["GET"])
+
+
+
+            self.app.add_url_rule('{}/admin/userLists'.format(endpoint), view_func=self.adminUserLists, methods=["GET"])
+            self.app.add_url_rule('{}/admin/user/<int:user_id>/permission/<status>'.format(endpoint), view_func=self.adminPermissionChange, methods=["PUT"])
+            self.app.add_url_rule('{}/admin/user/<int:user_id>/activity/<status>'.format(endpoint), view_func=self.adminActiveStatusChange, methods=["PUT"])
+            self.app.add_url_rule('{}/admin/user/<int:user_id>/assignLanguage'.format(endpoint), view_func=self.adminAssignLanguage, methods=["POST"])
 
             if os.environ.get('PURPOSE') != 'PROD':
                 self.app.add_url_rule('{}/login/admin'.format(endpoint), view_func=self.fakeLoginAdmin, methods=["GET", "POST"])
@@ -369,6 +419,7 @@ class UserControlAPI(object):
                {
                  "useremail": "blahblah@gmail.com", // 로그인한 유저의 이메일주소. 로그인 상태 아니면 null
                  "isLoggedIn": true, // 로그인 여부 True/False
+                 "isAdmin": true, // 관리자 여부 True/False
                  "isTranslator" : false  //로그인한 유저의 번역가여부 True/False
                }
 
@@ -379,14 +430,17 @@ class UserControlAPI(object):
         if 'useremail' in session:
             client_os = request.args.get('client_os', None)
             isTranslator = ciceron_lib.translator_checker_plain(g.db, session['useremail'])
+            isAdmin = True # TODO
+
             #if client_os is not None and registration_id is not None:
             #    check_and_update_reg_key(g.db, client_os, registration_id)
-            #    g.db.coomit()
+            #    g.db.commit()
 
             return make_response(json.jsonify(
                 useremail=session['useremail'],
                 isLoggedIn = True,
                 isTranslator=isTranslator,
+                isAdmin=isAdmin,
                 message="User %s is logged in" % session['useremail'])
                 , 200)
         else:
@@ -394,6 +448,7 @@ class UserControlAPI(object):
                 useremail=None,
                 isLoggedIn=False,
                 isTranslator=False,
+                isAdmin=isAdmin,
                 message="No user is logged in")
                 , 403)
 
@@ -815,6 +870,101 @@ class UserControlAPI(object):
             return make_response(json.jsonify(message="No profile pic"), 404)
         else:
             return send_file(profile_pic, attachment_filename=fake_filename)
+
+
+
+
+
+
+    @admin_required
+    def adminUserLists(self):
+        """
+        Admin: 관리를 위한 유저 리스트
+
+        **Parameters**: Nothing
+
+        **Response**
+          **200**
+
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "data": [
+                   {
+                     "id": 4, // Integer User Id
+                     "name": "Mark", // 이름
+                     "email": "admin@ciceron.me", // E-Mail
+                     "permission_id": 0, // 권한 레벨 0: 회원 1: 번역가 2: 관리자
+                     "recent_work_timestamp": "Tue 24.07.2017 ...", // 최근 작업 시간
+                     "activity_id": 0 // 활동상황 0: 활동중 1: 중단
+                   },
+                   ...
+                 ]
+               }
+        """
+        pass
+
+    @admin_required
+    def adminPermissionChange(self, user_id, status):
+        """
+        Admin: 회원 권한 설정
+
+        **Parameters**
+          #. **"user_id"**: URL에 삽입, User ID
+          #. **"status"**: URL에 삽입, 활동여부
+            #. "normal": 보통 회원
+            #. "admin": Admin(관리자)
+
+        **Response**
+          **200**: OK
+          **410**: Fail
+        """
+        pass
+
+    @admin_required
+    def adminActiveStatusChange(self, user_id, status):
+        """
+        Admin: 회원 권한 설정
+
+        **Parameters**
+          #. **"user_id"**: URL에 삽입, User ID
+          #. **"status"**: URL에 삽입, 활동여부
+            #. "active": 활동으로 설정
+            #. "deactive": 중단으로 설정
+
+        **Response**
+          **200**: OK
+          **410**: Fail
+        """
+        pass
+
+    @admin_required
+    def adminAssignLanguage(self, user_id):
+        """
+        Admin: 회원 권한 설정
+
+        **Parameters**
+          #. **"user_id"**: URL에 삽입, User ID
+          #. **"language_id[]"**: Integer array
+            #.  1: 한국어
+            #.  2: 영어/미국
+            #.  3: 영어/영국
+            #.  4: 중국/보통어
+            #.  5: 중국/광동어
+            #.  6: 태국어
+            #.  7: 중국/대만어
+            #.  8: 일본어
+            #.  9: 스페인어
+            #. 10: 포르투갈어
+            #. 11: 독일어
+            #. 12: 프랑스어
+
+        **Response**
+          **200**: OK
+          **410**: Fail
+        """
+        pass
 
     def fakeLoginAdmin(self):
         session['useremail'] = 'admin@ciceron.me'

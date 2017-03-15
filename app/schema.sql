@@ -8,6 +8,7 @@ CREATE TABLE CICERON.D_USERS (
     name varchar(100) not null,
     mother_language_id INT not null, -- D_LANGUAGES
     is_translator BOOLEAN,
+    is_admin BOOLEAN,
     other_language_list_id INT,
     profile_pic_path varchar(300),
     numOfRequestPending INT,
