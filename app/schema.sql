@@ -1117,6 +1117,22 @@ CREATE VIEW CICERON.V_PRETRANSLATED_TRANSLATOR AS
   ON fact.translator_id = users.id
 ;
 
+CREATE TABLE CICERON.SENTENCES (
+    id int NOT NULL,
+    original_language_id int4,
+    target_language_id int4,
+    subject_id int4,
+    format_id int4,
+    tone_id int4,
+    paragraph_id int4,
+    sentence_id int4,
+    original_sentence varchar(2000),
+    translated_sentence varchar(2000),
+    PRIMARY KEY (id) 
+);
+CREATE sequence ciceron.seq_sentences;
+GRANT select, update on sequence seq_sentences to ciceron_web;
+
 ALTER TABLE CICERON.F_PRETRANSLATED_RESOURCES
     ADD CONSTRAINT fk_F_PRETRANSLATED_RESOURCES FOREIGN KEY (project_id) REFERENCES F_PRETRANSLATED_PROJECT (id)
     ON DELETE CASCADE ON UPDATE CASCADE;
