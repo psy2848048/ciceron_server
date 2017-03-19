@@ -27,6 +27,22 @@ class KangarooAdmin(object):
     def tagInfoUpdate(self, tag_id, category_1, category_2):
         pass
 
+    def tagCategoryHierarchy(self, category_1):
+        if category_1 == 1:
+            return [1]
+
+        elif category_1 == 2:
+            return [2]
+
+        elif category_1 == 3:
+            return [3,4,5,6]
+
+        elif category_1 == 4:
+            return [7,8,9,10,11,12]
+
+        elif category_1 == 5:
+            return [13, 14, 15, 16]
+
     def deleteTag(self, tag_id):
         pass
 
@@ -53,6 +69,7 @@ class KangarooAdminAPI(object):
     def add_api(self, app):
         for endpoint in self.endpoints:
             self.app.add_url_rule('{}/admin/kangaroo/tag'.format(endpoint), view_func=self.adminKangarooTagListing, methods=["GET"])
+            self.app.add_url_rule('{}/admin/kangaroo/tag/category1/<int:category1>'.format(endpoint), view_func=self.adminKangarooTagCategoryHierarchy, methods=["GET"])
             self.app.add_url_rule('{}/admin/kangaroo/tag'.format(endpoint), view_func=self.adminKangarooTagUpdate, methods=["POST"])
             self.app.add_url_rule('{}/admin/kangaroo/tag/<int:tag_id>'.format(endpoint), view_func=self.adminKangarooTagDelete, methods=["DELETE"])
 
@@ -118,6 +135,26 @@ class KangarooAdminAPI(object):
             #. 14 - 식물
             #. 15 - 물건
             #. 16 - 자연경관
+        """
+        pass
+
+    def adminKangarooTagCategoryHierarchy(self, category1):
+        """
+        태그 상위 카테고리로 하위 카테고리 주기
+
+        **Parameters**
+          #. **"category1"**: URL에 삽입, Integer
+
+        **Response**
+          #. **200**
+
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "data": [ 1, 2 ]
+               }
+
         """
         pass
 

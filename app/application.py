@@ -84,6 +84,11 @@ try:
 except:
     from .adminKangaroo import KangarooAdminAPI
 
+try:
+    from sentenceExporter import SentenceExporterAPI
+except:
+    from .sentenceExporter import SentenceExporterAPI
+
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
@@ -151,6 +156,7 @@ PaymentAPI(app, ENDPOINTS)
 PretranslatedAPI(app, ENDPOINTS)
 AdminStatsAPI(app, ENDPOINTS)
 KangarooAdminAPI(app, ENDPOINTS)
+SentenceExporterAPI(app, ENDPOINTS)
 
 # Flask-Session
 Session(app)
