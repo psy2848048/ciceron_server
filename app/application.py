@@ -89,6 +89,11 @@ try:
 except:
     from .sentenceExporter import SentenceExporterAPI
 
+try:
+    from ciceronTranslatorConnector import CiceronTranslatorAPI
+except:
+    from .ciceronTranslatorConnector import CiceronTranslatorAPI
+
 #from flask_oauth import OAuth
 
 # DATABASE = '../db/ciceron.db'
