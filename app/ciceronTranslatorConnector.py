@@ -32,7 +32,7 @@ class CiceronTranslator(object):
         splitted_sentences = self.tokenizer.tokenize(sentences.strip())
         result = []
         for sentence in splitted_sentences:
-            unit_result = self._ciceronTranslate(source_lang, target_lang, sentences)
+            unit_result = self._ciceronTranslate(source_lang, target_lang, sentence)
             result.append(unit_result)
 
         return ' '.join(result)
