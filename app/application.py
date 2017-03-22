@@ -162,6 +162,7 @@ PretranslatedAPI(app, ENDPOINTS)
 AdminStatsAPI(app, ENDPOINTS)
 KangarooAdminAPI(app, ENDPOINTS)
 SentenceExporterAPI(app, ENDPOINTS)
+CiceronTranslatorAPI(app, ENDPOINTS)
 
 # Flask-Session
 Session(app)
