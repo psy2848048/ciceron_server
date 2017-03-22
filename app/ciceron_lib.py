@@ -93,9 +93,9 @@ def get_user_id(conn, text_id):
     """
     cursor = conn.cursor()
     cursor.execute("SELECT id from CICERON.D_USERS WHERE email = %s", (text_id, ))
-    rs = cursor.fetchall()
+    rs = cursor.fetchone()
     if len(rs) == 0: result = -1
-    else:            result = int(rs[0][0])
+    else:            result = int(rs[0])
     return result
 
 def get_facebook_user_id(conn, text_id):
@@ -135,13 +135,12 @@ def get_text_from_id(conn, id_num, table):
     """
     ID를 넣으면 해당 테이블의 text를 찾아줌
     """
-    query = "SELECT text from CICERON.%s WHERE id = " % table
-    query += "%s"
+    query = "SELECT text from CICERON.{} WHERE id = %s".format(table)
     cursor = conn.cursor()
     cursor.execute(query, (id_num, ))
-    rs = cursor.fetchall()
+    rs = cursor.fetchone()
     if len(rs) == 0: result = None
-    else:            result = str(rs[0][0])
+    else:            result = str(rs[0])
     return result
 
 def get_new_id(conn, table):
@@ -150,7 +149,7 @@ def get_new_id(conn, table):
     이 기능을 사용하려면 seqeunce 이름을 SEQ_<table_name>으로 해야 함 (ex CICERON.SEQ_F_REQUESTS)
     """
     cursor = conn.cursor()
-    cursor.execute("SELECT nextval('CICERON.SEQ_%s') " % table)
+    cursor.execute("SELECT nextval('CICERON.SEQ_{}') ".format(table))
     current_id_list = cursor.fetchone()
     return current_id_list[0]
 
