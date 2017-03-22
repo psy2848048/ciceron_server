@@ -809,12 +809,12 @@ class I18nHandler(object):
         return ('i18n.json', bytearray(json.dumps(result, indent=4, encoding='utf-8', sort_keys=False)))
 
     def _dictToPhp(self, phpDict):
-        output = io.StringIO()
-        output.write("<?php\n")
+        output = io.BytesIO()
+        output.write("<?php\n".encode('utf-8'))
         for key, value in phpDict.items():
-            output.write("$_['{}'] = '{}'".format(key, value))
+            output.write("$_['{}'] = '{}';\n".format(key, value).encode('utf-8'))
 
-        return ('translated.php', bytearray(output.getvalue().encode('utf-8')))
+        return ('translated.php', output.getvalue())
 
     def _updateComment(self, cursor, variable_id, comment):
         query = """
@@ -1023,10 +1023,66 @@ if __name__ == "__main__":
     #i18nObj.insertVariable(678, 'credit_opening')
     #i18nObj.deleteVariable(678, 2781)
 
-    wordcounter = 0
-    total_sentences = []
+    #wordcounter = 0
+    #total_sentences = []
 
-    for root, folders, files in os.walk('../test/testdata/funmeu_source'):
+    #for root, folders, files in os.walk('../test/testdata/funmeu_source'):
+    #    for filename in files:
+    #        if not filename.endswith('.php'):
+    #            continue
+
+    #        print(os.path.join(root, filename))
+    #        f = open(os.path.join(root, filename), 'r')
+    #        phpBinary = f.read()
+    #        f.close()
+
+    #        dictFromPhp = i18nObj._phpToDict(phpBinary)
+    #        new_filename, new_binary, unit_file_counter, sentences = i18nObj._dictToUnity('EN', dictFromPhp)
+    #        #wordcounter += unit_file_counter
+    #        for sentence in sentences:
+    #            if sentence not in total_sentences:
+    #                total_sentences.append(sentence)
+
+    #        f2 = open(os.path.join(root, filename + '.csv'), 'w')
+    #        f2.write(new_binary)
+    #        f2.close()
+
+    #f3 = open("funmeu_request.csv", "w")
+    #writer = csv.writer(f3)
+    #for item in total_sentences:
+    #    writer.writerow([item, None])
+
+    #f3.close()
+
+    #for item in total_sentences:
+    #    wordcounter += len(item.split(' '))
+
+    #print(wordcounter)
+    import xlrd
+
+    f1 = xlrd.open_workbook('funmeu_in.xlsx')
+    f2 = xlrd.open_workbook('funmeu_th.xlsx')
+    f3 = xlrd.open_workbook('funmeu_vn.xlsx')
+
+    sheet_in = f1.sheet_by_index(0)
+    sheet_th = f2.sheet_by_index(0)
+    sheet_vn = f3.sheet_by_index(0)
+
+    result_id = {}
+    result_th = {}
+    result_vn = {}
+
+    for cell in sheet_in.get_rows():
+        result_id[ cell[0].value ] = cell[1].value
+        print(cell[0].value)
+
+    for cell in sheet_th.get_rows():
+        result_th[ cell[0].value ] = cell[1].value
+
+    for cell in sheet_vn.get_rows():
+        result_vn[ cell[0].value ] = cell[1].value
+
+    for root, folders, files in os.walk('../test/testdata/funmeu_source_vn'):
         for filename in files:
             if not filename.endswith('.php'):
                 continue
@@ -1037,24 +1093,33 @@ if __name__ == "__main__":
             f.close()
 
             dictFromPhp = i18nObj._phpToDict(phpBinary)
-            new_filename, new_binary, unit_file_counter, sentences = i18nObj._dictToUnity('EN', dictFromPhp)
-            #wordcounter += unit_file_counter
-            for sentence in sentences:
-                if sentence not in total_sentences:
-                    total_sentences.append(sentence)
 
-            f2 = open(os.path.join(root, filename + '.csv'), 'w')
-            f2.write(new_binary)
-            f2.close()
+            result_this_vn = {}
+            result_this_th = {}
+            result_this_id = {}
 
-    f3 = open("funmeu_request.csv", "w")
-    writer = csv.writer(f3)
-    for item in total_sentences:
-        writer.writerow([item, None])
+            for key, value in dictFromPhp.items():
+                if value in result_id.keys():
+                    result_this_id[ key ] = result_id[ value ]
 
-    f3.close()
+                if value in result_th.keys():
+                    result_this_th[ key ] = result_th[ value ]
 
-    for item in total_sentences:
-        wordcounter += len(item.split(' '))
+                if value in result_vn.keys():
+                    result_this_vn[ key ] = result_vn[ value ]
 
-    print(wordcounter)
+            _, binary_vn = i18nObj._dictToPhp(result_this_vn)
+            #_, binary_th = i18nObj._dictToPhp(result_this_th)
+            #_, binary_id = i18nObj._dictToPhp(result_this_id)
+
+            f1 = open(os.path.join(root, filename), 'w')
+            #f2 = open(os.path.join(root, filename), 'w')
+            #f3 = open(os.path.join(root, filename), 'w')
+
+            f1.write(binary_vn.decode('utf-8'))
+            #f2.write(binary_th.decode('utf-8'))
+            #f3.write(binary_id.decode('utf-8'))
+
+            f1.close()
+            #f2.close()
+            #f3.close()

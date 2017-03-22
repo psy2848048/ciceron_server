@@ -2,6 +2,7 @@
 from flask import Flask, session, request, g, json, make_response, render_template
 import requests
 import json as jsonNav
+import nltk
 
 
 try:
@@ -12,8 +13,9 @@ except:
 class CiceronTranslator(object):
     def __init__(self):
         self.ciceronAPI = "http://221.142.31.56:{port}/translator/translate"
+        self.tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
-    def ciceronTranslate(self, source_lang, target_lang, sentences):
+    def _ciceronTranslate(self, source_lang, target_lang, sentences):
         headers = {'content-type': 'application/json'}
         payload = {'src': sentences}
         if source_lang == '2' and target_lang == '1':
@@ -25,6 +27,15 @@ class CiceronTranslator(object):
 
         data = response.json()
         return data[0][0]['tgt']
+
+    def ciceronTranslate(self, source_lang, target_lang, sentences):
+        splitted_sentences = self.tokenizer.tokenize(sentences.strip())
+        result = []
+        for sentence in splitted_sentences:
+            unit_result = self._ciceronTranslate(source_lang, target_lang, sentences)
+            result.append(unit_result)
+
+        return ' '.join(result)
 
 class CiceronTranslatorAPI(object):
     def __init__(self, app, endpoints):
