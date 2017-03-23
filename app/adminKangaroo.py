@@ -5,6 +5,8 @@ import traceback
 from collections import OrderedDict
 from flask import request, send_file, make_response
 
+#Connection info: ADDRESS=ciceron.xyz PORT=5432 DATABASE=photo USER=ciceron_web PASS=noSecret01! SCHEMA=raw
+
 try:
     import ciceron_lib
 except:
