@@ -29,7 +29,7 @@ class CiceronTranslator(object):
         return data[0][0]['tgt']
 
     def ciceronTranslate(self, source_lang, target_lang, sentences):
-        splitted_sentences = self.tokenizer.tokenize(sentences.strip())
+        splitted_sentences = self.tokenizer.tokenize(sentences)
         result = []
         for sentence in splitted_sentences:
             unit_result = self._ciceronTranslate(source_lang, target_lang, sentence)
