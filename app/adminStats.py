@@ -22,7 +22,8 @@ class AdminStats(object):
         self.conn = conn
 
     def statOverview(self):
-        pass
+        cursor = self.conn.cursor()
+        # Currently, no data for displaying...
 
     def aboutDeadline(self):
         pass
