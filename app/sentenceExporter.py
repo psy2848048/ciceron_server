@@ -66,7 +66,7 @@ class SentenceExporter(object):
                 paragraph_id,
                 sentence_id,
                 original_sentence,
-                translated_sentence,
+                translated_sentence
             )
             VALUES
             (%s, %s, %s, %s, %s,
@@ -107,26 +107,51 @@ class SentenceExporter(object):
         for unitParagraph in jsonData['data']:
             paragraph_id = unitParagraph['paragraph_id']
 
+
             for unitSentence in unitParagraph['sentences']:
-                sentence_id = unitSentence['sentence_id']
-                original_sentence = unitSentence['original_sentence']
-                translated_sentence = unitSentence['translated_sentence']
+                # TODO : origin_sentence 와 translated_sentence 존재 여부를 체크하기
 
-                is_succeeded = self._importUnitSentence(
-                                   original_language_id
-                                 , target_language_id
-                                 , subject_id, format_id, tone_id
-                                 , paragraph_id, sentence_id
-                                 , original_sentence, translated_sentence)
+                """두가지 방법이 존재
+                  1. try ~ exception 으로 처리하거나
+                  2. if 문으로 처리
 
-                if is_succeeded == False:
-                    print('Error!')
-                    print('Paragraph ID: {}  |  Sentence ID: {}'.\
-                            format(paragraph_id, sentence_id))
-                    self.conn.rollback()
-                    return False
+                  try ~ exception으로 처리함
+                """
 
-        return True
+                try:
+                    # if 문으로 예외처리 original_sentence나 translated_sentence가 없을 때
+                    if unitSentence.get('original_sentence') is None:
+                        return 210
+                    if unitSentence.get('translated_sentence') is None:
+                        return 210
+
+                    sentence_id = unitSentence['sentence_id']
+                    original_sentence = unitSentence['original_sentence']
+                    translated_sentence = unitSentence['translated_sentence']
+
+
+
+
+                    is_succeeded = self._importUnitSentence(
+                                       original_language_id
+                                     , target_language_id
+                                     , subject_id, format_id, tone_id
+                                     , paragraph_id, sentence_id
+                                     , original_sentence, translated_sentence)
+
+
+                    if is_succeeded == False:
+                        print('Error!')
+                        print('Paragraph ID: {}  |  Sentence ID: {}'.\
+                                format(paragraph_id, sentence_id))
+                        self.conn.rollback()
+                        return 410
+
+                # KeyError 예외처리
+                except KeyError:
+                    return 210
+
+        return 200
 
     def exportSentence(self,
             original_language_id=None,
@@ -291,9 +316,20 @@ class SentenceExporterAPI(object):
         # SentenceExporter 인스턴스 생성
         sentenceExporter = SentenceExporter(g.db)
 
-        jsonParameter = request.get_json()
+        # parse_request 함수로 request json 파싱
+        jsonParameter = ciceron_lib.parse_request(request)
 
-        return make_response(jsonParameter, 200)
+        resp_code = sentenceExporter.importSentences(jsonParameter)
+
+        if resp_code == 200:
+            g.db.commit()
+            return make_response("OK", 200)
+
+        elif resp_code == 210:
+            return make_response("fail, pair missmatch", 210)
+
+        elif resp_code == 410:
+            return make_response("Fail DB error", 410)
 
 
     def dataCounter(self):
