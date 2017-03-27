@@ -4,7 +4,7 @@ import psycopg2
 import io
 import os
 import traceback
-from flask import Flask, request, g, make_response, json, session, redirect, render_template, send_file
+from flask import Flask, request, g, make_response, json, session, redirect, render_template, send_file, json
 from datetime import datetime
 import nltk
 
@@ -288,7 +288,13 @@ class SentenceExporterAPI(object):
             #. **410**: Fail, DB Error
 
         """
-        pass
+        # SentenceExporter 인스턴스 생성
+        sentenceExporter = SentenceExporter(g.db)
+
+        jsonParameter = request.get_json()
+
+        return make_response(jsonParameter, 200)
+
 
     def dataCounter(self):
         """
