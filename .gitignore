@@ -12,3 +12,4 @@ app/docs
 .tox/
 coverage*
 src/warning_application.py
+.idea/
