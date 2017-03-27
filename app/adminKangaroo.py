@@ -3,7 +3,9 @@ import os
 import io
 import traceback
 from collections import OrderedDict
-from flask import request, send_file, make_response
+from flask import request, send_file, make_response, g, json
+import psycopg2
+import requests
 
 #Connection info: ADDRESS=ciceron.xyz PORT=5432 DATABASE=photo USER=ciceron_web PASS=noSecret01! SCHEMA=raw
 
@@ -18,13 +20,18 @@ except:
     from .ciceron_lib import login_required, admin_required
 
 
-
 class KangarooAdmin(object):
     def __init__(self, conn):
         self.conn = conn
 
     def tagListing(self):
-        pass
+        cursor = self.conn.cursor()
+        cursor.execute("select id, tag_name as name from RAW.f_crawltag")
+        columns = [ desc[0] for desc in cursor.description ]
+        taginfo = cursor.fetchall()
+        tag_list = ciceron_lib.dbToDict(columns, taginfo)
+
+        return 200, tag_list
 
     def tagInfoUpdate(self, tag_id, category_1, category_2):
         pass
@@ -56,7 +63,6 @@ class KangarooAdmin(object):
 
     def updateImageOfTag(self, tag_id, img_id, new_img_binary):
         pass
-
     def deleteImageOfTag(self, tag_id, img_id):
         pass
 
@@ -106,7 +112,10 @@ class KangarooAdminAPI(object):
                }
 
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        resp_code, tag_list = kangarooAdminObj.tagListing()
+
+        return make_response(json.jsonify(data=tag_list), resp_code)
 
     def adminKangarooTagUpdate(self):
         """
@@ -243,3 +252,5 @@ class KangarooAdminAPI(object):
         """
         pass
 
+if __name__ == "__main__":
+    pass

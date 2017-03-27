@@ -136,6 +136,8 @@ def get_text_from_id(conn, id_num, table):
     ID를 넣으면 해당 테이블의 text를 찾아줌
     """
     query = "SELECT text from CICERON.{} WHERE id = %s".format(table)
+    #query = "SELECT text from CICERON.%s WHERE id = " % table
+    #query += "%s"
     cursor = conn.cursor()
     cursor.execute(query, (id_num, ))
     rs = cursor.fetchone()
