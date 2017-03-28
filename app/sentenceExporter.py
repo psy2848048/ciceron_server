@@ -130,8 +130,6 @@ class SentenceExporter(object):
                     translated_sentence = unitSentence['translated_sentence']
 
 
-
-
                     is_succeeded = self._importUnitSentence(
                                        original_language_id
                                      , target_language_id
@@ -167,7 +165,47 @@ class SentenceExporter(object):
             subject_id=None,
             format_id=None,
             tone_id=None):
-        pass
+        # default parameter로 None을 넣어준다
+        cursor = self.conn.cursor()
+
+        params = [original_language_id, target_language_id, subject_id, format_id, tone_id]
+
+
+
+        query_params = [params for params in params if params is not None]
+
+        for i in query_params:
+            query_params[i] + " = " + "%s"
+
+
+        original_language_id = "original_language_id" + " = " + str(original_language_id)
+        target_language_id = "target_language_id" + " = " + str(target_language_id)
+        subject_id = "subject_id" + " = " + str(subject_id)
+        format_id = "format_id" + " = " + str(format_id)
+        tone_id = "tone_id" + " = " + str(tone_id)
+
+
+
+        query = """
+               SELECT * FROM CICERON.SENTENCES
+               WHERE
+                """
+
+
+
+
+
+        try:
+            cursor.execute(query, (
+                original_language_id, target_language_id, subject_id, format_id,
+                tone_id, ))
+            number = cursor.fetchone()[0]
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return 410, None
+
+        return 200, number
 
 class SentenceExporterAPI(object):
     def __init__(self, app, endpoints):
@@ -250,7 +288,7 @@ class SentenceExporterAPI(object):
                    ]
                  }
 
-          
+
         """
         pass
 
@@ -354,7 +392,28 @@ class SentenceExporterAPI(object):
 
             #. **410**: Fail
         """
-        pass
+
+        # SentenceExporter 인스턴스 생성
+        sentenceExporter = SentenceExporter(g.db)
+
+        original_language_id = request.args.get('original_language_id', None)
+        target_language_id = request.args.get('target_langauge_id')
+        subject_id = request.args.get('subject_id')
+        format_id = request.args.get('format_id')
+        tone_id = request.args.get('tone_id')
+
+
+
+        resp_code, number = sentenceExporter.dataCounter(original_language_id, target_language_id,
+                                                             subject_id, format_id, tone_id)
+
+        if resp_code == 200:
+            return make_response(json.jsonify(number=number), resp_code)
+
+        elif resp_code == 410:
+
+            return make_response(json.jsonify(message="Fail"), resp_code)
+
 
     def dataExport(self):
         """
