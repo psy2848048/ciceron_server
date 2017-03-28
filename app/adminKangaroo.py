@@ -3,7 +3,10 @@ import os
 import io
 import traceback
 from collections import OrderedDict
-from flask import request, send_file, make_response
+from flask import request, send_file, make_response, g, json
+import psycopg2
+import requests
+from datetime import datetime, timedelta
 
 #Connection info: ADDRESS=ciceron.xyz PORT=5432 DATABASE=photo USER=ciceron_web PASS=noSecret01! SCHEMA=raw
 
@@ -18,47 +21,146 @@ except:
     from .ciceron_lib import login_required, admin_required
 
 
-
 class KangarooAdmin(object):
     def __init__(self, conn):
         self.conn = conn
 
     def tagListing(self):
-        pass
+        cursor = self.conn.cursor()
+        query_select_tags = """
+        SELECT id, tag_name as name FROM RAW.f_crawltag
+        WHERE status_id IS NULL
+              OR status_id = 0
+        """
+        cursor.execute(query_select_tags)
+        columns = [ desc[0] for desc in cursor.description ]
+        taginfo = cursor.fetchall()
+        tag_list = ciceron_lib.dbToDict(columns, taginfo)
 
-    def tagInfoUpdate(self, tag_id, category_1, category_2):
-        pass
+        return 200, tag_list
 
-    def tagCategoryHierarchy(self, category_1):
-        if category_1 == 1:
-            return [1]
+    def updateTagInfo(self, tag_id, category1, category2):
+        cursor = self.conn.cursor()
+        query_update_taginfo = """
+        UPDATE RAW.f_crawltag
+        SET tag_category_level1 = %s, tag_category_level2 = %s, status_id = 1 
+        WHERE id = %s 
+        """
 
-        elif category_1 == 2:
-            return [2]
-
-        elif category_1 == 3:
-            return [3,4,5,6]
-
-        elif category_1 == 4:
-            return [7,8,9,10,11,12]
-
-        elif category_1 == 5:
-            return [13, 14, 15, 16]
+        try:
+            cursor.execute(query_update_taginfo, (category1, category2, tag_id, ))
+            if cursor.rowcount == 0:
+                return False
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+        
+        return True
 
     def deleteTag(self, tag_id):
-        pass
+        cursor = self.conn.cursor()
+        query_update_tagstatus = """
+        UPDATE RAW.f_crawltag
+        SET status_id = 2 
+        WHERE id = %s
+        """
 
-    def imageList(self, tag_id):
-        pass
+        try:
+            cursor.execute(query_update_tagstatus, (tag_id, ))
+            if cursor.rowcount == 0:
+                return False
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+        
+        return True
 
-    def provideImageOfTag(self, tag_id, img_id):
-        pass
+    def tagCategoryHierarchy(self, category1):
+        if category1 == 1:
+            return [1]
 
-    def updateImageOfTag(self, tag_id, img_id, new_img_binary):
-        pass
+        elif category1 == 2:
+            return [2]
 
-    def deleteImageOfTag(self, tag_id, img_id):
-        pass
+        elif category1 == 3:
+            return [3,4,5,6]
+
+        elif category1 == 4:
+            return [7,8,9,10,11,12]
+
+        elif category1 == 5:
+            return [13, 14, 15, 16]
+
+    def imageListing(self, tag_id):
+        cursor = self.conn.cursor()
+        query_select_tag_photos = """
+        SELECT id, 
+               concat('/api/v2/admin/kangaroo/tag/', crawltag_id, '/img/', id, '/', filename) as image_url
+        FROM RAW.f_mapping_photo_crawltag mpc
+        JOIN RAW.f_photo p on (mpc.photo_id = p.id)
+        WHERE crawltag_id = %s
+        """
+        cursor.execute(query_select_tag_photos, (tag_id,))
+        columns = [ desc[0] for desc in cursor.description ]
+        imageinfo = cursor.fetchall()
+        image_list = ciceron_lib.dbToDict(columns, imageinfo)
+
+        return 200, image_list
+
+    def provideImageOfTag(self, img_id):
+        cursor = self.conn.cursor()
+        query_select_photo = """
+        SELECT file_binary FROM RAW.f_photo
+        WHERE id = %s
+        """
+        cursor.execute(query_select_photo, (img_id,))
+        image = cursor.fetchone()[0]
+        if image == None: 
+            return None
+        else: 
+            return io.BytesIO(image)
+
+    def deleteImageOfTag(self, img_id):
+        cursor = self.conn.cursor()
+        query_update_photo_isok = """
+        UPDATE RAW.f_photo
+        SET is_ok = FALSE
+        WHERE id = %s
+        """
+        try:
+            cursor.execute(query_update_photo_isok, (img_id, ))
+            if cursor.rowcount == 0:
+                return False
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+        return True
+
+    def updateImageOfTag(self, img_id, new_image=None):
+        cursor = self.conn.cursor()
+        query_update_photo = """
+        UPDATE RAW.f_photo
+        SET filename = %s, file_binary = %s
+        WHERE id = %s
+        """
+        filename = ""
+        
+        if new_image is not None:
+            extension = new_image.filename.split(".")[-1]
+            filename = str(datetime.today().strftime("%Y%m%d%H%M%S%f")) + "." + extension
+            try:
+                img_bin = new_image.read()
+                cursor.execute(query_update_photo, (filename, bytearray(img_bin), img_id, ))
+                if cursor.rowcount == 0:
+                    return False
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return False
+        return True
 
 
 class KangarooAdminAPI(object):
@@ -106,7 +208,10 @@ class KangarooAdminAPI(object):
                }
 
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        resp_code, tag_list = kangarooAdminObj.tagListing()
+
+        return make_response(json.jsonify(data=tag_list), resp_code)
 
     def adminKangarooTagUpdate(self):
         """
@@ -138,7 +243,19 @@ class KangarooAdminAPI(object):
             #. 15 - 물건
             #. 16 - 자연경관
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        tag_id = parameters.get("tag_id", None)
+        category1 = parameters.get("category_level_1", None)
+        category2 = parameters.get("category_level_2", None)
+
+        is_updated = kangarooAdminObj.updateTagInfo(tag_id, category1, category2)
+        if is_updated == True:
+            g.db.commit()
+            return make_response(json.jsonify(message = "Updated Successfully"), 200)
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(message = "Something Wrong"), 405)
 
     def adminKangarooTagCategoryHierarchy(self, category1):
         """
@@ -158,7 +275,10 @@ class KangarooAdminAPI(object):
                }
 
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        category2 = kangarooAdminObj.tagCategoryHierarchy(category1)
+
+        return make_response(json.jsonify(data=category2), 200)
 
     def adminKangarooTagDelete(self, tag_id):
         """
@@ -171,7 +291,16 @@ class KangarooAdminAPI(object):
           #. **200**: OK
           #. **410**: Fail
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        parameters = ciceron_lib.parse_request(request)
+
+        is_updated = kangarooAdminObj.deleteTag(tag_id)
+        if is_updated == True:
+            g.db.commit()
+            return make_response(json.jsonify(message = "Updated Successfully"), 200)
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(message = "Something Wrong"), 410)
 
     def adminKangarooTagImageLists(self, tag_id):
         """
@@ -196,7 +325,10 @@ class KangarooAdminAPI(object):
                }
 
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        resp_code, image_list = kangarooAdminObj.imageListing(tag_id)
+
+        return make_response(json.jsonify(data=image_list), resp_code)
 
     def adminKangarooTagProvideImageBinary(self, tag_id, img_id, filename):
         """
@@ -211,7 +343,12 @@ class KangarooAdminAPI(object):
           #. **200**: 파일 제공
           #. **404**: 파일 없음
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        image = kangarooAdminObj.provideImageOfTag(img_id)
+        if image is None:
+            return make_response(json.jsonify(message="No Photo"), 400)
+        else:
+            return send_file(image, attachment_filename=filename)
 
     def adminKangarooTagUpdateImageBinary(self, tag_id, img_id, filename):
         """
@@ -226,7 +363,16 @@ class KangarooAdminAPI(object):
           #. **200**: 업데이트 성공
           #. **410**: 실패
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        image = request.files.get("photo_bin", None)
+
+        is_updated = kangarooAdminObj.updateImageOfTag(img_id, new_image=image)
+        if is_updated == True:
+            g.db.commit()
+            return make_response(json.jsonify(message = "Change Image Successfully"), 200)
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(message = "Something Wrong"), 410)
 
     def adminKangarooTagDeleteImageBinary(self, tag_id, img_id, filename):
         """
@@ -241,5 +387,15 @@ class KangarooAdminAPI(object):
           #. **200**: 삭제 성공
           #. **410**: 실패
         """
-        pass
+        kangarooAdminObj = KangarooAdmin(g.db)
+        is_updated = kangarooAdminObj.deleteImageOfTag(img_id)
+        if is_updated == True:
+            g.db.commit()
+            return make_response(json.jsonify(message = "Change Image Status Successfully"), 200)
+        else:
+            g.db.rollback()
+            return make_response(json.jsonify(message = "Something Wrong"), 410)
 
+
+if __name__ == "__main__":
+    pass
