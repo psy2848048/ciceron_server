@@ -6,6 +6,7 @@ from collections import OrderedDict
 from flask import request, send_file, make_response, g, json
 import psycopg2
 import requests
+from datetime import datetime, timedelta
 
 #Connection info: ADDRESS=ciceron.xyz PORT=5432 DATABASE=photo USER=ciceron_web PASS=noSecret01! SCHEMA=raw
 
@@ -147,8 +148,8 @@ class KangarooAdmin(object):
         """
         filename = ""
         
-        if new_image and ciceron_lib.pic_allowed_file(new_image.filename):
-            extension = new_image.filename.spli(".")[-1]
+        if new_image is not None:
+            extension = new_image.filename.split(".")[-1]
             filename = str(datetime.today().strftime("%Y%m%d%H%M%S%f")) + "." + extension
             try:
                 img_bin = new_image.read()
@@ -363,7 +364,6 @@ class KangarooAdminAPI(object):
           #. **410**: 실패
         """
         kangarooAdminObj = KangarooAdmin(g.db)
-        parameters = ciceron_lib.parse_request(request)
         image = request.files.get("photo_bin", None)
 
         is_updated = kangarooAdminObj.updateImageOfTag(img_id, new_image=image)
