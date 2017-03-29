@@ -130,8 +130,6 @@ class SentenceExporter(object):
                     translated_sentence = unitSentence['translated_sentence']
 
 
-
-
                     is_succeeded = self._importUnitSentence(
                                        original_language_id
                                      , target_language_id
@@ -167,7 +165,53 @@ class SentenceExporter(object):
             subject_id=None,
             format_id=None,
             tone_id=None):
-        pass
+        # default parameter로 None을 넣어준다
+        cursor = self.conn.cursor()
+
+        # TODO : None타입이 아닌 것만 리스트 형태로 넣기, 형태는 "변수명 = %s"
+        dict_params = {"original_language_id": original_language_id, "target_language_id": target_language_id,
+                  "subject_id": subject_id, "format_id": format_id, "tone_id": tone_id}
+
+        list_params = [original_language_id, target_language_id, subject_id, format_id, tone_id]
+
+        list_params = [ list_param for list_param in list_params if list_param ]
+
+        # params_notNone = { dict_param for dict_param in dict_params if dict_params.items() is not None}
+
+        params_notNone = { k: v for k, v in dict_params.items() if v is not None}
+        query_str_list = []
+        for dict_key in params_notNone:
+            query_str_list.append(str(dict_key) + " = " + "%s")
+
+
+        query_where = """SELECT * FROM CICERON.SENTENCES WHERE """
+        query = """SELECT * FROM CICERON.SENTENCES"""
+
+        query_str = " and ".join(query_str_list)
+        """
+            for i in range(len(query_str_list)):
+            query += query_str_list[i]
+        """
+        query_where += query_str
+        print(query)
+        if (len(list_params) == 0):
+            try:
+                cursor.execute(query)
+                number = len(cursor.fetchall())
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return 410, None
+        else:
+            try:
+                cursor.execute(query_where, list_params)
+                number = len(cursor.fetchall())
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return 410, None
+
+        return 200, number
 
 class SentenceExporterAPI(object):
     def __init__(self, app, endpoints):
@@ -250,7 +294,7 @@ class SentenceExporterAPI(object):
                    ]
                  }
 
-          
+
         """
         pass
 
@@ -354,7 +398,28 @@ class SentenceExporterAPI(object):
 
             #. **410**: Fail
         """
-        pass
+
+        # SentenceExporter 인스턴스 생성
+        sentenceExporter = SentenceExporter(g.db)
+
+        original_language_id = request.args.get('original_language_id', None)
+        target_language_id = request.args.get('target_language_id')
+        subject_id = request.args.get('subject_id')
+        format_id = request.args.get('format_id')
+        tone_id = request.args.get('tone_id')
+
+
+
+        resp_code, number = sentenceExporter.dataCounter(original_language_id, target_language_id,
+                                                             subject_id, format_id, tone_id)
+
+        if resp_code == 200:
+            return make_response(json.jsonify(number=number), resp_code)
+
+        elif resp_code == 410:
+
+            return make_response(json.jsonify(message="Fail"), resp_code)
+
 
     def dataExport(self):
         """
