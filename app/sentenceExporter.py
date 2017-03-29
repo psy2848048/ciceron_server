@@ -26,22 +26,26 @@ class SentenceExporter(object):
     def _parseUnitSentences(self, paragraph_delimeter, whole_string):
         result = []
 
-        splitted_paragraph = whole_string.split(paragraph_delimiter)
+        splitted_paragraph = whole_string.split(paragraph_delimeter)
+
 
         for paragraph_id, sentences in enumerate(splitted_paragraph):
+            paragraph_id += 1
             paragraph = {}
 
             paragraph['paragraph_id'] = paragraph_id
             paragraph['sentences'] = []
 
-            splitted_sentences = self.sentence_detector.tokenize(whole_paragraph.strip())
+
+            splitted_sentences = self.sentence_detector.tokenize(sentences.strip())
             for sentence_id, sentence in enumerate(splitted_sentences):
-                sentence = {}
+                sentence_id += 1
+                dict_sentence = {}
 
-                sentence['sentence_id'] = sentence_id
-                sentence['sentence'] = sentence
+                dict_sentence['sentence_id'] = sentence_id
+                dict_sentence['sentence'] = sentence
 
-                paragraph['sentences'].append(sentence)
+                paragraph['sentences'].append(dict_sentence)
 
             result.append(paragraph)
 
@@ -85,13 +89,13 @@ class SentenceExporter(object):
         return True
 
     def parseSentences(self
-            , paragraph_delimiter
-            , whole_original_string
-            , whole_translated_string):
-
+            , paragraph_delimiter="\\n"
+            , whole_original_string=None
+            , whole_translated_string=None):
+        print(whole_original_string)
         original_string = self._parseUnitSentences(paragraph_delimiter, whole_original_string)
         translated_string = self._parseUnitSentences(paragraph_delimiter, whole_translated_string)
-        return {
+        return 200, {
                     "original_string": original_string
                   , "translated_string": translated_string
                 }
@@ -193,7 +197,7 @@ class SentenceExporter(object):
             query += query_str_list[i]
         """
         query_where += query_str
-        print(query)
+
         if (len(list_params) == 0):
             try:
                 cursor.execute(query)
@@ -296,7 +300,23 @@ class SentenceExporterAPI(object):
 
 
         """
-        pass
+        # SentenceExporter 인스턴스 생성
+        sentenceExporter = SentenceExporter(g.db)
+
+        # requedst에서 original과 translated 받기
+        """
+        parameters = ciceron_lib.parse_request(request)
+
+        original_string = parameters['original_string']
+        translated_string = parameters['translated_string']
+        """
+
+        original_string = request.form['original_string']
+        translated_string = request.form['translated_string']
+
+        resp_code, parsedSentence = sentenceExporter.parseSentences(whole_original_string = original_string,
+                                                                    whole_translated_string= translated_string)
+        return make_response(json.jsonify(parsedSentence), resp_code)
 
     def dataImport(self):
         """
@@ -407,6 +427,7 @@ class SentenceExporterAPI(object):
         subject_id = request.args.get('subject_id')
         format_id = request.args.get('format_id')
         tone_id = request.args.get('tone_id')
+
 
 
 
