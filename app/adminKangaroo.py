@@ -47,6 +47,9 @@ class KangarooAdmin(object):
         WHERE id = %s 
         """
 
+        if category1 is None or category2 is None:
+            return False
+
         try:
             cursor.execute(query_update_taginfo, (category1, category2, tag_id, ))
             if cursor.rowcount == 0:
@@ -92,9 +95,17 @@ class KangarooAdmin(object):
 
         elif category1 == 5:
             return [13, 14, 15, 16]
+        
+        else: 
+            msg = "This category don't exist."
+            return msg
 
-    def imageListing(self, tag_id):
+    def imageListing(self, tag_id, page):
         cursor = self.conn.cursor()
+        query_count_tag_photos = """
+        SELECT count(*) FROM RAW.f_photo p JOIN f_mapping_photo_crawltag mpc ON (p.id = mpc.photo_id)
+        WHERE crawltag_id = %s
+        """
         query_select_tag_photos = """
         SELECT id, 
                concat('/api/v2/admin/kangaroo/tag/', crawltag_id, '/img/', id, '/', filename) as image_url
@@ -102,12 +113,23 @@ class KangarooAdmin(object):
         JOIN RAW.f_photo p on (mpc.photo_id = p.id)
         WHERE crawltag_id = %s
         """
-        cursor.execute(query_select_tag_photos, (tag_id,))
+
+        if page is not None:
+            rows = 5
+            offset = (int(page) - 1) * rows 
+            query_select_tag_photos += " OFFSET %s LIMIT %s" % (offset, rows)
+
+        # page에 해당하는 사진 개수 출력
+        cursor.execute(query_select_tag_photos, (tag_id, ))
         columns = [ desc[0] for desc in cursor.description ]
         imageinfo = cursor.fetchall()
         image_list = ciceron_lib.dbToDict(columns, imageinfo)
 
-        return 200, image_list
+        if len(imageinfo) != 0:
+            return 200, image_list
+        else: 
+            image_list = "No Photo"
+            return 200, image_list
 
     def provideImageOfTag(self, img_id):
         cursor = self.conn.cursor()
@@ -278,7 +300,10 @@ class KangarooAdminAPI(object):
         kangarooAdminObj = KangarooAdmin(g.db)
         category2 = kangarooAdminObj.tagCategoryHierarchy(category1)
 
-        return make_response(json.jsonify(data=category2), 200)
+        if type(category2) is str:
+            return make_response(json.jsonify(data=category2), 400)
+        else:
+            return make_response(json.jsonify(data=category2), 200)
 
     def adminKangarooTagDelete(self, tag_id):
         """
@@ -326,7 +351,8 @@ class KangarooAdminAPI(object):
 
         """
         kangarooAdminObj = KangarooAdmin(g.db)
-        resp_code, image_list = kangarooAdminObj.imageListing(tag_id)
+        page = request.args.get('page', None)
+        resp_code, image_list = kangarooAdminObj.imageListing(tag_id, page)
 
         return make_response(json.jsonify(data=image_list), resp_code)
 
