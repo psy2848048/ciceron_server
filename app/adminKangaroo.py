@@ -47,6 +47,9 @@ class KangarooAdmin(object):
         WHERE id = %s 
         """
 
+        if category1 is None or category2 is None:
+            return False
+
         try:
             cursor.execute(query_update_taginfo, (category1, category2, tag_id, ))
             if cursor.rowcount == 0:
@@ -92,17 +95,36 @@ class KangarooAdmin(object):
 
         elif category1 == 5:
             return [13, 14, 15, 16]
+        
+        else: 
+            msg = "This category don't exist."
+            return msg
 
-    def imageListing(self, tag_id):
+    def imageListing(self, tag_id, page=1):
         cursor = self.conn.cursor()
+        query_count_tag_photos = """
+        SELECT count(*) FROM RAW.f_mapping_photo_crawltag 
+        WHERE crawltag_id = %s
+        """
         query_select_tag_photos = """
         SELECT id, 
                concat('/api/v2/admin/kangaroo/tag/', crawltag_id, '/img/', id, '/', filename) as image_url
         FROM RAW.f_mapping_photo_crawltag mpc
         JOIN RAW.f_photo p on (mpc.photo_id = p.id)
         WHERE crawltag_id = %s
+        LIMIT 20 
+        OFFSET 20 * (%s - 1)
         """
-        cursor.execute(query_select_tag_photos, (tag_id,))
+       
+        # 태그에 해당하는 사진 개수 구하기
+        cursor.execute(query_count_tag_photos, (tag_id, ))
+        cnt = cursor.fetchone()[0]
+        if cnt == 0:
+            msg = "This page don't exist."
+            return 404, msg
+
+        # 해당하는 사진 출력
+        cursor.execute(query_select_tag_photos, (tag_id, int(page), ))
         columns = [ desc[0] for desc in cursor.description ]
         imageinfo = cursor.fetchall()
         image_list = ciceron_lib.dbToDict(columns, imageinfo)
@@ -116,10 +138,11 @@ class KangarooAdmin(object):
         WHERE id = %s
         """
         cursor.execute(query_select_photo, (img_id,))
-        image = cursor.fetchone()[0]
-        if image == None: 
+        
+        if cursor.rowcount == 0:
             return None
         else: 
+            image = cursor.fetchone()[0]
             return io.BytesIO(image)
 
     def deleteImageOfTag(self, img_id):
@@ -278,7 +301,10 @@ class KangarooAdminAPI(object):
         kangarooAdminObj = KangarooAdmin(g.db)
         category2 = kangarooAdminObj.tagCategoryHierarchy(category1)
 
-        return make_response(json.jsonify(data=category2), 200)
+        if type(category2) is str:
+            return make_response(json.jsonify(data=category2), 400)
+        else:
+            return make_response(json.jsonify(data=category2), 200)
 
     def adminKangarooTagDelete(self, tag_id):
         """
@@ -326,9 +352,14 @@ class KangarooAdminAPI(object):
 
         """
         kangarooAdminObj = KangarooAdmin(g.db)
-        resp_code, image_list = kangarooAdminObj.imageListing(tag_id)
+        page = request.args.get('page', 1)
 
-        return make_response(json.jsonify(data=image_list), resp_code)
+        print(page)
+        if not page:
+            return make_response(json.jsonify(data="Page is entered but there is no value."), 410)
+        else:
+           resp_code, image_list = kangarooAdminObj.imageListing(tag_id, page)
+           return make_response(json.jsonify(data=image_list), resp_code)
 
     def adminKangarooTagProvideImageBinary(self, tag_id, img_id, filename):
         """
@@ -346,7 +377,7 @@ class KangarooAdminAPI(object):
         kangarooAdminObj = KangarooAdmin(g.db)
         image = kangarooAdminObj.provideImageOfTag(img_id)
         if image is None:
-            return make_response(json.jsonify(message="No Photo"), 400)
+            return make_response(json.jsonify(message="No Photo"), 404)
         else:
             return send_file(image, attachment_filename=filename)
 
@@ -365,6 +396,9 @@ class KangarooAdminAPI(object):
         """
         kangarooAdminObj = KangarooAdmin(g.db)
         image = request.files.get("photo_bin", None)
+        
+        if image is None:
+            return make_response(json.jsonify(message = "'photo_bin' not entered."), 410)
 
         is_updated = kangarooAdminObj.updateImageOfTag(img_id, new_image=image)
         if is_updated == True:
