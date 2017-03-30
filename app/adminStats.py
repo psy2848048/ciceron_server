@@ -18,18 +18,21 @@ except:
 
 
 class AdminStats(object):
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self, ciceronConn, baogaoConn):
+        self.ciceronConn = ciceronConn
+        self.baogaoConn = baogaoConn
 
     def statOverview(self):
         cursor = self.conn.cursor()
         # Currently, no data for displaying...
 
     def aboutDeadline(self):
-        pass
+        cursor = self.conn.cursor()
+        # Currently, no data for displaying...
 
     def checkRequests(self):
-        pass
+        cursor = self.conn.cursor()
+        # Currently, no data for displaying...
 
 
 class AdminStatsAPI(object):
@@ -67,7 +70,7 @@ class AdminStatsAPI(object):
                }
 
         """
-        pass
+        adminStatsObj = AdminStats(g.db)
 
     def adminAboutDeadline(self):
         """
