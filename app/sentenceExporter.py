@@ -7,6 +7,7 @@ import traceback
 from flask import Flask, request, g, make_response, json, session, redirect, render_template, send_file, json
 from datetime import datetime
 import nltk
+import csv
 
 try:
     import ciceron_lib
@@ -30,19 +31,17 @@ class SentenceExporter(object):
 
 
         for paragraph_id, sentences in enumerate(splitted_paragraph):
-            paragraph_id += 1
             paragraph = {}
 
-            paragraph['paragraph_id'] = paragraph_id
+            paragraph['paragraph_id'] = paragraph_id + 1
             paragraph['sentences'] = []
 
 
             splitted_sentences = self.sentence_detector.tokenize(sentences.strip())
             for sentence_id, sentence in enumerate(splitted_sentences):
-                sentence_id += 1
                 dict_sentence = {}
 
-                dict_sentence['sentence_id'] = sentence_id
+                dict_sentence['sentence_id'] = sentence_id + 1
                 dict_sentence['sentence'] = sentence
 
                 paragraph['sentences'].append(dict_sentence)
@@ -92,7 +91,7 @@ class SentenceExporter(object):
             , paragraph_delimiter="\\n"
             , whole_original_string=None
             , whole_translated_string=None):
-        print(whole_original_string)
+
         original_string = self._parseUnitSentences(paragraph_delimiter, whole_original_string)
         translated_string = self._parseUnitSentences(paragraph_delimiter, whole_translated_string)
         return 200, {
@@ -161,7 +160,73 @@ class SentenceExporter(object):
             subject_id=None,
             format_id=None,
             tone_id=None):
-        pass
+
+        # default parameter로 None을 넣어준다
+        cursor = self.conn.cursor()
+
+        # TODO : None타입이 아닌 것만 리스트 형태로 넣기, 형태는 "변수명 = %s"
+        dict_params = {"original_language_id": original_language_id, "target_language_id": target_language_id,
+                       "subject_id": subject_id, "format_id": format_id, "tone_id": tone_id}
+
+        list_params = [original_language_id, target_language_id, subject_id, format_id, tone_id]
+
+        list_params = [list_param for list_param in list_params if list_param]
+
+        # params_notNone = { dict_param for dict_param in dict_params if dict_params.items() is not None}
+
+        params_notNone = {k: v for k, v in dict_params.items() if v is not None}
+        query_str_list = []
+        for dict_key in params_notNone:
+            query_str_list.append(str(dict_key) + " = " + "%s")
+
+        query_where = """SELECT * FROM CICERON.SENTENCES WHERE """
+        query = """SELECT * FROM CICERON.SENTENCES"""
+
+        query_str = " and ".join(query_str_list)
+        """
+			for i in range(len(query_str_list)):
+			query += query_str_list[i]
+		"""
+        query_where += query_str
+
+        if (len(list_params) == 0):
+            try:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                #str_result = [str(result).strip('[]')]
+
+                """
+                # CSV 파일 write
+                f_csv = csv.writer(result, delimiter=',')
+                for row in result:
+                    f_csv.writerow(row)
+                """
+                output = io.StringIO()
+                writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
+                writer.writerows(result)
+                f = output.getvalue()
+
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return 410, None
+        else:
+            try:
+                cursor.execute(query_where, list_params)
+                result = cursor.fetchall()
+
+                # CSV 파일 write
+                output = io.StringIO()
+                writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
+                writer.writerows(result)
+                f = output.getvalue()
+
+            except:
+                traceback.print_exc()
+                self.conn.rollback()
+                return 410, None
+
+        return (200, f)
 
     def dataCounter(self,
             original_language_id=None,
@@ -202,6 +267,7 @@ class SentenceExporter(object):
             try:
                 cursor.execute(query)
                 number = len(cursor.fetchall())
+
             except:
                 traceback.print_exc()
                 self.conn.rollback()
@@ -210,6 +276,7 @@ class SentenceExporter(object):
             try:
                 cursor.execute(query_where, list_params)
                 number = len(cursor.fetchall())
+
             except:
                 traceback.print_exc()
                 self.conn.rollback()
@@ -229,7 +296,7 @@ class SentenceExporterAPI(object):
         for endpoint in self.endpoints:
             self.app.add_url_rule('{}/admin/dataManager/parseSentence'.format(endpoint), view_func=self.parseSentence, methods=["POST"])
             self.app.add_url_rule('{}/admin/dataManager/import'.format(endpoint), view_func=self.dataImport, methods=["POST"])
-            self.app.add_url_rule('{}/admin/dataManager/export'.format(endpoint), view_func=self.dataExport, methods=["POST"])
+            self.app.add_url_rule('{}/admin/dataManager/export'.format(endpoint), view_func=self.dataExport, methods=["GET"])
             self.app.add_url_rule('{}/admin/dataManager/dataCounter'.format(endpoint), view_func=self.dataCounter, methods=["GET"])
 
     def parseSentence(self):
@@ -457,4 +524,22 @@ class SentenceExporterAPI(object):
             #. **410**: 실패
 
         """
-        pass
+        # SentenceExporter 인스턴스 생성
+        sentenceExporter = SentenceExporter(g.db)
+
+        original_language_id = request.args.get('original_language_id', None)
+        target_language_id = request.args.get('target_language_id')
+        subject_id = request.args.get('subject_id')
+        format_id = request.args.get('format_id')
+        tone_id = request.args.get('tone_id')
+
+        resp_code, f = sentenceExporter.exportSentence(original_language_id, target_language_id,
+                                                            subject_id, format_id, tone_id)
+
+        if resp_code == 200:
+
+            return send_file(io.BytesIO(f.encode('utf-8')), attachment_filename = 'sentences.csv')
+
+        elif resp_code == 410:
+
+            return make_response(json.jsonify(message="Fail"), resp_code)
