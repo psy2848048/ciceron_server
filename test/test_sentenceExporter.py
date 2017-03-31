@@ -25,66 +25,115 @@ class SentenceExporterTestCase(TestCase):
         pass
 
 
+
     # ret = json.loads(res.data)
     # 또는 ret = json.loads(res.code)
     # self.assertEqual(ret['is_loggedIn'], True)
 
-    def test_parseSentence(self):
-        pass
-    '''
-        res = self.app.post('/api/v2/admin/dataManager/parseSentence',
-                data = {
-                    'orifinal_string': [
-                        {
-                            'paragraph_id': 1,
-                            'sentences': [
-                                {
-                                    'sentence_id': 1,
-                                    'sentence': '가나다라마바사'
-                                },
-                                {
-                                    'sentence_id': 2,
-                                    'sentence': '파싱되고 있습니까?'
-                                }
-                            ]
-                        },
-                        {
-                            'paragraph_id': 2,
-                            'sentences': [
-                                {
-                                    'sentence_id': 1,
-                                    'sentence': '안녕하세요'
-                                }
-                            ]
-                        }
-                    ],
-                    'translated_string': [
-                        {
-                            'paragraph_id': 1,
-                            'sentences': [
-                                {
-                                    'sentence_id': 1,
-                                   'sentence': 'GANADARAMABASA'
-                                },
-                                {
-                                    'sentence_id': 2,
-                                    'sentence': 'Are you parsing?'
-                                }
-                            ]
-                        },
-                        {
-                            'paragraph_id': 2,
-                            'sentences': [
-                                {
-                                    'sentence_id': 1,
-                                    'sentence': 'Hello'
-                                }
-                            ]
-                        }
-                    ]
-                })
-        self.assertEqual(res.code, 200)
-    '''
+    def test_dataCounter_OK1(self):
+        """
+        성공 1. 모든 값이 들어갔을 때
+        """
+        res = self.app.get('/api/v2/admin/dataManager/dataCounter',
+                query_string = {
+                    'original_language_id' : 1, 
+                    'target_language_id' : 2,
+                    'subject_id' : 3,
+                    'format_id' : 4,
+                    'tone_id' : 2
+                    })
+        self.assertEqual(res.status_code, 200)
+
+    def test_dataCounter_OK2(self):
+        """
+        성공 2. parameter 중 하나의 값이 없을 때
+        """
+        res = self.app.get('/api/v2/admin/dataManager/dataCounter',
+                query_string = {
+                    'original_language_id' : 1, 
+                    'subject_id' : 3,
+                    'format_id' : 4,
+                    'tone_id' : 2
+                    })
+        self.assertEqual(res.status_code, 200)
+
+    def test_dataCounter_Fail1(self):
+        """
+        실패 1. DATATYPE이 다른 경우
+        int로 설정되어 있는데 문자로 들어가도 200처리 된다 - 처리 필요
+        """
+        res = self.app.get('/api/v2/admin/dataManager/dataCounter',
+                query_string = {
+                    'original_language_id' : 1, 
+                    'target_language_id' : 2,
+                    'subject_id' : 'a',
+                    'format_id' : 4,
+                    'tone_id' : 2
+                    })
+        self.assertEqual(res.status_code, 410)
+
+
+###########################################################################################
+
+
+    def test_dataExport_OK1(self):
+        """
+        성공 1. 모든 값이 제대로 들어갔을 때
+        """
+        res = self.app.get('/api/v2/admin/dataManager/export',
+                query_string = {
+                    'original_language_id' : 1, 
+                    'target_language_id' : 2,
+                    'subject_id' : 3,
+                    'format_id' : 4,
+                    'tone_id' : 2
+                    })
+        self.assertEqual(res.status_code, 200)
+                              
+    def test_dataExport_OK2(self):
+        """
+        성공 2. optional 값 중에 하나가 안들어갔을 때 
+        """
+        res = self.app.get('/api/v2/admin/dataManager/export',
+                query_string = {
+                    'original_language_id' : 1, 
+                    'target_language_id' : 2,
+                    'subject_id' : 3,
+                    'tone_id' : 2
+                    })
+        self.assertEqual(res.status_code, 200)
+
+#    def test_dataExport_Fail1(self):
+#        """
+#        실패 1. 없는 값을 요청했을 때
+#        """
+#        res = self.app.get('/api/v2/admin/dataManager/export',
+#                query_string = {
+#                    'original_language_id' : 1, 
+#                    'target_language_id' : 200,
+#                    'subject_id' : 3,
+#                    'format_id' : 4,
+#                    'tone_id' : 2
+#                    })
+#        self.assertEqual(res.status_code, 410)
+
+    def test_dataExport_Fail2(self):
+        """
+        실패 2. 데이터 타입이 다른 경우
+        """
+        res = self.app.get('/api/v2/admin/dataManager/export',
+                query_string = {
+                    'original_language_id' : 1, 
+                    'target_language_id' : 'aaa',
+                    'subject_id' : 3,
+                    'format_id' : 4,
+                    'tone_id' : 2
+                    })
+        self.assertEqual(res.status_code, 410)
+
+
+###########################################################################################
+
 
     def test_dataImport_OK(self):
         """
@@ -306,50 +355,36 @@ class SentenceExporterTestCase(TestCase):
         self.assertEqual(res.status_code, 410)
 
 
-    def test_dataExport(self):
-        pass                  
-    #    res = self.app.post('/api/v2/admin/dataManager/export',
-    #            data = {} )  
-                              
-                              
-    def test_dataCounter_OK1(self):
-        """
-        성공 1. 모든 값이 들어갔을 때
-        """
-        res = self.app.get('/api/v2/admin/dataManager/dataCounter',
-                data = json.dumps(dict(
-                    original_language_id = 1, 
-                    target_language_id = 2,
-                    subject_id = 3,
-                    format_id = 4,
-                    tone_id = 2
-                    )))
-        self.assertEqual(res.status_code, 200)
+###########################################################################################
 
-    def test_dataCounter_OK2(self):
+
+    def test_parseSentence_OK1(self):
         """
-        성공 2. parameter 중 하나의 값이 없을 때
+        성공 1. 모든 값이 제대로 들어갔을 경우
         """
-        res = self.app.get('/api/v2/admin/dataManager/dataCounter',
-                data = json.dumps(dict(
-                    original_language_id = 1, 
-                    format_id = 4,
-                    tone_id = 2
-                    )))
+        res = self.app.post('/api/v2/admin/dataManager/parseSentence',
+                data = dict(
+                    original_string = "테스트 중입니다. 만나서 반갑습니다.",
+                    translated_string = "Testing. Nice to meet you."))
         self.assertEqual(res.status_code, 200)
-    '''
-    def test_dataCounter_Fail1(self):
+    
+    def test_parseSentence_Fail1(self):
         """
-        실패 1. DATATYPE이 다른 경우
-        int로 설정되어 있는데 문자로 들어가도 200처리 된다 - 처리 필요
+        실패 1. translated_string 값이 안들어 갔을 때
         """
-        res = self.app.get('/api/v2/admin/dataManager/dataCounter',
-                data = json.dumps(dict(
-                   original_language_id = 1, 
-                    target_language_id = 2,
-                    subject_id = 'A',
-                    format_id = 4,
-                    tone_id = 2
-                    )))
-        self.assertEqual(res.status_code, 410)
-    '''
+        res = self.app.post('/api/v2/admin/dataManager/parseSentence',
+                data = dict(
+                    original_string = "테스트 중입니다. 만나서 반갑습니다."))
+        self.assertEqual(res.status_code, 400)
+   
+#    def test_parseSentence_Fail2(self):
+#         """
+#         실패 2. 파라미터안에 값이 안들어간 경우
+#         """
+#         res = self.app.post('/api/v2/admin/dataManager/parseSentence',
+#                 data = dict(
+#                     original_string = "",
+#                     translated_string = "Testing. Nice to meet you."))
+#         self.assertEqual(res.status_code, 400)
+
+

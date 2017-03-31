@@ -106,12 +106,11 @@ DATABASE = None
 """ Execute following first!!"""
 """ export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
 
+DATABASE_kang = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=noSecret01!"
 if os.environ.get('PURPOSE') == 'PROD':
-    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=photo user=ciceron_web password=noSecret01!"
-    #DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 else:
-    DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=noSecret01!"
-    #DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 
 VERSION = '1.1'
 DEBUG = True
@@ -231,6 +230,7 @@ def before_request():
     모든 API 실행 전 실행하는 부분. 여기서는 DB 연결.
     """
     g.db = connect_db()
+    g.db_kang = psycopg2.connect(DATABASE_kang)
 
 @app.teardown_request
 def teardown_request(exception):
@@ -238,8 +238,11 @@ def teardown_request(exception):
     모든 API 실행 후 실행하는 부분. 여기서는 DB 연결종료.
     """
     db = getattr(g, 'db', None)
+    db_kang = getattr(g, 'db_kang', None)
     if db is not None:
         db.close()
+    if db_kang is not None:
+        db_kang.close()
 
 #@facebook.tokengetter
 #def get_facebook_token():
@@ -4267,5 +4270,5 @@ if __name__ == '__main__':
     from gevent.wsgi import WSGIServer
     http_server = WSGIServer(('0.0.0.0', 7000), app)
     http_server.serve_forever()
-    #app.run(host="0.0.0.0", port=6000, threaded=True)
+    #app.run(host="0.0.0.0", port=5000, threaded=True)
     

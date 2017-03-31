@@ -231,7 +231,7 @@ class KangarooAdminAPI(object):
                }
 
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         resp_code, tag_list = kangarooAdminObj.tagListing()
 
         return make_response(json.jsonify(data=tag_list), resp_code)
@@ -266,7 +266,7 @@ class KangarooAdminAPI(object):
             #. 15 - 물건
             #. 16 - 자연경관
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         parameters = ciceron_lib.parse_request(request)
         tag_id = parameters.get("tag_id", None)
         category1 = parameters.get("category_level_1", None)
@@ -274,10 +274,10 @@ class KangarooAdminAPI(object):
 
         is_updated = kangarooAdminObj.updateTagInfo(tag_id, category1, category2)
         if is_updated == True:
-            g.db.commit()
+            g.db_kang.commit()
             return make_response(json.jsonify(message = "Updated Successfully"), 200)
         else:
-            g.db.rollback()
+            g.db_kang.rollback()
             return make_response(json.jsonify(message = "Something Wrong"), 405)
 
     def adminKangarooTagCategoryHierarchy(self, category1):
@@ -298,7 +298,7 @@ class KangarooAdminAPI(object):
                }
 
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         category2 = kangarooAdminObj.tagCategoryHierarchy(category1)
 
         if type(category2) is str:
@@ -317,15 +317,15 @@ class KangarooAdminAPI(object):
           #. **200**: OK
           #. **410**: Fail
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         parameters = ciceron_lib.parse_request(request)
 
         is_updated = kangarooAdminObj.deleteTag(tag_id)
         if is_updated == True:
-            g.db.commit()
+            g.db_kang.commit()
             return make_response(json.jsonify(message = "Updated Successfully"), 200)
         else:
-            g.db.rollback()
+            g.db_kang.rollback()
             return make_response(json.jsonify(message = "Something Wrong"), 410)
 
     def adminKangarooTagImageLists(self, tag_id):
@@ -351,7 +351,7 @@ class KangarooAdminAPI(object):
                }
 
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         page = request.args.get('page', 1)
 
         print(page)
@@ -374,7 +374,7 @@ class KangarooAdminAPI(object):
           #. **200**: 파일 제공
           #. **404**: 파일 없음
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         image = kangarooAdminObj.provideImageOfTag(img_id)
         if image is None:
             return make_response(json.jsonify(message="No Photo"), 404)
@@ -394,7 +394,7 @@ class KangarooAdminAPI(object):
           #. **200**: 업데이트 성공
           #. **410**: 실패
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         image = request.files.get("photo_bin", None)
         
         if image is None:
@@ -402,10 +402,10 @@ class KangarooAdminAPI(object):
 
         is_updated = kangarooAdminObj.updateImageOfTag(img_id, new_image=image)
         if is_updated == True:
-            g.db.commit()
+            g.db_kang.commit()
             return make_response(json.jsonify(message = "Change Image Successfully"), 200)
         else:
-            g.db.rollback()
+            g.db_kang.rollback()
             return make_response(json.jsonify(message = "Something Wrong"), 410)
 
     def adminKangarooTagDeleteImageBinary(self, tag_id, img_id, filename):
@@ -421,13 +421,13 @@ class KangarooAdminAPI(object):
           #. **200**: 삭제 성공
           #. **410**: 실패
         """
-        kangarooAdminObj = KangarooAdmin(g.db)
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
         is_updated = kangarooAdminObj.deleteImageOfTag(img_id)
         if is_updated == True:
-            g.db.commit()
+            g.db_kang.commit()
             return make_response(json.jsonify(message = "Change Image Status Successfully"), 200)
         else:
-            g.db.rollback()
+            g.db_kang.rollback()
             return make_response(json.jsonify(message = "Something Wrong"), 410)
 
 
