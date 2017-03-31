@@ -13,3 +13,5 @@ app/docs
 coverage*
 src/warning_application.py
 .idea/
+.DS_Store
+test/.DS_Store
