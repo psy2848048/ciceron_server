@@ -109,8 +109,10 @@ DATABASE = None
 
 DATABASE_kang = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=noSecret01!"
 if os.environ.get('PURPOSE') == 'PROD':
+    #DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=photo user=ciceron_web password=noSecret01!"
     DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 else:
+    #DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=noSecret01!"
     DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
 
 VERSION = '1.1'
@@ -136,13 +138,13 @@ VERSION = "2015.11.15"
 HOST = ""
 if os.environ.get('PURPOSE') == 'PROD':
     HOST = 'http://ciceron.me'
-    SESSION_COOKIE_DOMAIN = ".ciceron.me"
-    SESSION_COOKIE_PATH = "/"
+    #SESSION_COOKIE_DOMAIN = ".ciceron.me"
+    #SESSION_COOKIE_PATH = "/"
     
 elif os.environ.get('PURPOSE') == 'DEV':
     HOST = 'http://ciceron.xyz'
-    SESSION_COOKIE_DOMAIN = ".ciceron.xyz"
-    SESSION_COOKIE_PATH = "/"
+    #SESSION_COOKIE_DOMAIN = ".ciceron.xyz"
+    #SESSION_COOKIE_PATH = "/"
 
 else:
     HOST = 'http://localhost'
@@ -4280,7 +4282,7 @@ def return_money():
 
 if __name__ == '__main__':
     from gevent.wsgi import WSGIServer
-    http_server = WSGIServer(('0.0.0.0', 7000), app)
+    http_server = WSGIServer(('0.0.0.0', 5000), app)
     http_server.serve_forever()
     #app.run(host="0.0.0.0", port=5000, threaded=True)
     

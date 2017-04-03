@@ -642,9 +642,9 @@ class UserControlAPI(object):
 
         """
         userControlObj = UserControl(g.db)
-        user_id = ciceron_lib.get_user_id(g.db, session['useremail'])
 
         if 'useremail' in session:
+            user_id = ciceron_lib.get_user_id(g.db, session['useremail'])
             client_os = request.args.get('client_os', None)
             isTranslator = ciceron_lib.translator_checker_plain(g.db, session['useremail'])
             isAdmin = userControlObj._adminCheck(session['useremail'])
