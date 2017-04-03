@@ -7,6 +7,7 @@ from flask import request, send_file, make_response, g, json
 import psycopg2
 import requests
 from datetime import datetime, timedelta
+from PIL import Image
 
 #Connection info: ADDRESS=ciceron.xyz PORT=5432 DATABASE=photo USER=ciceron_web PASS=noSecret01! SCHEMA=raw
 
@@ -162,21 +163,57 @@ class KangarooAdmin(object):
             return False
         return True
 
-    def updateImageOfTag(self, img_id, new_image=None):
+    def updateImageOfTag(self, img_id, location=None):
+        cursor = self.conn.cursor()
+        query_select_photo = """
+        SELECT file_binary FROM RAW.f_photo
+        WHERE id = %s
+        """
+        query_update_photo = """
+        UPDATE RAW.f_photo
+        SET file_binary = %s
+        WHERE id = %s
+        """
+
+        try:
+            # DB에서 id에 해당하는 이미지를 꺼낸다.
+            cursor.execute(query_select_photo, (img_id, ))
+            # bytes로 저장된 사진을 bytesio로 이미지 파일로 바꾼다.
+            img_bytes = io.BytesIO(cursor.fetchone()[0])
+            img = Image.open(img_bytes)
+            
+            # 받은 좌표를 crop()에 맞춰서 바꿔주기 (start_x, start_y, start_x + width, start_y + height)
+            location[2] += location[0]
+            location[3] += location[1]
+            
+            # 입력받은 좌표를 이용하여 crop()한다.
+            crop_img = img.crop(location)
+            b = io.BytesIO()
+            crop_img.save(b, format="PNG")
+            img_bytes = b.getvalue()
+
+            # 크롭한 이미지를 DB에 저장한다.
+            cursor.execute(query_update_photo, (bytearray(img_bytes), img_id, ))
+            if cursor.rowcount == 0:
+                return False
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+        return True
+
+    def updateImageOfTag_before(self, img_id, new_image=None):
         cursor = self.conn.cursor()
         query_update_photo = """
         UPDATE RAW.f_photo
-        SET filename = %s, file_binary = %s
+        SET file_binary = %s
         WHERE id = %s
         """
-        filename = ""
         
         if new_image is not None:
-            extension = new_image.filename.split(".")[-1]
-            filename = str(datetime.today().strftime("%Y%m%d%H%M%S%f")) + "." + extension
             try:
                 img_bin = new_image.read()
-                cursor.execute(query_update_photo, (filename, bytearray(img_bin), img_id, ))
+                cursor.execute(query_update_photo, (bytearray(img_bin), img_id, ))
                 if cursor.rowcount == 0:
                     return False
             except:
@@ -203,6 +240,7 @@ class KangarooAdminAPI(object):
             self.app.add_url_rule('{}/admin/kangaroo/tag/<int:tag_id>'.format(endpoint), view_func=self.adminKangarooTagImageLists, methods=["GET"])
             self.app.add_url_rule('{}/admin/kangaroo/tag/<int:tag_id>/img/<int:img_id>/<filename>'.format(endpoint), view_func=self.adminKangarooTagProvideImageBinary, methods=["GET"])
             self.app.add_url_rule('{}/admin/kangaroo/tag/<int:tag_id>/img/<int:img_id>/<filename>'.format(endpoint), view_func=self.adminKangarooTagUpdateImageBinary, methods=["PUT"])
+            self.app.add_url_rule('{}/admin/kangaroo/tag/<int:tag_id>/img/<int:img_id>/before'.format(endpoint), view_func=self.adminKangarooTagUpdateImageBinary_before, methods=["PUT"])
             self.app.add_url_rule('{}/admin/kangaroo/tag/<int:tag_id>/img/<int:img_id>/<filename>'.format(endpoint), view_func=self.adminKangarooTagDeleteImageBinary, methods=["DELETE"])
 
     def adminKangarooTagListing(self):
@@ -318,7 +356,6 @@ class KangarooAdminAPI(object):
           #. **410**: Fail
         """
         kangarooAdminObj = KangarooAdmin(g.db_kang)
-        parameters = ciceron_lib.parse_request(request)
 
         is_updated = kangarooAdminObj.deleteTag(tag_id)
         if is_updated == True:
@@ -354,7 +391,6 @@ class KangarooAdminAPI(object):
         kangarooAdminObj = KangarooAdmin(g.db_kang)
         page = request.args.get('page', 1)
 
-        print(page)
         if not page:
             return make_response(json.jsonify(data="Page is entered but there is no value."), 410)
         else:
@@ -388,6 +424,41 @@ class KangarooAdminAPI(object):
         **Parameters**
           #. **"tag_id"**: URL에 직접 삽입, Tag ID
           #. **"img_id"**: URL에 직접 삽입. Image ID
+          #. **"x"**: x 좌표
+          #. **"y"**: y 좌표
+          #. **"w"**: width
+          #. **"h"**: height
+
+        **Response**
+          #. **200**: 업데이트 성공
+          #. **410**: 실패
+        """
+        kangarooAdminObj = KangarooAdmin(g.db_kang)
+        parameters = ciceron_lib.parse_request(request)
+        x = parameters.get("x", None)
+        y = parameters.get("y", None)
+        w = parameters.get("w", None)
+        h = parameters.get("h", None)
+       
+        location = [ float(value) for value in (x,y,w,h) ]
+        if not location:
+            return make_response(json.jsonify(message = "location not entered."), 400)
+
+        is_updated = kangarooAdminObj.updateImageOfTag(img_id, location)
+        if is_updated == True:
+            g.db_kang.commit()
+            return make_response(json.jsonify(message = "Change Image Successfully"), 200)
+        else:
+            g.db_kang.rollback()
+            return make_response(json.jsonify(message = "Something Wrong"), 410)
+
+    def adminKangarooTagUpdateImageBinary_before(self, tag_id, img_id):
+        """
+        이미지 업데이트 API
+
+        **Parameters**
+          #. **"tag_id"**: URL에 직접 삽입, Tag ID
+          #. **"img_id"**: URL에 직접 삽입. Image ID
           #. **"photo_bin"**: 사진 Binary
 
         **Response**
@@ -400,7 +471,7 @@ class KangarooAdminAPI(object):
         if image is None:
             return make_response(json.jsonify(message = "'photo_bin' not entered."), 410)
 
-        is_updated = kangarooAdminObj.updateImageOfTag(img_id, new_image=image)
+        is_updated = kangarooAdminObj.updateImageOfTag_before(img_id, new_image=image)
         if is_updated == True:
             g.db_kang.commit()
             return make_response(json.jsonify(message = "Change Image Successfully"), 200)
