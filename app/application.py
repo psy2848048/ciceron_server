@@ -18,6 +18,7 @@ from flask_cors import CORS
 from flask_session import Session
 from flask_cache import Cache
 import traceback
+import pymysql
 
 try:
     from i18nHandler import I18nHandler
@@ -231,6 +232,13 @@ def before_request():
     """
     g.db = connect_db()
     g.db_kang = psycopg2.connect(DATABASE_kang)
+    g.baogao_db = pymysql.connect(
+                                host='baogao.co',
+                                user='baogao',
+                                password='ciceron8888',
+                                db='baogao',
+                                cursorclass=pymysql.cursors.DictCursor
+                            )
 
 @app.teardown_request
 def teardown_request(exception):
@@ -243,6 +251,10 @@ def teardown_request(exception):
         db.close()
     if db_kang is not None:
         db_kang.close()
+
+    baogao_db = getattr(g, 'baogao_db', None)
+    if baogao_db is not None:
+        baogao_db.close()
 
 #@facebook.tokengetter
 #def get_facebook_token():

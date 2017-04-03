@@ -17,13 +17,51 @@ try:
 except:
     from .ciceron_lib import login_required, admin_required
 
+import pymysql
 
 class UserControl(object):
-    def __init__(self, conn):
+    def __init__(self, conn, baogaoConn=None):
         self.conn = conn
+        if baogaoConn is None:
+            self.baogaoConn = pymysql.connect(
+                      host='baogao.co',
+                      user='baogao',
+                      password='ciceron8888',
+                      db='baogao',
+                      cursorclass=pymysql.cursors.DictCursor
+                    )
 
-    def _adminCheck(self, email):
-        pass
+        else:
+            self.baogaoConn = baogaoConn
+
+    def _adminCheck(self, user_id):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT is_admin FROM CICERON.D_USERS
+            WHERE id = %s
+        """
+        cursor.execute(query, (user_id, ))
+        ret = cursor.fetchone()
+        if ret is None or len(ret) == 0:
+            return False
+
+        return ret[0]
+
+    def _adminAccessablePage(self, user_id):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT texts.id, texts.text
+            FROM F_AUTHENTICATED_ADMIN_PAGE fact
+            LEFT OUTER JOIN CICERON.D_ADMIN_PAGES texts
+              ON fact.page_id = texts.id
+            WHERE fact.user_id = %s
+        """
+        cursor.execute(query, (user_id, ))
+        column = [ row[0] for row in cursor.description ]
+        ret = cursor.fetchall()
+        res = ciceron_lib.dbToDict(column, ret)
+
+        return res
 
     def passwordCheck(self, email, salt, hashed_password):
         cursor = self.conn.cursor()
@@ -272,14 +310,14 @@ class UserControl(object):
         # 1) 번역 가능 언어
         cursor.execute("SELECT language_id FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s",
             (user_id, ))
-        other_language_list = ",".join( [ str(item[0]) for item in cursor.fetchall() ] )
+        other_language_list = [ item[0] for item in cursor.fetchall() ]
         cursor.execute("SELECT badge_id FROM CICERON.D_AWARDED_BADGES WHERE user_id = %s",
             (user_id, ))
         badgeList = (',').join([ str(item[0]) for item in cursor.fetchall() ])
 
         # 2) 키워드
         cursor.execute("SELECT key.text FROM CICERON.D_USER_KEYWORDS ids JOIN CICERON.D_KEYWORDS key ON ids.keyword_id = key.id WHERE ids.user_id = %s", (user_id, ))
-        keywords = (',').join([ str(item[0]) for item in cursor.fetchall() ])
+        keywords = [ item[0] for item in cursor.fetchall() ]
 
         if profile_ret['profile_pic_path'] == None:
             profile_ret['profile_pic_path'] = 'img/anon.jpg'
@@ -349,7 +387,7 @@ class UserControl(object):
         return True
 
     def profilePic(self, user_id):
-        cursor = g.db.cursor()
+        cursor = self.conn.cursor()
         query_getPic = "SELECT bin FROM CICERON.F_USER_PROFILE_PIC WHERE user_id = %s"
         cursor.execute(query_getPic, (user_id, ))
         profile_pic = cursor.fetchone()[0]
@@ -359,13 +397,179 @@ class UserControl(object):
             return io.BytesIO(profile_pic)
 
     def userLists(self, page=1):
-        pass
+        cursor = self.conn.cursor()
+        query = """
+            SELECT *
+            FROM CICERON.D_USERS
+            ORDER BY id DESC
+            LIMIT 20 OFFSET 20 * ({} - 1)
+        """.format(page)
+        cursor.execute(query)
+        columns = [ row[0] for row in cursor.description ]
+        ret = cursor.fetchall()
+        data = ciceron_lib.dbToDict(columns, ret)
 
-    def permissionChange(self, user_id, permission_id):
-        pass
+        for row in data:
+            # Permission level check
+            if row['is_admin'] == True:
+                row['permission_level'] = 2
+            elif row['is_admin'] == False and row['is_translator'] == True:
+                row['permission_level'] = 1
+            elif row['is_admin'] == False and row['is_translator'] == False:
+                row['permission_level'] = 0
 
-    def activeStatusChange(self, user_id, activeStatus_id):
-        pass
+            # Activity level check
+            if row['is_active'] == True:
+                row['activity_id'] = 0
+            else:
+                row['activity_id'] = 1
+
+            # Baogao 등, B2C 상품 출시 후 활성 가능
+            row['recent_work_timestamp'] = None
+
+        return data
+
+    def translatorLists(self, page=1):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT email FROM CICERON.D_USERS WHERE is_translator = true
+            LIMIT 10 OFFSET 10 * ({} - 1)
+        """.format(page)
+        cursor.execute(query)
+        ret = cursor.fetchall()
+
+        data = []
+        for row in ret:
+            _, unit_user_data = self.profile(row[0], is_my_profile=True)
+            data.append(unit_user_data)
+
+        return data
+
+    def adminLists(self, page=1):
+        cursor = self.conn.cursor()
+        query = """
+            SELECT email FROM CICERON.D_USERS WHERE is_admin = true
+            LIMIT 10 OFFSET 10 * ({} - 1)
+        """.format(page)
+        cursor.execute(query)
+        ret = cursor.fetchall()
+
+        data = []
+        for row in ret:
+            _, unit_user_data = self.profile(row[0], is_my_profile=True)
+            data.append(unit_user_data)
+
+        return data
+
+    def permissionChange(self, user_id, permission):
+        cursor = self.conn.cursor()
+        is_admin = None
+        is_translator = None
+
+        if permission == "normal":
+            is_admin = False
+            is_translator = False
+
+        elif permission == "translator":
+            is_admin = False
+            is_translator = True
+
+        elif permission == "admin":
+            is_admin = True
+            is_translator = True
+
+        query = """
+            UPDATE CICERON.D_USERS
+              SET is_admin = %s,
+                  is_translator = %s
+              WHERE id = %s
+        """
+        try:
+            cursor.execute(query, (is_admin, is_translator, user_id, ))
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def assignPageAccessPermission(self, user_id, page_name, to_active=False):
+        cursor = self.conn.cursor()
+        query_active = """
+            INSERT INTO CICERON.F_AUTHENTICATED_ADMIN_PAGE
+            VALUES (%s, %s)
+        """
+        query_deactive = """
+            DELETE FROM CICERON.F_AUTHENTICATED_ADMIN_PAGE
+            WHERE user_id = %s and page_id = %s
+        """
+        page_id = ciceron_lib.get_id_from_text(self.conn, page_name, "D_ADMIN_PAGES")
+        try:
+            if to_active == True:
+                cursor.execute(query_active, (user_id, page_id, ))
+            else:
+                cursor.execute(query_deactive, (user_id, page_id, ))
+
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def activeStatusChange(self, user_id, activeStatus):
+        cursor = self.conn.cursor()
+        is_active = None
+        if activeStatus == "active":
+            is_active = True
+        elif activeStatus == "deactive":
+            is_active = False
+
+        query = """
+            UPDATE CICERON.D_USERS
+              SET is_active = %s
+              WHERE id = %s
+        """
+        try:
+            cursor.execute(query, (is_active, user_id, ))
+        except:
+            traceback.print_exc()
+            self.conn.rollback()
+            return False
+
+        return True
+
+    def languageAssigner(self, user_id, language_id):
+        cursor = self.conn.cursor()
+
+        # 번역 언어 추가
+        #cursor.execute("UPDATE CICERON.D_USERS SET is_translator = true, trans_request_state = 2 WHERE id = %s ", (user_id, ))
+        new_translation_list_id = ciceron_lib.get_new_id(self.conn, "D_TRANSLATABLE_LANGUAGES")
+        try:
+            cursor.execute("SELECT count(*) FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s and language_id = %s ", (user_id, language_id, ))
+            rs = cursor.fetchone()
+            if rs[0] == 0:
+                cursor.execute("INSERT INTO CICERON.D_TRANSLATABLE_LANGUAGES VALUES (%s,%s,%s)", (new_translation_list_id, user_id, language_id, ))
+
+        except:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
+
+        return True
+
+    def languageDeassign(self, user_id, language_id):
+        cursor = self.conn.cursor()
+
+        try:
+            cursor.execute("DELETE FROM CICERON.D_TRANSLATABLE_LANGUAGES WHERE user_id = %s AND language_id = %s", (user_id, language_id, ))
+        except:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
+
+        return True
+
 
 
 class UserControlAPI(object):
@@ -392,9 +596,13 @@ class UserControlAPI(object):
 
 
             self.app.add_url_rule('{}/admin/userLists'.format(endpoint), view_func=self.adminUserLists, methods=["GET"])
+            self.app.add_url_rule('{}/admin/translatorLists'.format(endpoint), view_func=self.adminTranslatorLists, methods=["GET"])
+            self.app.add_url_rule('{}/admin/adminLists'.format(endpoint), view_func=self.adminAdminLists, methods=["GET"])
             self.app.add_url_rule('{}/admin/user/<int:user_id>/permission/<status>'.format(endpoint), view_func=self.adminPermissionChange, methods=["PUT"])
             self.app.add_url_rule('{}/admin/user/<int:user_id>/activity/<status>'.format(endpoint), view_func=self.adminActiveStatusChange, methods=["PUT"])
             self.app.add_url_rule('{}/admin/user/<int:user_id>/assignLanguage'.format(endpoint), view_func=self.adminAssignLanguage, methods=["POST"])
+            self.app.add_url_rule('{}/admin/user/<int:user_id>/deassignLanguage/<int:language_id>'.format(endpoint), view_func=self.adminDeassignLanguage, methods=["DELETE"])
+            self.app.add_url_rule('{}/admin/user/<int:user_id>/permission/page/<page_name>/<action>'.format(endpoint), view_func=self.adminAssignPageAccessPermission, methods=["POST"])
 
             if os.environ.get('PURPOSE') != 'PROD':
                 self.app.add_url_rule('{}/login/admin'.format(endpoint), view_func=self.fakeLoginAdmin, methods=["GET", "POST"])
@@ -412,7 +620,7 @@ class UserControlAPI(object):
           Nothing
     
         **Response**
-          **200**
+          #. **200**
             .. code-block:: json
                :linenos:
 
@@ -421,16 +629,26 @@ class UserControlAPI(object):
                  "isLoggedIn": true, // 로그인 여부 True/False
                  "isAdmin": true, // 관리자 여부 True/False
                  "isTranslator" : false  //로그인한 유저의 번역가여부 True/False
+                 "adminAccessablePage": [
+                    {
+                      "id": 1,
+                      "text": "kangaroo"
+                    }
+                 ]
                }
 
-          **403**
+          #. **403**
             로그인되지 않았음
 
         """
+        userControlObj = UserControl(g.db)
+        user_id = ciceron_lib.get_user_id(g.db, session['useremail'])
+
         if 'useremail' in session:
             client_os = request.args.get('client_os', None)
             isTranslator = ciceron_lib.translator_checker_plain(g.db, session['useremail'])
-            isAdmin = True # TODO
+            isAdmin = userControlObj._adminCheck(session['useremail'])
+            adminAccessablePage = userControlObj._adminAccessablePage(user_id)
 
             #if client_os is not None and registration_id is not None:
             #    check_and_update_reg_key(g.db, client_os, registration_id)
@@ -441,6 +659,7 @@ class UserControlAPI(object):
                 isLoggedIn = True,
                 isTranslator=isTranslator,
                 isAdmin=isAdmin,
+                adminAccessablePage=adminAccessablePage,
                 message="User %s is logged in" % session['useremail'])
                 , 200)
         else:
@@ -448,7 +667,8 @@ class UserControlAPI(object):
                 useremail=None,
                 isLoggedIn=False,
                 isTranslator=False,
-                isAdmin=isAdmin,
+                isAdmin=False,
+                adminAccessablePage=None,
                 message="No user is logged in")
                 , 403)
 
@@ -467,19 +687,25 @@ class UserControlAPI(object):
             #. "password": 3번 참조
 
           **Response**
-            **200** 로그인 성공
+            #. **200** 로그인 성공
               .. code-block:: json
                  :linenos:
 
                  {
                    "logged_in": true, // 로그인 상태
                    "useremail": "blahblah@ciceron.me", // 로그인한 유저 메일
-                   "isTranslator": true // 번역가 계정인지 아닌지 확인
+                   "isTranslator": true, // 번역가 계정인지 아닌지 확인
+                   "isAdmin": false,
+                   "adminAccessablePage": [
+                      {
+                        "id": 1,
+                        "text": "kangaroo"
+                      }
+                   ]
                  }
 
-            **403**: 로그인 실패
-
-            **501**: 1유저 2 패스워드 (있을 수 없는 동작)
+            #. **403**: 로그인 실패
+            #. **501**: 1유저 2 패스워드 (있을 수 없는 동작)
         """
 
         userControlObj = UserControl(g.db)
@@ -502,9 +728,18 @@ class UserControlAPI(object):
                 return make_response(json.jsonify(message=err_msg), resp_code)
             else:
                 isTranslator = ciceron_lib.translator_checker_plain(g.db, email)
+                user_id = ciceron.get_user_id(g.db, email)
+                userControlObj = UserControl(g.db)
+
+                isAdmin = userControlObj._adminCheck(user_id)
+                adminAccessablePage = userControlObj._adminAccessablePage(user_id)
+
                 session['logged_in'] = True
                 session['useremail'] = email
                 session['isTranslator'] = isTranslator
+                session['isAdmin'] = isAdmin
+                session['adminAccessablePage'] = adminAccessablePage
+
                 session.pop('salt', None)
                 return make_response(json.jsonify(
                     message='Logged in',
@@ -806,7 +1041,7 @@ class UserControlAPI(object):
                  "trans_request_state": 2, // (Useless) 번역 권한 상태
                  "nationality": null, // 국적
                  "residence": null, // 거주지
-                 "translatableLang": "2", // 번역 가능한 언어
+                 "translatableLang": [1, 2, 5], // 번역 가능한 언어
                  "badgeList": "", // (Useless) 뱃지 리스느
                  "keywords": "", // String 형태의 리스트. 자신을 표현할 수 있는 키워드 추가/수정/삽입
                  "user_point": 0 // 번역가에겐 출금할 수 있는 돈, 의뢰인에게는 사이버머니
@@ -881,7 +1116,8 @@ class UserControlAPI(object):
         """
         Admin: 관리를 위한 유저 리스트
 
-        **Parameters**: Nothing
+        **Parameters**
+          #. **"page"**: (OPTIONAL) 다음 페이지
 
         **Response**
           **200**
@@ -903,7 +1139,95 @@ class UserControlAPI(object):
                  ]
                }
         """
-        pass
+        userControlObj = UserControl(g.db)
+        page = request.args.get(page, 1)
+        ret = userControlObj.userLists(page=page)
+        return make_response(json.jsonify(data=ret), 200)
+
+    @admin_required
+    def adminTranslatorLists(self):
+        """
+        Admin: 관리를 위한 번역가 리스트
+
+        **Parameters**
+          #. **"page"**: (OPTIONAL) 다음 페이지
+
+        **Response**
+          **200**
+
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "data": [
+                  {
+                     "id": 4, // Integer User Id
+                     "email": "admin@ciceron.me", // E-Mail
+                     "name": "Admin", // User Name
+                     "mother_language_id": 1, // User's mother language
+                     "is_translator": true, // Boolean, 번역가 여부
+                     "other_language_list_id": null, // 필요없음
+                     "profile_pic_path": "profile_pic/4/20160426033806110457.png", // 프로필사진 주소
+                     "profile_text": "Admin of CICERON", // 프로필 글귀
+                     "translatableLang": [1, 2, 5], // 번역 가능한 언어
+                     "keywords": "", // String 형태의 리스트.
+                     "recent_work_timestamp": "", // 최근 작업
+                     "is_working": true, // 작업여부
+                     "numoftranslationpending": 0, // (Useless) 번역 장바구니에 넣은 수
+                     "numoftranslationongoing": 5, // 진행중인 번역 작업물 수
+                     "numoftranslationcompleted": 7 // 번역 완료한 수
+                  }
+                ]
+              }
+        """
+        userControlObj = UserControl(g.db)
+        page = request.args.get('page', 1)
+        ret = userControlObj.translatorLists(page=page)
+        # recent_work_timestamp, is_working 추가해야함
+        return make_response(json.jsonify(ret), 200)
+
+    @admin_required
+    def adminAdminLists(self):
+        """
+        Admin: Admin 리스트 
+
+        **Parameters**
+          #. **"page"**: (OPTIONAL) 다음 페이지
+
+        **Response**
+          **200**
+
+            .. code-block:: json
+               :linenos:
+
+               {
+                 "data": [
+                   {
+                     "id": 4, // Integer User Id
+                     "email": "admin@ciceron.me", // E-Mail
+                     "name": "Admin", // User Name
+                     "mother_language_id": 1, // User's mother language
+                     "is_translator": true, // Boolean, 번역가 여부
+                     "other_language_list_id": null, // 필요없음
+                     "profile_pic_path": "profile_pic/4/20160426033806110457.png", // 프로필사진 주소
+                     "profile_text": "Admin of CICERON", // 프로필 글귀
+                     "translatableLang": [1, 2, 5], // 번역 가능한 언어
+                     "keywords": "", // String 형태의 리스트.
+                     "recent_work_timestamp": "", // 최근 작업
+                     "is_working": true, // 작업여부
+                     "numoftranslationpending": 0, // (Useless) 번역 장바구니에 넣은 수
+                     "numoftranslationongoing": 5, // 진행중인 번역 작업물 수
+                     "numoftranslationcompleted": 7 // 번역 완료한 수
+                   }
+                 ]
+               }
+
+        """
+        userControlObj = UserControl(g.db)
+        page = request.args.get('page', 1)
+        ret = userControlObj.adminLists(page=page)
+        # recent_work_timestamp, is_working 추가해야함
+        return make_response(json.jsonify(ret), 200)
 
     @admin_required
     def adminPermissionChange(self, user_id, status):
@@ -914,13 +1238,53 @@ class UserControlAPI(object):
           #. **"user_id"**: URL에 삽입, User ID
           #. **"status"**: URL에 삽입, 활동여부
             #. "normal": 보통 회원
+            #. "translator": 번역가
             #. "admin": Admin(관리자)
 
         **Response**
-          **200**: OK
-          **410**: Fail
+          #. **200**: OK
+          #. **410**: Fail
+
         """
-        pass
+        userControlObj = UserControl(g.db)
+        is_ok = userControlObj.permissionChange(user_id, status)
+        if is_ok == True:
+            g.db.commit()
+            return make_response("OK", 200)
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
+
+    @admin_required
+    def adminAssignPageAccessPermission(self, user_id, page_name, action):
+        """
+        Admin: 관리인 페이지 엑세스 권한 설정
+
+        **Parameters**
+          #. **"user_id"**: URL에 삽입, User ID
+          #. **"page_name"**: URL에 삽입, String, 페이지 이름
+            #. "ciceron"
+            #. "kangaroo"
+            #. "pretranslated"
+            #. "expense"
+            #. "sentences"
+          #. **"action"**: URL에 삽입, String, 엑세스 권한
+            #. "grant"
+            #. "revoke"
+
+        **Response**
+          #. 200: OK
+          #. 410: Fail
+
+        """
+        userControlObj = UserControl(g.db)
+        is_ok = userControlObj.assignPageAccessPermission(user_id, page_name, action)
+        if is_ok == True:
+            g.db.commit()
+            return make_response("OK", 200)
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def adminActiveStatusChange(self, user_id, status):
@@ -934,19 +1298,27 @@ class UserControlAPI(object):
             #. "deactive": 중단으로 설정
 
         **Response**
-          **200**: OK
-          **410**: Fail
+          #. **200**: OK
+          #. **410**: Fail
+
         """
-        pass
+        userControlObj = UserControl(g.db)
+        is_ok = userControlObj.activeStatusChange(user_id, status)
+        if is_ok == True:
+            g.db.commit()
+            return make_response("OK", 200)
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
 
     @admin_required
     def adminAssignLanguage(self, user_id):
         """
-        Admin: 회원 권한 설정
+        Admin: 번역가 언어 설정
 
         **Parameters**
           #. **"user_id"**: URL에 삽입, User ID
-          #. **"language_id[]"**: Integer array
+          #. **"language_id"**: Integer, 아래 참고
             #.  1: 한국어
             #.  2: 영어/미국
             #.  3: 영어/영국
@@ -961,10 +1333,56 @@ class UserControlAPI(object):
             #. 12: 프랑스어
 
         **Response**
-          **200**: OK
-          **410**: Fail
+          #. **200**: OK
+          #. **410**: Fail
+
         """
-        pass
+        userControlObj = UserControl(g.db)
+        parameters = ciceron_lib.parse_request(request)
+        language_id = parameters['language_id']
+        is_ok = userControlObj.languageAssigner(user_id, language_id)
+        if is_ok == True:
+            g.db.commit()
+            return make_response("OK", 200)
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
+   
+    @admin_required
+    def adminDeassignLanguage(self, user_id, language_id):
+        """
+        Admin: 번역가 언어 제거
+
+        **Parameters**
+          #. **"user_id"**: URL에 삽입, User ID
+          #. **"language_id"**: URL에 삽입, Integer, 아래 참고
+            #.  1: 한국어
+            #.  2: 영어/미국
+            #.  3: 영어/영국
+            #.  4: 중국/보통어
+            #.  5: 중국/광동어
+            #.  6: 태국어
+            #.  7: 중국/대만어
+            #.  8: 일본어
+            #.  9: 스페인어
+            #. 10: 포르투갈어
+            #. 11: 독일어
+            #. 12: 프랑스어
+
+        **Response**
+          #. **200**: OK
+          #. **410**: Fail
+
+        """
+        userControlObj = UserControl(g.db)
+        is_ok = userControlObj.languageDeassign(user_id, language_id)
+        if is_ok == True:
+            g.db.commit()
+            return make_response("OK", 200)
+        else:
+            g.db.rollback()
+            return make_response("Fail", 410)
+            
 
     def fakeLoginAdmin(self):
         session['useremail'] = 'admin@ciceron.me'

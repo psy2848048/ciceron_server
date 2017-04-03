@@ -18,17 +18,21 @@ except:
 
 
 class AdminStats(object):
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self, ciceronConn, baogaoConn):
+        self.ciceronConn = ciceronConn
+        self.baogaoConn = baogaoConn
 
     def statOverview(self):
-        pass
+        cursor = self.conn.cursor()
+        cursor_baogao = self.baogaoConn.cursor()
 
     def aboutDeadline(self):
-        pass
+        cursor = self.conn.cursor()
+        cursor_baogao = self.baogaoConn.cursor()
 
     def checkRequests(self):
-        pass
+        cursor = self.conn.cursor()
+        cursor_baogao = self.baogaoConn.cursor()
 
 
 class AdminStatsAPI(object):
@@ -66,7 +70,13 @@ class AdminStatsAPI(object):
                }
 
         """
-        pass
+        #adminStatsObj = AdminStats(g.db)
+        return make_response(json.jsonify(
+              total_requests=0
+            , pendings=0
+            , ongoings=0
+            , completes=0
+            ), 200)
 
     def adminAboutDeadline(self):
         """
@@ -94,7 +104,16 @@ class AdminStatsAPI(object):
                }
 
         """
-        pass
+        data = [
+          {
+            "id": 4,
+            "theme": "블라블라",
+            "requester_name": "Otto",
+            "translator_name": "mdo",
+            "deadline": "2017. 11. 12. 08:00 KST"
+          }
+        ]
+        return make_response(json.jsonify(data=data), 200)
 
     def adminCheckRequests(self):
         """
@@ -126,7 +145,20 @@ class AdminStatsAPI(object):
                }
 
         """
-        pass
+        data = [
+          {
+            "id": 4,
+            "requester_name": "DummyData",
+            "requester_email": "Otto@naver.com",
+            "subject_id": 1,
+            "original_lang_id": 1,
+            "target_lang_id": 2,
+            "request_time": "2017. 11. 12. 08:00 KST",
+            "order_number": "2017HQ20301",
+            "status": 0
+          }
+        ]
+        return make_response(json.jsonify(data=data), 200)
 
     def adminChangeStatus(self, request_id, status_name):
         """
@@ -145,5 +177,5 @@ class AdminStatsAPI(object):
           #. **410**: Fail
 
         """
-        pass
+        return make_response("OK", 200)
 

@@ -381,7 +381,7 @@ class Pretranslated(object):
             FROM CICERON.V_PRETRANSLATED_PROJECT
             ORDER BY id DESC
             LIMIT 10
-            OFFSET 10 * {}
+            OFFSET {}
         """
         cursor.execute(query.format((page-1) * 10))
         columns = [desc[0] for desc in cursor.description]

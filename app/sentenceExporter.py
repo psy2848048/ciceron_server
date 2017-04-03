@@ -468,7 +468,7 @@ class SentenceExporterAPI(object):
         데이터 통계 파악
           #. **Parameters**
             #. **"original_language_id"**: OPTIONAL, Int, 원어 ID
-            #, **"target_language_id"**: OPTIONAL, Int, 번역문 ID
+            #. **"target_language_id"**: OPTIONAL, Int, 번역문 ID
             #. **"subject_id"**: OPTIONAL, Int
             #. **"format_id"**: OPTIONAL, Int
             #. **"tone_id"**: OPTIONAL, Int
@@ -514,7 +514,7 @@ class SentenceExporterAPI(object):
         데이터 다운로드
           #. **Parameters**
             #. **"original_language_id"**: OPTIONAL, Int, 원어 ID
-            #, **"target_language_id"**: OPTIONAL, Int, 번역문 ID
+            #. **"target_language_id"**: OPTIONAL, Int, 번역문 ID
             #. **"subject_id"**: OPTIONAL, Int
             #. **"format_id"**: OPTIONAL, Int
             #. **"tone_id"**: OPTIONAL, Int
