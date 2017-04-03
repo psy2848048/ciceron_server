@@ -1160,7 +1160,7 @@ class UserControlAPI(object):
 
                {
                  "data": [
-                  {
+                   {
                      "id": 4, // Integer User Id
                      "email": "admin@ciceron.me", // E-Mail
                      "name": "Admin", // User Name
@@ -1176,9 +1176,9 @@ class UserControlAPI(object):
                      "numoftranslationpending": 0, // (Useless) 번역 장바구니에 넣은 수
                      "numoftranslationongoing": 5, // 진행중인 번역 작업물 수
                      "numoftranslationcompleted": 7 // 번역 완료한 수
-                  }
-                ]
-              }
+                   }
+                 ]
+               }
         """
         userControlObj = UserControl(g.db)
         page = request.args.get('page', 1)
