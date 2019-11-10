@@ -283,7 +283,7 @@ class Payment(object):
                 }
         return_url = ciceron_lib.dictToUrlParam(postprocess_api, **param_dict)
 
-        alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
+        alipay_obj = Alipay(pid='111', key='<be_secret>', seller_email='contact@ciceron.me')
         params = {
             'subject': '诗谐论翻译'.decode('utf-8'),
             'out_trade_no': order_no,
@@ -335,7 +335,7 @@ class Payment(object):
         new_payload['merchant_uid'] = order_no
         new_payload['amount'] = kor_amount
 
-        pay_module = Iamport(imp_key=2311212273535904, imp_secret='jZM7opWBO5K2cZfVoMgYJhsnSw4TiSmBR8JgyGRnLCpYCFT0raZbsrylYDehvBSnKCDjivG4862KLWLd')
+        pay_module = Iamport(imp_key=111, imp_secret='SHOULD_BE_SECRET')
 
         try:
             payment_result = pay_module.pay_onetime(**new_payload)
@@ -381,8 +381,8 @@ class Payment(object):
             host_name = "http://ciceron.xyz"
             paypalrestsdk.configure(
                     mode="sandbox",
-                    client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
-                    client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
+                    client_id="my_client_id",
+                    client_secret="my_client_secret"
             )
 
         # LIVE
@@ -390,8 +390,8 @@ class Payment(object):
             host_name = "http://ciceron.me"
             paypalrestsdk.set_config(
                     mode="live",
-                    client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
-                    client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
+                    client_id="my_real_client_kd",
+                    client_secret="my_real_client_secret"
                     )
 
         logging.basicConfig(level=logging.INFO)
@@ -579,7 +579,7 @@ class Payment(object):
                 }
         return_url = ciceron_lib.apiURLOrganizer(postprocess_api, **param_dict)
 
-        alipay_obj = Alipay(pid='2088021580332493', key='lksk5gkmbsj0w7ejmhziqmoq2gdda3jo', seller_email='contact@ciceron.me')
+        alipay_obj = Alipay(pid='111', key='secret', seller_email='contact@ciceron.me')
         params = {
             'subject': '诗谐论翻译'.decode('utf-8'),
             'out_trade_no': order_no,
@@ -636,7 +636,7 @@ class Payment(object):
         new_payload['merchant_uid'] = order_no
         new_payload['amount'] = kor_amount
 
-        pay_module = Iamport(imp_key=2311212273535904, imp_secret='jZM7opWBO5K2cZfVoMgYJhsnSw4TiSmBR8JgyGRnLCpYCFT0raZbsrylYDehvBSnKCDjivG4862KLWLd')
+        pay_module = Iamport(imp_key=231, imp_secret='secrets')
 
         try:
             payment_result = pay_module.pay_onetime(**new_payload)
@@ -687,8 +687,8 @@ class Payment(object):
             host_name = "http://ciceron.xyz"
             paypalrestsdk.configure(
                     mode="sandbox",
-                    client_id="AQX4nD2IQ4xQ03Rm775wQ0SptsSe6-WBdMLldyktgJG0LPhdGwBf90C7swX2ymaSJ-PuxYKicVXg12GT",
-                    client_secret="EHUxNGZPZNGe_pPDrofV80ZKkSMbApS2koofwDYRZR6efArirYcJazG2ao8eFqqd8sX-8fUd2im9GzBG"
+                    client_id="my_client_id",
+                    client_secret="my_client_secret"
             )
 
         # LIVE
@@ -696,8 +696,8 @@ class Payment(object):
             host_name = "http://ciceron.me"
             paypalrestsdk.set_config(
                     mode="live",
-                    client_id="AevAg0UyjlRVArPOUN6jjsRVQrlasLZVyqJrioOlnF271796_2taD1HOZFry9TjkAYSTZExpyFyJV5Tl",
-                    client_secret="EJjp8RzEmFRH_qpwzOyJU7ftf9GxZM__vl5w2pqERkXrt3aI6nsVBj2MnbkfLsDzcZzX3KW8rgqTdSIR"
+                    client_id="my_client_id",
+                    client_secret="my_client_real_secret"
                     )
 
         logging.basicConfig(level=logging.INFO)
