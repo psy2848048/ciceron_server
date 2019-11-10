@@ -28,17 +28,17 @@ except:
     from .pretranslated import PretranslatedAPI
 
 if os.environ.get('PURPOSE') == 'PROD':
-    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=<secret>"
 else:
-    DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=cicerontest.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=<secret>"
 
 VERSION = '2.0'
 DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
-FACEBOOK_APP_ID = 256525961180911
-FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
+FACEBOOK_APP_ID = 111
+FACEBOOK_APP_SECRET = '111'
 JSON_SORT_KEYS = False
 
 SESSION_TYPE = 'redis'
@@ -63,9 +63,9 @@ else:
 
 # APP setting
 app = Flask(__name__)
-app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
+app.secret_key = 'GOOGLE_SECRET'
 app.config.from_object(__name__)
-app.project_number = 145456889576
+app.project_number = 111
 
 # CORS
 cors = CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": "true"}})

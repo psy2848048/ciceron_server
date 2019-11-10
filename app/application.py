@@ -107,21 +107,19 @@ DATABASE = None
 """ Execute following first!!"""
 """ export DYLD_LIBRARY_PATH='/usr/local/opt/openssl/lib' """
 
-DATABASE_kang = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=noSecret01!"
+DATABASE_kang = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=<secret>"
 if os.environ.get('PURPOSE') == 'PROD':
-    #DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=photo user=ciceron_web password=noSecret01!"
-    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=ciceronprod.cng6yzqtxqhh.ap-northeast-1.rds.amazonaws.com port=5432 dbname=ciceron user=ciceron_web password=<secret>"
 else:
-    #DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=photo user=ciceron_web password=noSecret01!"
-    DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=noSecret01!"
+    DATABASE = "host=aristoteles.ciceron.xyz port=5432 dbname=ciceron user=ciceron_web password=<secret>"
 
 VERSION = '1.1'
 DEBUG = True
 BASEPATH = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER_RESULT = "translate_result"
 MAX_CONTENT_LENGTH = 4 * 1024 * 1024
-FACEBOOK_APP_ID = 256525961180911
-FACEBOOK_APP_SECRET = 'e382ac48932308c15641803022feca13'
+FACEBOOK_APP_ID = 111
+FACEBOOK_APP_SECRET = '11'
 JSON_SORT_KEYS = False
 
 SESSION_TYPE = 'redis'
@@ -151,9 +149,9 @@ else:
 
 # APP setting
 app = Flask(__name__)
-app.secret_key = 'Yh1onQnWOJuc3OBQHhLFf5dZgogGlAnEJ83FacFv'
+app.secret_key = '<Google_secret_key>'
 app.config.from_object(__name__)
-app.project_number = 145456889576
+app.project_number = 111
 
 # Flask-Cache
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
